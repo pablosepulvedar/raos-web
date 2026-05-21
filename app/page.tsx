@@ -1,65 +1,140 @@
-import Image from "next/image";
+'use client'
+
+import Image from 'next/image'
+import Link from 'next/link'
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabase-browser'
+
+const menuItems = [
+  {
+    href: '/usuarios',
+    emoji: '👥',
+    titulo: 'Usuarios',
+    descripcion: 'Agregar y gestionar usuarios',
+    fondo: '#4fa3ff',
+    texto: '#fff',
+    subtexto: '#dceeff',
+  },
+  {
+    href: '/reservas',
+    emoji: '📅',
+    titulo: 'Reservas',
+    descripcion: 'Ver y gestionar reservas',
+    fondo: '#ffd700',
+    texto: '#0d2b5c',
+    subtexto: '#2a4f85',
+  },
+  {
+    href: '/pilotos',
+    emoji: '🪂',
+    titulo: 'Pilotos',
+    descripcion: 'Ver y gestionar pagos de pilotos',
+    fondo: '#2e6db4',
+    texto: '#fff',
+    subtexto: '#c8ddf5',
+  },
+  {
+    href: '/varios',
+    emoji: '⚙️',
+    titulo: 'Varios',
+    descripcion: 'Horarios, valores y roles',
+    fondo: '#0d2b5c',
+    texto: '#fff',
+    subtexto: '#7aafd4',
+  },
+]
 
 export default function Home() {
+  const router = useRouter()
+  const [userName, setUserName] = useState('Usuario')
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const supabase = createClient()
+        const { data, error } = await supabase.auth.getUser()
+        if (error || !data.user) return
+
+        const { data: profile } = await supabase
+          .from('perfiles')
+          .select('nombre')
+          .eq('id', data.user.id)
+          .single()
+
+        setUserName(profile?.nombre || data.user.email?.split('@')[0] || 'Usuario')
+      } catch {
+        // Sin acción
+      }
+    }
+
+    fetchUser()
+  }, [])
+
+  const signOut = async () => {
+    const supabase = createClient()
+    await supabase.auth.signOut()
+    router.push('/login')
+    router.refresh()
+  }
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
+    <div className="min-h-screen bg-[#f0f4f8]">
+      {/* Header */}
+      <header className="bg-[#0d2b5c] pt-10 pb-7 px-6">
+        <div className="max-w-lg mx-auto flex items-center gap-4">
+          <div className="w-14 h-14 rounded-full border-2 border-[#ffd700] overflow-hidden shrink-0">
             <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+              src="/logo.jpg"
+              alt="RAOS Logo"
+              width={56}
+              height={56}
+              className="w-full h-full object-cover"
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+          </div>
+          <div className="flex-1">
+            <p className="text-[#ffd700] text-xs font-bold tracking-widest uppercase">
+              Parapente RAOS
+            </p>
+            <h1 className="text-white text-xl font-extrabold mt-0.5">Bienvenido</h1>
+            <p className="text-[#7aafd4] text-sm">{userName}</p>
+          </div>
+          <button
+            onClick={signOut}
+            className="text-[#7aafd4] text-sm hover:text-white transition-colors shrink-0"
           >
-            Documentation
-          </a>
+            Salir →
+          </button>
+        </div>
+      </header>
+
+      {/* Menú */}
+      <main className="max-w-lg mx-auto px-5 pt-6 pb-8">
+        <p className="text-xs font-bold text-[#1e5a96] mb-4 tracking-wider uppercase">
+          Menú principal
+        </p>
+
+        <div className="flex flex-col gap-3">
+          {menuItems.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              style={{ backgroundColor: item.fondo }}
+              className="flex items-center gap-4 px-5 py-4 rounded-2xl shadow-md hover:opacity-90 transition-opacity"
+            >
+              <span className="text-3xl">{item.emoji}</span>
+              <div>
+                <p style={{ color: item.texto }} className="text-base font-bold">
+                  {item.titulo}
+                </p>
+                <p style={{ color: item.subtexto }} className="text-xs mt-0.5">
+                  {item.descripcion}
+                </p>
+              </div>
+            </Link>
+          ))}
         </div>
       </main>
     </div>
-  );
+  )
 }
