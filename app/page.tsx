@@ -12,36 +12,44 @@ const menuItems = [
     emoji: '👥',
     titulo: 'Usuarios',
     descripcion: 'Agregar y gestionar usuarios',
-    fondo: '#4fa3ff',
+    from: '#4fa3ff',
+    to: '#2e6db4',
     texto: '#fff',
     subtexto: '#dceeff',
+    sombra: 'rgba(79,163,255,0.35)',
   },
   {
     href: '/reservas',
     emoji: '📅',
     titulo: 'Reservas',
     descripcion: 'Ver y gestionar reservas',
-    fondo: '#ffd700',
+    from: '#ffd700',
+    to: '#e6a800',
     texto: '#0d2b5c',
     subtexto: '#2a4f85',
+    sombra: 'rgba(255,215,0,0.35)',
   },
   {
     href: '/pilotos',
     emoji: '🪂',
     titulo: 'Pilotos',
     descripcion: 'Ver y gestionar pagos de pilotos',
-    fondo: '#2e6db4',
+    from: '#2e6db4',
+    to: '#1a4a85',
     texto: '#fff',
     subtexto: '#c8ddf5',
+    sombra: 'rgba(46,109,180,0.4)',
   },
   {
     href: '/varios',
     emoji: '⚙️',
     titulo: 'Varios',
     descripcion: 'Horarios, valores y roles',
-    fondo: '#0d2b5c',
+    from: '#1a4a85',
+    to: '#0d2b5c',
     texto: '#fff',
     subtexto: '#7aafd4',
+    sombra: 'rgba(13,43,92,0.4)',
   },
 ]
 
@@ -79,16 +87,16 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f0f4f8]">
+    <div className="min-h-screen" style={{ background: 'linear-gradient(160deg, #e8f2ff 0%, #d0e6ff 100%)' }}>
       {/* Header */}
-      <header className="bg-[#0d2b5c] pt-10 pb-7 px-6">
+      <header style={{ background: 'linear-gradient(135deg, #0d2b5c 0%, #1a4a85 100%)' }} className="pt-10 pb-8 px-6 shadow-lg">
         <div className="max-w-lg mx-auto flex items-center gap-4">
-          <div className="w-14 h-14 rounded-full border-2 border-[#ffd700] overflow-hidden shrink-0">
+          <div className="w-16 h-16 rounded-full border-[3px] border-[#ffd700] overflow-hidden shrink-0 shadow-md">
             <Image
               src="/logo.jpg"
               alt="RAOS Logo"
-              width={56}
-              height={56}
+              width={64}
+              height={64}
               className="w-full h-full object-cover"
             />
           </div>
@@ -101,7 +109,7 @@ export default function Home() {
           </div>
           <button
             onClick={signOut}
-            className="text-[#7aafd4] text-sm hover:text-white transition-colors shrink-0"
+            className="text-[#7aafd4] text-sm hover:text-white transition-colors shrink-0 border border-[#7aafd4]/40 hover:border-white/60 px-3 py-1.5 rounded-lg"
           >
             Salir →
           </button>
@@ -110,7 +118,7 @@ export default function Home() {
 
       {/* Menú */}
       <main className="max-w-lg mx-auto px-5 pt-6 pb-8">
-        <p className="text-xs font-bold text-[#1e5a96] mb-4 tracking-wider uppercase">
+        <p className="text-xs font-bold text-[#2e6db4] mb-4 tracking-wider uppercase">
           Menú principal
         </p>
 
@@ -119,11 +127,14 @@ export default function Home() {
             <Link
               key={item.href}
               href={item.href}
-              style={{ backgroundColor: item.fondo }}
-              className="flex items-center gap-4 px-5 py-4 rounded-2xl shadow-md hover:opacity-90 transition-opacity"
+              style={{
+                background: `linear-gradient(135deg, ${item.from} 0%, ${item.to} 100%)`,
+                boxShadow: `0 4px 16px ${item.sombra}`,
+              }}
+              className="flex items-center gap-4 px-5 py-4 rounded-2xl hover:opacity-95 hover:scale-[1.01] transition-all duration-150"
             >
               <span className="text-3xl">{item.emoji}</span>
-              <div>
+              <div className="flex-1">
                 <p style={{ color: item.texto }} className="text-base font-bold">
                   {item.titulo}
                 </p>
@@ -131,6 +142,7 @@ export default function Home() {
                   {item.descripcion}
                 </p>
               </div>
+              <span style={{ color: item.subtexto }} className="text-lg">›</span>
             </Link>
           ))}
         </div>
