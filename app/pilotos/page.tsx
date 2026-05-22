@@ -1,373 +1,488 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase-browser'
-
-const supabase = createClient()
 
 type PilotoResumen = { perfil_id: string; nombre: string; vuelos: number }
 type ServicioPiloto = { id: number; servicio: string; monto: number; cantidad: number }
 
-const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
-const DIAS  = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb']
-
-const toDateStr = (d: Date) =>
-  `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+const MESES  = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
+const DIAS_L = ['DOM','LUN','MAR','MIÉ','JUE','VIE','SÁB']
+const CAL_D  = ['D','L','M','M','J','V','S']
 const fmtCLP = (v: number) => `$${Number(v).toLocaleString('es-CL')}`
+const toStr  = (d: Date)   => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+const addDays = (s: string, n: number) => { const d = new Date(s+'T12:00:00'); d.setDate(d.getDate()+n); return toStr(d) }
+
+const STEP = 2
 
 export default function Pilotos() {
-  const today = toDateStr(new Date())
+  const sb    = useRef(createClient()).current
+  const today = toStr(new Date())
 
-  const [selectedDate, setSelectedDate]       = useState(today)
-  const [currentMonth, setCurrentMonth]       = useState(new Date().getMonth())
-  const [currentYear, setCurrentYear]         = useState(new Date().getFullYear())
-  const [diasConActividad, setDiasConActividad] = useState<Set<string>>(new Set())
-  const [pilotos, setPilotos]                 = useState<PilotoResumen[]>([])
-  const [pilotoReservaIds, setPilotoReservaIds] = useState<Record<string, number[]>>({})
+  const initStart = useRef(addDays(today, -2)).current
+  const initEnd   = useRef(addDays(today,  2)).current
 
-  const [expandedPiloto, setExpandedPiloto]           = useState<string | null>(null)
-  const [valoresPiloto, setValoresPiloto]             = useState<any[]>([])
-  const [serviciosSeleccionados, setServiciosSeleccionados] = useState<ServicioPiloto[]>([])
-  const [showServicioPicker, setShowServicioPicker]   = useState(false)
-  const [saving, setSaving]                           = useState(false)
-  const [savedMsg, setSavedMsg]                       = useState<string | null>(null)
+  // Calendar
+  const [showCal, setShowCal] = useState(false)
+  const [calM, setCalM]       = useState(new Date().getMonth())
+  const [calY, setCalY]       = useState(new Date().getFullYear())
+  const [dots, setDots]       = useState<Set<string>>(new Set())
 
-  useEffect(() => {
-    fetchValoresPiloto()
-    fetchPilotosDelDia(today)
-    fetchDiasConActividad(new Date().getFullYear(), new Date().getMonth())
-  }, [])
+  // Data
+  const [byDate, setByDate]                     = useState<Record<string, PilotoResumen[]>>({})
+  const [reservaIdsByDatePiloto, setReservaIdsByDatePiloto] = useState<Record<string, Record<string, number[]>>>({})
+  const [windowEnd, setWindowEnd]               = useState(initEnd)
+  const windowEndRef                            = useRef(initEnd)
+  const loadingMoreRef                          = useRef(false)
+  const [loading, setLoading]                   = useState(true)
+  const [loadingMore, setLoadingMore]           = useState(false)
 
-  useEffect(() => { fetchDiasConActividad(currentYear, currentMonth) }, [currentMonth, currentYear])
+  // Service management
+  const [valoresPiloto, setValoresPiloto]         = useState<any[]>([])
+  const [expandedKey, setExpandedKey]             = useState<string|null>(null)
+  const [serviciosSeleccionados, setServicios]    = useState<ServicioPiloto[]>([])
+  const [showSrvPk, setShowSrvPk]                 = useState(false)
+  const [saving, setSaving]                       = useState(false)
+  const [savedMsg, setSavedMsg]                   = useState<string|null>(null)
 
-  const fetchValoresPiloto = async () => {
-    const { data } = await supabase.from('valores').select('*').eq('piloto', true).order('servicio')
-    setValoresPiloto(data || [])
-  }
+  const sentinelRef = useRef<HTMLDivElement>(null)
+  const dateRefs    = useRef<Record<string, HTMLDivElement|null>>({})
 
-  const fetchDiasConActividad = async (year: number, month: number) => {
-    const first = `${year}-${String(month+1).padStart(2,'0')}-01`
-    const last  = `${year}-${String(month+1).padStart(2,'0')}-${new Date(year,month+1,0).getDate()}`
-    const { data: reservasMes } = await supabase.from('reservas').select('id, fecha').gte('fecha',first).lte('fecha',last)
-    if (!reservasMes?.length) { setDiasConActividad(new Set()); return }
-    const { data: conPilotos } = await supabase
+  // ── Fetch helpers ──────────────────────────────────────
+  const fetchRange = useCallback(async (from: string, to: string) => {
+    const { data: reservas } = await sb.from('reservas').select('id, fecha')
+      .gte('fecha', from).lte('fecha', to)
+    if (!reservas?.length) return { byDate:{}, reservaIds:{} }
+
+    const fechaMap: Record<number, string> = {}
+    reservas.forEach((r:any) => { fechaMap[r.id] = r.fecha })
+
+    const { data: rps } = await sb
+      .from('reservas_personas')
+      .select('reserva_id, perfil_id, perfiles(id, nombre)')
+      .in('reserva_id', reservas.map((r:any)=>r.id))
+      .not('perfil_id','is',null)
+
+    const byDate: Record<string, PilotoResumen[]> = {}
+    const reservaIds: Record<string, Record<string, number[]>> = {}
+
+    ;(rps||[]).forEach((row:any) => {
+      const fecha = fechaMap[row.reserva_id]
+      if (!fecha) return
+      const pid   = row.perfil_id
+      const nombre = row.perfiles?.nombre || 'Sin nombre'
+
+      if (!byDate[fecha]) byDate[fecha] = []
+      if (!reservaIds[fecha]) reservaIds[fecha] = {}
+
+      const ex = byDate[fecha].find(p=>p.perfil_id===pid)
+      if (ex) { ex.vuelos++ } else { byDate[fecha].push({ perfil_id:pid, nombre, vuelos:1 }) }
+
+      if (!reservaIds[fecha][pid]) reservaIds[fecha][pid] = []
+      if (!reservaIds[fecha][pid].includes(row.reserva_id)) reservaIds[fecha][pid].push(row.reserva_id)
+    })
+
+    return { byDate, reservaIds }
+  }, [sb])
+
+  const fetchDots = useCallback(async (y: number, m: number) => {
+    const first = `${y}-${String(m+1).padStart(2,'0')}-01`
+    const last  = `${y}-${String(m+1).padStart(2,'0')}-${new Date(y,m+1,0).getDate()}`
+    const { data: reservasMes } = await sb.from('reservas').select('id, fecha').gte('fecha',first).lte('fecha',last)
+    if (!reservasMes?.length) { setDots(new Set()); return }
+    const { data: conPilotos } = await sb
       .from('reservas_personas').select('reserva_id')
       .in('reserva_id', reservasMes.map((r:any)=>r.id))
       .not('perfil_id','is',null)
     const idsConPilotos = new Set((conPilotos||[]).map((r:any)=>r.reserva_id))
-    setDiasConActividad(new Set(
-      reservasMes.filter((r:any)=>idsConPilotos.has(r.id)).map((r:any)=>r.fecha as string)
-    ))
+    setDots(new Set(reservasMes.filter((r:any)=>idsConPilotos.has(r.id)).map((r:any)=>r.fecha as string)))
+  }, [sb])
+
+  // ── Initial load ───────────────────────────────────────
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true)
+      const [{ byDate: d, reservaIds: r }] = await Promise.all([
+        fetchRange(initStart, initEnd),
+        sb.from('valores').select('*').eq('piloto',true).order('servicio').then(({ data }) => setValoresPiloto(data||[])),
+        fetchDots(new Date().getFullYear(), new Date().getMonth()),
+      ])
+      setByDate(d); setReservaIdsByDatePiloto(r)
+      setLoading(false)
+      setTimeout(() => {
+        dateRefs.current[today]?.scrollIntoView({ behavior:'instant', block:'start' })
+      }, 80)
+    }
+    load()
+  }, [])
+
+  // ── Infinite scroll ────────────────────────────────────
+  useEffect(() => {
+    if (loading) return
+    const sentinel = sentinelRef.current
+    if (!sentinel) return
+    const observer = new IntersectionObserver(async (entries) => {
+      if (!entries[0].isIntersecting || loadingMoreRef.current) return
+      loadingMoreRef.current = true
+      setLoadingMore(true)
+      const from = addDays(windowEndRef.current, 1)
+      const to   = addDays(windowEndRef.current, STEP)
+      const { byDate: newD, reservaIds: newR } = await fetchRange(from, to)
+      setByDate(prev => ({ ...prev, ...newD }))
+      setReservaIdsByDatePiloto(prev => ({ ...prev, ...newR }))
+      windowEndRef.current = to
+      setWindowEnd(to)
+      loadingMoreRef.current = false
+      setLoadingMore(false)
+    }, { rootMargin:'300px' })
+    observer.observe(sentinel)
+    return () => observer.disconnect()
+  }, [loading, fetchRange])
+
+  useEffect(() => { fetchDots(calY, calM) }, [calM, calY])
+
+  // ── Calendar ───────────────────────────────────────────
+  const dIM = new Date(calY, calM+1, 0).getDate()
+  const fw  = new Date(calY, calM, 1).getDay()
+  const weeks: (number|null)[][] = []
+  let dd = 1
+  for (let w=0; w<6; w++) {
+    const wk: (number|null)[] = []
+    for (let i=0; i<7; i++) { if((w===0&&i<fw)||dd>dIM) wk.push(null); else { wk.push(dd); dd++ } }
+    weeks.push(wk); if(dd>dIM) break
+  }
+  const chMo = (dir:'prev'|'next') => {
+    let m=calM+(dir==='prev'?-1:1), y=calY
+    if(m<0){m=11;y--} if(m>11){m=0;y++}
+    setCalM(m); setCalY(y)
+  }
+  const selCalDay = async (ds: string) => {
+    setShowCal(false)
+    if (ds > windowEndRef.current) {
+      const { byDate: newD, reservaIds: newR } = await fetchRange(addDays(windowEndRef.current,1), ds)
+      setByDate(prev => ({ ...prev, ...newD }))
+      setReservaIdsByDatePiloto(prev => ({ ...prev, ...newR }))
+      windowEndRef.current = ds
+      setWindowEnd(ds)
+    }
+    setTimeout(() => {
+      dateRefs.current[ds]?.scrollIntoView({ behavior:'smooth', block:'start' })
+    }, 150)
   }
 
-  const fetchPilotosDelDia = async (date: string) => {
-    const { data: reservasDelDia } = await supabase.from('reservas').select('id').eq('fecha', date)
-    const reservaIds = (reservasDelDia||[]).map((r:any)=>r.id)
-    if (!reservaIds.length) { setPilotos([]); return }
+  // ── All dates in window ────────────────────────────────
+  const allDates = useMemo(() => {
+    const dates: string[] = []
+    const cur = new Date(initStart+'T12:00:00')
+    const end = new Date(windowEnd+'T12:00:00')
+    while (cur <= end) { dates.push(toStr(cur)); cur.setDate(cur.getDate()+1) }
+    return dates
+  }, [windowEnd, initStart])
 
-    const { data } = await supabase
-      .from('reservas_personas')
-      .select('reserva_id, perfil_id, perfiles(id, nombre)')
-      .in('reserva_id', reservaIds)
-      .not('perfil_id','is',null)
-
-    if (!data) { setPilotos([]); setPilotoReservaIds({}); return }
-
-    const map = new Map<string, PilotoResumen>()
-    const reservaIdMap: Record<string, number[]> = {}
-    data.forEach((row:any) => {
-      const id = row.perfil_id
-      const nombre = row.perfiles?.nombre || 'Sin nombre'
-      map.has(id) ? map.get(id)!.vuelos++ : map.set(id, { perfil_id:id, nombre, vuelos:1 })
-      if (!reservaIdMap[id]) reservaIdMap[id] = []
-      if (!reservaIdMap[id].includes(row.reserva_id)) reservaIdMap[id].push(row.reserva_id)
-    })
-    setPilotoReservaIds(reservaIdMap)
-    setPilotos(Array.from(map.values()).sort((a,b)=>b.vuelos-a.vuelos))
-  }
-
+  // ── Service management ─────────────────────────────────
   const fetchExistingServicios = async (perfilId: string, reservaIdList: number[]) => {
     if (!reservaIdList.length) return
-    const { data } = await supabase
+    const { data } = await sb
       .from('perfil_valores')
       .select('id, valor_id, cantidad, valores(id, servicio, monto)')
       .eq('perfil_id', perfilId)
       .in('reserva_id', reservaIdList)
     if (data?.length) {
-      setServiciosSeleccionados(data.map((row:any) => ({
-        id: row.valor_id, servicio: row.valores?.servicio||'', monto: row.valores?.monto||0, cantidad: row.cantidad
+      setServicios(data.map((row:any) => ({
+        id:row.valor_id, servicio:row.valores?.servicio||'', monto:row.valores?.monto||0, cantidad:row.cantidad
       })))
     }
   }
 
-  const selectDate = async (day: number) => {
-    const date = `${currentYear}-${String(currentMonth+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`
-    setSelectedDate(date)
-    setExpandedPiloto(null); setServiciosSeleccionados([]); setShowServicioPicker(false)
-    await fetchPilotosDelDia(date)
-  }
-
-  const changeMonth = (dir: 'prev'|'next') => {
-    let m = currentMonth + (dir==='prev'?-1:1), y = currentYear
-    if (m<0){m=11;y--} else if(m>11){m=0;y++}
-    setCurrentMonth(m); setCurrentYear(y)
-  }
-
-  const togglePiloto = (perfilId: string) => {
-    if (expandedPiloto === perfilId) {
-      setExpandedPiloto(null); setServiciosSeleccionados([]); setShowServicioPicker(false)
+  const togglePiloto = (date: string, pilotoId: string) => {
+    const key = `${date}__${pilotoId}`
+    if (expandedKey === key) {
+      setExpandedKey(null); setServicios([]); setShowSrvPk(false); setSavedMsg(null)
     } else {
-      setExpandedPiloto(perfilId); setServiciosSeleccionados([]); setShowServicioPicker(false)
-      fetchExistingServicios(perfilId, pilotoReservaIds[perfilId]||[])
+      setExpandedKey(key); setServicios([]); setShowSrvPk(false); setSavedMsg(null)
+      fetchExistingServicios(pilotoId, reservaIdsByDatePiloto[date]?.[pilotoId]||[])
     }
   }
 
-  const totalUsados = (prev: ServicioPiloto[]) => prev.reduce((s,x)=>s+x.cantidad,0)
-
   const addServicio = (valor: any) => {
-    const maxVuelos = pilotos.find(p=>p.perfil_id===expandedPiloto)?.vuelos ?? 0
-    setServiciosSeleccionados(prev => {
-      if (totalUsados(prev) >= maxVuelos) return prev
+    if (!expandedKey) return
+    const [date, pid] = expandedKey.split('__')
+    const maxVuelos = byDate[date]?.find(p=>p.perfil_id===pid)?.vuelos ?? 0
+    setServicios(prev => {
+      const usados = prev.reduce((s,x)=>s+x.cantidad,0)
+      if (usados >= maxVuelos) return prev
       const ex = prev.find(s=>s.id===valor.id)
       if (ex) return prev.map(s=>s.id===valor.id?{...s,cantidad:s.cantidad+1}:s)
       return [...prev,{id:valor.id,servicio:valor.servicio,monto:valor.monto,cantidad:1}]
     })
-    setShowServicioPicker(false)
+    setShowSrvPk(false)
   }
 
   const incrementServicio = (id: number) => {
-    const maxVuelos = pilotos.find(p=>p.perfil_id===expandedPiloto)?.vuelos ?? 0
-    setServiciosSeleccionados(prev => {
-      if (totalUsados(prev) >= maxVuelos) return prev
+    if (!expandedKey) return
+    const [date, pid] = expandedKey.split('__')
+    const maxVuelos = byDate[date]?.find(p=>p.perfil_id===pid)?.vuelos ?? 0
+    setServicios(prev => {
+      const usados = prev.reduce((s,x)=>s+x.cantidad,0)
+      if (usados >= maxVuelos) return prev
       return prev.map(s=>s.id===id?{...s,cantidad:s.cantidad+1}:s)
     })
   }
 
   const removeServicio = (id: number) => {
-    setServiciosSeleccionados(prev => {
-      const item = prev.find(s=>s.id===id)
-      if (!item) return prev
-      if (item.cantidad<=1) return prev.filter(s=>s.id!==id)
+    setServicios(prev => {
+      const item = prev.find(s=>s.id===id); if(!item) return prev
+      if(item.cantidad<=1) return prev.filter(s=>s.id!==id)
       return prev.map(s=>s.id===id?{...s,cantidad:s.cantidad-1}:s)
     })
   }
 
   const guardarServicios = async () => {
-    if (!expandedPiloto) return
-    const reservaIdList = pilotoReservaIds[expandedPiloto]||[]
+    if (!expandedKey) return
+    const [date, pilotoId] = expandedKey.split('__')
+    const reservaIdList = reservaIdsByDatePiloto[date]?.[pilotoId]||[]
     if (!reservaIdList.length) return
-
     setSaving(true); setSavedMsg(null)
-    const { error: delErr } = await supabase
-      .from('perfil_valores').delete()
-      .eq('perfil_id', expandedPiloto).in('reserva_id', reservaIdList)
+    const { error: delErr } = await sb.from('perfil_valores').delete()
+      .eq('perfil_id', pilotoId).in('reserva_id', reservaIdList)
     if (delErr) { setSaving(false); setSavedMsg('Error: '+delErr.message); return }
-
     if (serviciosSeleccionados.length > 0) {
       const rows = serviciosSeleccionados.map(s=>({
-        perfil_id: expandedPiloto, valor_id:s.id, cantidad:s.cantidad, reserva_id:reservaIdList[0]
+        perfil_id:pilotoId, valor_id:s.id, cantidad:s.cantidad, reserva_id:reservaIdList[0]
       }))
-      const { error: insErr } = await supabase.from('perfil_valores').insert(rows)
+      const { error: insErr } = await sb.from('perfil_valores').insert(rows)
       if (insErr) { setSaving(false); setSavedMsg('Error: '+insErr.message); return }
     }
-
-    setSaving(false)
-    setSavedMsg('Servicios guardados correctamente')
-    setTimeout(() => { setExpandedPiloto(null); setServiciosSeleccionados([]); setSavedMsg(null) }, 1200)
-  }
-
-  const totalServicios = serviciosSeleccionados.reduce((s,x)=>s+x.monto*x.cantidad,0)
-
-  // Calendario
-  const daysInMonth = new Date(currentYear, currentMonth+1, 0).getDate()
-  const firstWeekday = new Date(currentYear, currentMonth, 1).getDay()
-  const weeks: (number|null)[][] = []
-  let day = 1
-  for (let w=0; w<6; w++) {
-    const week: (number|null)[] = []
-    for (let d=0; d<7; d++) {
-      if ((w===0&&d<firstWeekday)||day>daysInMonth) week.push(null)
-      else { week.push(day); day++ }
-    }
-    weeks.push(week)
-    if (day>daysInMonth) break
+    setSaving(false); setSavedMsg('Guardado')
+    setTimeout(() => { setExpandedKey(null); setServicios([]); setSavedMsg(null) }, 1000)
   }
 
   return (
-    <div className="min-h-screen bg-[#f0f4f8]">
-      <header className="bg-[#0d2b5c] px-5 py-5 flex items-center gap-4">
-        <Link href="/" className="text-[#ffd700] text-lg font-semibold hover:opacity-80">← Volver</Link>
-        <h1 className="text-white text-xl font-bold flex-1 text-center">🪂 Pilotos</h1>
-        <div className="w-16" />
+    <div className="min-h-screen" style={{ background:'linear-gradient(160deg,#e8f2ff 0%,#d0e6ff 100%)' }}>
+
+      {/* ── Header ── */}
+      <header className="sticky top-0 z-20 flex items-center gap-3 px-5 py-4"
+        style={{ background:'linear-gradient(135deg,#0d2b5c 0%,#1a4a85 100%)', boxShadow:'0 2px 12px rgba(13,43,92,0.3)' }}>
+        <Link href="/" className="text-[#7aafd4] text-sm">←</Link>
+        <button onClick={() => setShowCal(!showCal)} className="flex-1 flex items-center gap-1">
+          <span className="text-white font-extrabold text-lg capitalize">{MESES[new Date().getMonth()].toLowerCase()}</span>
+          <span className="text-[#7aafd4] text-sm ml-0.5">▾</span>
+        </button>
+        <button onClick={() => setShowCal(!showCal)} className="p-1.5 text-[#7aafd4] hover:text-[#ffd700] transition-colors">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/>
+            <line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+          </svg>
+        </button>
       </header>
 
-      <div className="max-w-lg mx-auto px-4 py-5">
-
-        {/* Calendario */}
-        <div className="bg-white rounded-2xl shadow-sm p-4 mb-5">
-          <div className="flex items-center justify-between mb-4">
-            <button onClick={()=>changeMonth('prev')} className="p-2 text-[#2e6db4] text-xl hover:bg-gray-100 rounded-lg">‹</button>
-            <span className="text-[#2e6db4] font-bold text-base">{MESES[currentMonth]} {currentYear}</span>
-            <button onClick={()=>changeMonth('next')} className="p-2 text-[#2e6db4] text-xl hover:bg-gray-100 rounded-lg">›</button>
+      {/* ── Mini calendario ── */}
+      {showCal && (
+        <div className="bg-white shadow-md px-4 pb-4">
+          <div className="flex items-center justify-between py-3">
+            <button onClick={() => chMo('prev')} className="text-[#1e5a96] text-xl w-8 font-bold">‹</button>
+            <span className="text-[#0d2b5c] font-bold text-sm">{MESES[calM]} {calY}</span>
+            <button onClick={() => chMo('next')} className="text-[#1e5a96] text-xl w-8 font-bold text-right">›</button>
           </div>
-          <div className="grid grid-cols-7 mb-2">
-            {DIAS.map(d=><div key={d} className="text-center text-gray-400 text-xs py-1">{d}</div>)}
+          <div className="grid grid-cols-7 mb-1">
+            {CAL_D.map((d,i) => <div key={i} className="text-center text-xs text-gray-400 py-1">{d}</div>)}
           </div>
-          {weeks.map((week,wi)=>(
-            <div key={wi} className="grid grid-cols-7 mb-1">
-              {week.map((d,di)=>{
-                if (!d) return <div key={di}/>
-                const dateStr=`${currentYear}-${String(currentMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`
-                const selected=dateStr===selectedDate
-                const hasDot=diasConActividad.has(dateStr)
+          {weeks.map((wk,wi) => (
+            <div key={wi} className="grid grid-cols-7">
+              {wk.map((day,di) => {
+                if (!day) return <div key={di} />
+                const ds = `${calY}-${String(calM+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`
+                const isT = ds===today; const hasDot = dots.has(ds)
                 return (
-                  <div key={di} className="flex flex-col items-center">
-                    <button onClick={()=>selectDate(d)}
-                      className={`w-9 h-9 rounded-full text-sm font-medium transition-colors
-                        ${selected?'bg-[#2e6db4] text-white font-bold':'text-gray-700 hover:bg-gray-100'}`}>
-                      {d}
+                  <div key={di} className="flex flex-col items-center mb-1">
+                    <button onClick={() => selCalDay(ds)}
+                      className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors
+                        ${isT?'bg-[#2e6db4] text-white font-bold':'text-gray-700 hover:bg-blue-50'}`}>
+                      {day}
                     </button>
-                    {hasDot&&<div className={`w-1.5 h-1.5 rounded-full mt-0.5 ${selected?'bg-white':'bg-[#0d2b5c]'}`}/>}
+                    {hasDot && <div className={`w-1.5 h-1.5 rounded-full mt-0.5 ${isT?'bg-white':'bg-[#2e6db4]'}`} />}
                   </div>
                 )
               })}
             </div>
           ))}
         </div>
+      )}
 
-        {/* Fecha y ayuda */}
-        <p className="text-[#2e6db4] font-bold text-sm mb-1">{selectedDate}</p>
-        <p className="text-gray-400 text-xs mb-5">Toca un día para ver la actividad. Toca un piloto para registrar servicios.</p>
+      {/* ── Lista ── */}
+      <main className="max-w-lg mx-auto pb-20 px-0">
+        {loading ? (
+          <div className="text-center py-20 text-[#2e6db4] text-sm">Cargando...</div>
+        ) : (
+          <>
+            {allDates.map(ds => {
+              const pilotos = byDate[ds] || []
+              const date   = new Date(ds+'T12:00:00')
+              const dn     = DIAS_L[date.getDay()]
+              const num    = date.getDate()
+              const isPast = ds < today
+              const isT    = ds === today
+              const dayColor = isPast ? '#9b59b6' : isT ? '#2e6db4' : '#1e5a96'
 
-        {/* Lista pilotos */}
-        {pilotos.length > 0 && (
-          <p className="text-[#2e6db4] font-bold text-xs tracking-wider uppercase mb-3">
-            {pilotos.length} piloto{pilotos.length>1?'s':''} activo{pilotos.length>1?'s':''}
-          </p>
-        )}
-
-        <div className="flex flex-col gap-3">
-          {pilotos.map(piloto => {
-            const expanded = expandedPiloto === piloto.perfil_id
-            const maxVuelos = piloto.vuelos
-            const usados = serviciosSeleccionados.reduce((s,x)=>s+x.cantidad,0)
-            const limite = usados >= maxVuelos
-
-            return (
-              <div key={piloto.perfil_id}>
-                {/* Tarjeta piloto */}
-                <button
-                  onClick={()=>togglePiloto(piloto.perfil_id)}
-                  className={`w-full flex items-center justify-between p-4 border-l-4 border-[#2e6db4] shadow-sm transition-colors text-left
-                    ${expanded
-                      ? 'bg-[#2e6db4] rounded-t-xl rounded-b-none'
-                      : 'bg-white rounded-xl hover:bg-[#f0f7ff]'}`}
-                >
-                  <div>
-                    <p className={`font-bold text-base ${expanded?'text-white':'text-[#0d2b5c]'}`}>{piloto.nombre}</p>
-                    <p className={`text-xs mt-0.5 ${expanded?'text-[#c8ddf5]':'text-gray-400'}`}>
-                      {expanded?'Toca para cerrar':'Toca para registrar servicios'}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className={`rounded-2xl px-3 py-1.5 text-center ${expanded?'bg-white/20':'bg-[#2e6db4]'}`}>
-                      <p className="text-white font-extrabold text-lg leading-none">×{piloto.vuelos}</p>
-                      <p className={`text-xs ${expanded?'text-blue-100':'text-[#c8ddf5]'}`}>vuelo{piloto.vuelos>1?'s':''}</p>
-                    </div>
-                    <span className={`text-lg ${expanded?'text-white':'text-[#2e6db4]'}`}>{expanded?'▲':'▼'}</span>
-                  </div>
-                </button>
-
-                {/* Panel servicios */}
-                {expanded && (
-                  <div className="bg-[#f0f6ff] border border-t-0 border-[#2e6db4] rounded-b-xl p-4">
-
-                    {/* Contador vuelos */}
-                    <div className="flex items-center justify-between mb-3">
-                      <p className="text-[#2e6db4] font-bold text-sm">Servicios del piloto</p>
-                      <span className={`text-xs font-bold text-white px-3 py-1 rounded-full ${limite?'bg-red-500':'bg-[#2e6db4]'}`}>
-                        {usados}/{maxVuelos} vuelos
-                      </span>
+              return (
+                <div key={ds} ref={el => { dateRefs.current[ds] = el }}>
+                  <div className="flex items-start gap-3 px-4 pt-5 pb-1">
+                    {/* Day label */}
+                    <div className="flex flex-col items-center w-10 shrink-0 mt-0.5">
+                      <span className="text-xs font-bold uppercase" style={{ color:dayColor }}>{dn}</span>
+                      <div className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-base mt-0.5 ${isT?'text-white':'text-[#0d2b5c]'}`}
+                        style={{ background: isT ? '#2e6db4' : 'transparent' }}>
+                        {num}
+                      </div>
                     </div>
 
-                    {savedMsg && (
-                      <div className={`mb-3 p-2 rounded-lg text-sm text-center font-semibold ${savedMsg.startsWith('Error')?'bg-red-100 text-red-700':'bg-green-100 text-green-700'}`}>
-                        {savedMsg}
-                      </div>
-                    )}
+                    {/* Pilot cards */}
+                    <div className="flex-1 flex flex-col gap-2 pt-1">
+                      {pilotos.length === 0 ? (
+                        <p className="text-[#b0cce8] text-sm py-2 italic">Sin vuelos</p>
+                      ) : pilotos.map(p => {
+                        const key        = `${ds}__${p.perfil_id}`
+                        const isExpanded = expandedKey === key
+                        const reservaIdList = reservaIdsByDatePiloto[ds]?.[p.perfil_id] || []
+                        const usados     = serviciosSeleccionados.reduce((s,x)=>s+x.cantidad,0)
+                        const limite     = usados >= p.vuelos
+                        const totalSrv   = serviciosSeleccionados.reduce((s,x)=>s+x.monto*x.cantidad,0)
 
-                    {/* Picker */}
-                    {!limite ? (
-                      <div className="relative mb-3">
-                        <button type="button" onClick={()=>setShowServicioPicker(!showServicioPicker)}
-                          className="w-full bg-white border border-[#2e6db4] rounded-lg p-3 text-sm text-[#2e6db4] font-semibold text-left hover:bg-blue-50">
-                          {valoresPiloto.length===0 ? 'No hay servicios de piloto cargados' : '+ Agregar servicio...'}
-                        </button>
-                        {showServicioPicker && valoresPiloto.length>0 && (
-                          <div className="absolute z-10 w-full bg-white border border-[#2e6db4] rounded-lg mt-1 shadow-lg overflow-hidden">
-                            {valoresPiloto.map(v=>(
-                              <button key={v.id} type="button" onClick={()=>addServicio(v)}
-                                className="w-full text-left px-4 py-3 hover:bg-blue-50 border-b last:border-b-0 border-gray-100">
-                                <p className="font-bold text-[#0d2b5c] text-sm">{v.servicio}</p>
-                                <p className="text-gray-500 text-xs">{fmtCLP(v.monto)}</p>
-                              </button>
-                            ))}
+                        return (
+                          <div key={p.perfil_id}>
+                            {/* Pilot header card */}
+                            <button
+                              onClick={() => togglePiloto(ds, p.perfil_id)}
+                              className="w-full text-left px-4 py-3 transition-all active:scale-[0.98]"
+                              style={isExpanded
+                                ? { background:'linear-gradient(135deg,#2e6db4,#1a4a85)', borderRadius:'1rem 1rem 0 0', boxShadow:'0 3px 12px rgba(46,109,180,0.3)' }
+                                : { background:'#fff', borderRadius:'1rem', borderLeft:'3px solid #2e6db4', boxShadow:'0 2px 6px rgba(13,43,92,0.06)' }}>
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <p className={`font-bold text-sm ${isExpanded?'text-white':'text-[#0d2b5c]'}`}>{p.nombre}</p>
+                                  <p className={`text-xs mt-0.5 ${isExpanded?'text-blue-100':'text-[#7aafd4]'}`}>
+                                    {p.vuelos} vuelo{p.vuelos>1?'s':''}
+                                  </p>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs font-bold px-2 py-1 rounded-full"
+                                    style={isExpanded
+                                      ? { background:'rgba(255,255,255,0.2)', color:'#fff' }
+                                      : { background:'#e8f0fb', color:'#2e6db4' }}>
+                                    ×{p.vuelos}
+                                  </span>
+                                  <span className={`text-xs ${isExpanded?'text-white/60':'text-[#b0cce8]'}`}>{isExpanded?'▲':'▼'}</span>
+                                </div>
+                              </div>
+                            </button>
+
+                            {/* Expanded services panel */}
+                            {isExpanded && (
+                              <div className="rounded-b-2xl p-4" style={{ background:'#f0f6ff', border:'1px solid #b0cce8', borderTop:'none' }}>
+
+                                <div className="flex items-center justify-between mb-3">
+                                  <p className="text-[#0d2b5c] font-bold text-xs uppercase tracking-wide">Servicios del piloto</p>
+                                  <span className="text-xs font-bold text-white px-2 py-0.5 rounded-full"
+                                    style={{ background: limite ? '#e74c3c' : '#2e6db4' }}>
+                                    {usados}/{p.vuelos} vuelos
+                                  </span>
+                                </div>
+
+                                {savedMsg && (
+                                  <div className={`mb-3 p-2 rounded-xl text-xs text-center font-semibold ${savedMsg.startsWith('Error')?'bg-red-100 text-red-700':'bg-green-100 text-green-700'}`}>
+                                    {savedMsg}
+                                  </div>
+                                )}
+
+                                {/* Picker */}
+                                {!limite ? (
+                                  <div className="relative mb-3">
+                                    <button type="button" onClick={() => setShowSrvPk(!showSrvPk)}
+                                      className="w-full bg-white rounded-xl p-3 text-sm text-left font-semibold hover:bg-blue-50 transition-colors"
+                                      style={{ border:'1px dashed #b0cce8', color:'#2e6db4' }}>
+                                      {valoresPiloto.length===0 ? 'No hay servicios cargados' : '+ Agregar servicio...'}
+                                    </button>
+                                    {showSrvPk && valoresPiloto.length > 0 && (
+                                      <div className="absolute z-10 w-full bg-white rounded-xl mt-1 shadow-xl overflow-hidden" style={{ border:'1px solid #b0cce8' }}>
+                                        {valoresPiloto.map(v => (
+                                          <button key={v.id} type="button" onClick={() => addServicio(v)}
+                                            className="w-full text-left px-4 py-3 hover:bg-blue-50"
+                                            style={{ borderBottom:'1px solid #e8f0fb' }}>
+                                            <p className="font-bold text-[#0d2b5c] text-sm">{v.servicio}</p>
+                                            <p className="text-[#2e6db4] text-xs">{fmtCLP(v.monto)}</p>
+                                          </button>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <div className="rounded-xl p-2 mb-3 text-center" style={{ background:'#fff3cd' }}>
+                                    <p className="text-xs font-semibold" style={{ color:'#856404' }}>
+                                      Límite alcanzado ({p.vuelos} vuelo{p.vuelos>1?'s':''})
+                                    </p>
+                                  </div>
+                                )}
+
+                                {/* Selected services */}
+                                {serviciosSeleccionados.length > 0 ? (
+                                  <div className="flex flex-col gap-2 mb-3">
+                                    {serviciosSeleccionados.map(s => (
+                                      <div key={s.id} className="bg-white rounded-xl p-3 flex items-center justify-between"
+                                        style={{ border:'1px solid #b0cce8' }}>
+                                        <div className="flex-1">
+                                          <p className="font-semibold text-[#0d2b5c] text-sm">{s.servicio}</p>
+                                          <p className="text-[#2e6db4] text-xs">{fmtCLP(s.monto)} c/u</p>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                          <button onClick={() => removeServicio(s.id)}
+                                            className="w-7 h-7 rounded-full flex items-center justify-center font-bold"
+                                            style={{ background:'#ffeef0', color:'#c0392b' }}>−</button>
+                                          <span className="font-extrabold text-[#2e6db4] w-7 text-center text-sm">×{s.cantidad}</span>
+                                          <button onClick={() => incrementServicio(s.id)} disabled={limite}
+                                            className="w-7 h-7 rounded-full flex items-center justify-center font-bold text-white disabled:opacity-40"
+                                            style={{ background:'linear-gradient(135deg,#2e6db4,#1a4a85)' }}>+</button>
+                                        </div>
+                                      </div>
+                                    ))}
+                                    <div className="flex justify-between items-center pt-2" style={{ borderTop:'1px solid #b0cce8' }}>
+                                      <span className="font-bold text-[#0d2b5c] text-sm">Total</span>
+                                      <span className="font-extrabold text-[#2e6db4] text-base">{fmtCLP(totalSrv)}</span>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <p className="text-gray-400 text-sm text-center py-3">Agrega servicios para este piloto</p>
+                                )}
+
+                                <button onClick={guardarServicios} disabled={saving}
+                                  className="w-full font-bold py-3 rounded-xl text-sm text-white transition-all disabled:opacity-60"
+                                  style={{ background:'linear-gradient(135deg,#0d2b5c,#1a4a85)' }}>
+                                  {saving ? 'Guardando...' : 'Guardar servicios'}
+                                </button>
+                              </div>
+                            )}
                           </div>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="bg-[#fff3cd] rounded-lg p-2 mb-3 text-center">
-                        <p className="text-[#856404] text-sm">Límite alcanzado ({maxVuelos} vuelo{maxVuelos>1?'s':''})</p>
-                      </div>
-                    )}
-
-                    {/* Servicios seleccionados */}
-                    {serviciosSeleccionados.length > 0 ? (
-                      <div className="flex flex-col gap-2 mb-3">
-                        {serviciosSeleccionados.map(s=>(
-                          <div key={s.id} className="bg-white border border-[#d4e6f5] rounded-lg p-3 flex items-center justify-between">
-                            <div className="flex-1">
-                              <p className="font-semibold text-[#0d2b5c] text-sm">{s.servicio}</p>
-                              <p className="text-gray-500 text-xs">{fmtCLP(s.monto)} c/u</p>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <button onClick={()=>removeServicio(s.id)}
-                                className="w-7 h-7 rounded-full bg-[#ffe5e5] text-red-600 font-bold text-base hover:bg-red-100 flex items-center justify-center">−</button>
-                              <span className="font-extrabold text-[#2e6db4] w-7 text-center">×{s.cantidad}</span>
-                              <button onClick={()=>incrementServicio(s.id)} disabled={limite}
-                                className={`w-7 h-7 rounded-full font-bold text-base flex items-center justify-center text-white
-                                  ${limite?'bg-gray-300 cursor-not-allowed':'bg-[#2e6db4] hover:bg-[#255d9a]'}`}>+</button>
-                            </div>
-                          </div>
-                        ))}
-                        <div className="flex justify-between items-center pt-2 border-t border-[#d4e6f5]">
-                          <span className="font-bold text-[#0d2b5c] text-sm">Total</span>
-                          <span className="font-extrabold text-[#2e6db4] text-base">{fmtCLP(totalServicios)}</span>
-                        </div>
-                      </div>
-                    ) : (
-                      <p className="text-gray-400 text-sm text-center py-4">Agrega servicios para este piloto</p>
-                    )}
-
-                    <button onClick={guardarServicios} disabled={saving}
-                      className="w-full bg-[#0d2b5c] text-white font-bold py-3 rounded-xl hover:bg-[#0a2247] transition-colors disabled:opacity-60">
-                      {saving ? 'Guardando...' : 'Guardar servicios'}
-                    </button>
+                        )
+                      })}
+                    </div>
                   </div>
-                )}
-              </div>
-            )
-          })}
+                  <div className="mx-4 mt-4" style={{ borderBottom:'1px solid rgba(30,90,150,0.12)' }} />
+                </div>
+              )
+            })}
 
-          {pilotos.length === 0 && (
-            <div className="bg-white rounded-2xl p-12 text-center">
-              <p className="text-5xl mb-3">🪂</p>
-              <p className="text-gray-400 text-sm">Sin vuelos registrados para este día.</p>
+            {/* Sentinel para infinite scroll */}
+            <div ref={sentinelRef} className="py-6 text-center">
+              {loadingMore && (
+                <div className="flex items-center justify-center gap-2 text-[#7aafd4] text-sm">
+                  <div className="w-4 h-4 rounded-full border-2 border-[#7aafd4] border-t-transparent animate-spin" />
+                  Cargando más días...
+                </div>
+              )}
             </div>
-          )}
-        </div>
-      </div>
+          </>
+        )}
+      </main>
     </div>
   )
 }
