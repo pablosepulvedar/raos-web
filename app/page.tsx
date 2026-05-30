@@ -51,6 +51,17 @@ const menuItems = [
     subtexto: '#7aafd4',
     sombra: 'rgba(13,43,92,0.4)',
   },
+  {
+    href: '/calendar',
+    emoji: '🗓️',
+    titulo: 'Importar Calendar',
+    descripcion: 'Importar reservas desde Google Calendar',
+    from: '#34a853',
+    to: '#1e7e34',
+    texto: '#fff',
+    subtexto: '#c8f0d4',
+    sombra: 'rgba(52,168,83,0.35)',
+  },
 ]
 
 export default function Home() {
