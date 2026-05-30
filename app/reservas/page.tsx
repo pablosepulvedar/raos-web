@@ -8,7 +8,7 @@ import DetalleContent from '@/components/reserva/DetalleContent'
 
 type Horario = { id: number; horario: number }
 type Valor   = { id: number; servicio: string; monto: number }
-type Reserva = { id: number; nombre: string; telefono: number; fecha: string; horario_id: number; cantidad: number }
+type Reserva = { id: number; nombre: string; telefono: number; fecha: string; horario_id: number; cantidad: number; volo: boolean }
 type SrvSel  = { id: number; servicio: string; monto: number; cantidad: number }
 
 const MESES  = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
@@ -61,6 +61,18 @@ export default function Reservas() {
   const [showSrvPk, setShowSrvPk] = useState(false)
   const [saving, setSaving]       = useState(false)
   const [fErr, setFErr]           = useState<string|null>(null)
+
+  const [marcandoVolo, setMarcandoVolo] = useState<number|null>(null)
+
+  const marcarVolo = async (r: Reserva, e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (r.volo) return
+    if (!confirm(`¿Ya voló ${r.nombre}?`)) return
+    setMarcandoVolo(r.id)
+    await sb.from('reservas').update({ volo: true }).eq('id', r.id)
+    setMarcandoVolo(null)
+    await refreshWindow()
+  }
 
   const sentinelRef = useRef<HTMLDivElement>(null)
   const dateRefs    = useRef<Record<string, HTMLDivElement|null>>({})
@@ -277,9 +289,6 @@ export default function Reservas() {
               const isPast = ds < today
               const isT    = ds === today
               const dayColor  = isPast ? '#9b59b6' : isT ? '#2e6db4' : '#1e5a96'
-              const cardStyle = isPast
-                ? { background:'linear-gradient(135deg,#7b52c1,#5e3a99)', boxShadow:'0 3px 12px rgba(123,82,193,0.3)' }
-                : { background:'linear-gradient(135deg,#2e6db4,#1a4a85)', boxShadow:'0 3px 12px rgba(46,109,180,0.3)' }
 
               return (
                 <div key={ds} ref={el => { dateRefs.current[ds] = el }}>
@@ -294,21 +303,38 @@ export default function Reservas() {
                     <div className="flex-1 flex flex-col gap-2 pt-1">
                       {reservas.length === 0 ? (
                         <p className="text-[#b0cce8] text-sm py-2 italic">Sin reservas</p>
-                      ) : reservas.map(r => (
-                        <button key={r.id}
-                          onClick={() => {
-                            if (typeof window !== 'undefined' && window.innerWidth >= 768) {
-                              setDetailId(String(r.id))
-                            } else {
-                              router.push(`/reserva/${r.id}`)
-                            }
-                          }}
-                          className="w-full text-left rounded-2xl px-4 py-3 transition-all hover:opacity-90 active:scale-[0.98]"
-                          style={cardStyle}>
-                          <p className="text-white font-bold text-sm leading-snug">{r.nombre} × {r.cantidad}</p>
-                          <p className="text-white/75 text-xs mt-0.5">{horLabel(r.horario_id)}</p>
-                        </button>
-                      ))}
+                      ) : reservas.map(r => {
+                        const cardStyle = r.volo
+                          ? { background:'linear-gradient(135deg,#9b59b6,#7d3c98)', boxShadow:'0 3px 12px rgba(155,89,182,0.4)' }
+                          : isPast
+                            ? { background:'linear-gradient(135deg,#7b52c1,#5e3a99)', boxShadow:'0 3px 12px rgba(123,82,193,0.3)' }
+                            : { background:'linear-gradient(135deg,#2e6db4,#1a4a85)', boxShadow:'0 3px 12px rgba(46,109,180,0.3)' }
+                        return (
+                        <div key={r.id} className="relative">
+                          <button
+                            onClick={() => {
+                              if (typeof window !== 'undefined' && window.innerWidth >= 768) {
+                                setDetailId(String(r.id))
+                              } else {
+                                router.push(`/reserva/${r.id}`)
+                              }
+                            }}
+                            className="w-full text-left rounded-2xl px-4 py-3 pr-12 transition-all hover:opacity-90 active:scale-[0.98]"
+                            style={cardStyle}>
+                            <p className="text-white font-bold text-sm leading-snug">{r.nombre} × {r.cantidad}</p>
+                            <p className="text-white/75 text-xs mt-0.5">{horLabel(r.horario_id)}</p>
+                          </button>
+                          <button
+                            onClick={(e) => marcarVolo(r, e)}
+                            disabled={marcandoVolo === r.id || r.volo}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-xl flex items-center justify-center transition-all disabled:opacity-50"
+                            style={{ background: r.volo ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.15)', backdropFilter:'blur(4px)' }}
+                            title={r.volo ? 'Ya voló' : 'Marcar como voló'}>
+                            <span className="text-sm">{marcandoVolo === r.id ? '⏳' : r.volo ? '✅' : '✈️'}</span>
+                          </button>
+                        </div>
+                        )
+                      })}
                     </div>
                   </div>
                   <div className="mx-4 mt-4" style={{ borderBottom:'1px solid rgba(30,90,150,0.12)' }} />
