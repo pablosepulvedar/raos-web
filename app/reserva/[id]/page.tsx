@@ -8,14 +8,34 @@ import { createClient } from '@/lib/supabase-browser'
 const supabase = createClient()
 
 type Horario = { id: number; horario: number }
-type ValorPasajero = { id: number; servicio: string; monto: number }
-type ReservaServicio = { id: number; valor_id: number; valores: { id: number; servicio: string; monto: number } | null }
-type Pasajero = { id: number; nombre: string; edad: number|null; peso: number|null; sin_camara: boolean; camara_normal: boolean; camara_360: boolean; perfil_id: string|null }
+type ValorServicio = { id: number; servicio: string; monto: number; descuento: boolean }
+type ReservaServicio = { id: number; valor_id: number; valores: { id: number; servicio: string; monto: number; descuento: boolean } | null }
+type Pasajero = { id: number; nombre: string; edad: number|null; peso: number|null; sin_camara: boolean; camara_normal: boolean; camara_360: boolean; perfil_id: string|null; cumpleanero: boolean }
 type Piloto = { id: string; nombre: string }
 
 const fmtHorario = (v: number) => { const s = String(v).padStart(4,'0'); return `${s.slice(0,2)}:${s.slice(2)}` }
+const fmtCLP = (v: number) => `$${Number(v).toLocaleString('es-CL')}`
 type CamaraOp = 'sin_camara'|'camara_normal'|'camara_360'
 const CAMARA_LABELS: Record<CamaraOp, string> = { sin_camara:'Sin cámara', camara_normal:'Normal', camara_360:'360°' }
+
+function SwitchSiNo({ value, onChange, label }: { value: boolean; onChange: (v: boolean) => void; label: string }) {
+  return (
+    <div className="flex items-center justify-between py-1">
+      <span className="text-[#1e5a96] font-semibold text-xs">{label}</span>
+      <div className="flex items-center gap-2">
+        <span className={`text-xs font-semibold ${!value ? 'text-gray-700' : 'text-gray-400'}`}>No</span>
+        <button
+          type="button"
+          onClick={() => onChange(!value)}
+          className={`relative w-11 h-6 rounded-full transition-colors ${value ? 'bg-[#2e6db4]' : 'bg-gray-300'}`}
+        >
+          <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-transform shadow ${value ? 'translate-x-5' : 'translate-x-0'}`} />
+        </button>
+        <span className={`text-xs font-semibold ${value ? 'text-[#2e6db4]' : 'text-gray-400'}`}>Sí</span>
+      </div>
+    </div>
+  )
+}
 
 export default function ReservaDetalle() {
   const { id } = useParams<{ id: string }>()
@@ -26,6 +46,7 @@ export default function ReservaDetalle() {
   const [fecha, setFecha] = useState('')
   const [selectedHorarioId, setSelectedHorarioId] = useState<number|null>(null)
   const [cantidad, setCantidad] = useState('')
+  const [abono, setAbono] = useState('')
   const [horarios, setHorarios] = useState<Horario[]>([])
   const [showHorarioPicker, setShowHorarioPicker] = useState(false)
   const [savingReserva, setSavingReserva] = useState(false)
@@ -33,7 +54,7 @@ export default function ReservaDetalle() {
 
   // Servicios
   const [reservaServicios, setReservaServicios] = useState<ReservaServicio[]>([])
-  const [valoresPasajero, setValoresPasajero] = useState<ValorPasajero[]>([])
+  const [valoresServicios, setValoresServicios] = useState<ValorServicio[]>([])
   const [selectedServicioId, setSelectedServicioId] = useState<number|null>(null)
   const [showServicioPicker, setShowServicioPicker] = useState(false)
   const [addingServicio, setAddingServicio] = useState(false)
@@ -50,6 +71,7 @@ export default function ReservaDetalle() {
   const [pCamara, setPCamara] = useState<CamaraOp|null>(null)
   const [pPilotoId, setPPilotoId] = useState<string|null>(null)
   const [pPilotoNombre, setPPilotoNombre] = useState('')
+  const [pCumpleanero, setPCumpleanero] = useState(false)
   const [showPilotoPicker, setShowPilotoPicker] = useState(false)
   const [savingPasajero, setSavingPasajero] = useState(false)
   const [deletingPasajeroId, setDeletingPasajeroId] = useState<number|null>(null)
@@ -57,12 +79,8 @@ export default function ReservaDetalle() {
 
   useEffect(() => {
     if (!id) return
-    fetchReserva()
-    fetchPasajeros()
-    fetchReservaServicios()
-    fetchHorarios()
-    fetchPilotos()
-    fetchValoresPasajero()
+    fetchReserva(); fetchPasajeros(); fetchReservaServicios()
+    fetchHorarios(); fetchPilotos(); fetchValoresServicios()
   }, [id])
 
   const fetchReserva = async () => {
@@ -71,6 +89,7 @@ export default function ReservaDetalle() {
       setNombre(data.nombre||''); setTelefono(String(data.telefono||''))
       setFecha(data.fecha||''); setSelectedHorarioId(data.horario_id??null)
       setCantidad(String(data.cantidad||''))
+      setAbono(data.abono != null ? String(data.abono) : '')
     }
   }
   const fetchHorarios = async () => {
@@ -78,12 +97,12 @@ export default function ReservaDetalle() {
     setHorarios((data||[]) as Horario[])
   }
   const fetchReservaServicios = async () => {
-    const { data } = await supabase.from('reserva_servicios').select('id, valor_id, valores(id, servicio, monto)').eq('reserva_id', id)
+    const { data } = await supabase.from('reserva_servicios').select('id, valor_id, valores(id, servicio, monto, descuento)').eq('reserva_id', id)
     setReservaServicios((data||[]) as unknown as ReservaServicio[])
   }
-  const fetchValoresPasajero = async () => {
+  const fetchValoresServicios = async () => {
     const { data } = await supabase.from('valores').select('*').eq('pasajero', true).order('servicio')
-    setValoresPasajero((data||[]) as ValorPasajero[])
+    setValoresServicios((data||[]) as ValorServicio[])
   }
   const fetchPasajeros = async () => {
     const { data } = await supabase.from('reservas_personas').select('*').eq('reserva_id', id).order('created_at')
@@ -102,17 +121,16 @@ export default function ReservaDetalle() {
 
   const guardarReserva = async () => {
     setReservaMsg(null)
-    if (!nombre.trim() || !fecha || !selectedHorarioId || !cantidad) {
-      setReservaMsg({type:'err', text:'Completa todos los campos'})
-      return
-    }
+    if (!nombre.trim() || !fecha || !selectedHorarioId || !cantidad)
+      return setReservaMsg({type:'err', text:'Completa todos los campos'})
     setSavingReserva(true)
     const { error } = await supabase.from('reservas').update({
       nombre:nombre.trim(), telefono:Number(String(telefono).replace(/[^0-9]/g,''))||null,
-      fecha, horario_id:selectedHorarioId, cantidad:parseInt(cantidad,10)
+      fecha, horario_id:selectedHorarioId, cantidad:parseInt(cantidad,10),
+      abono: abono !== '' ? parseInt(abono, 10) : null
     }).eq('id', id)
     setSavingReserva(false)
-    setReservaMsg(error ? {type:'err',text:error.message} : {type:'ok',text:'Reserva actualizada correctamente'})
+    setReservaMsg(error ? {type:'err',text:error.message} : {type:'ok',text:'Reserva actualizada'})
   }
 
   const agregarServicio = async () => {
@@ -131,7 +149,7 @@ export default function ReservaDetalle() {
   }
 
   const resetPasajeroForm = () => {
-    setPNombre(''); setPEdad(''); setPPeso(''); setPCamara(null)
+    setPNombre(''); setPEdad(''); setPPeso(''); setPCamara(null); setPCumpleanero(false)
     setPPilotoId(null); setPPilotoNombre(''); setEditingPasajeroId(null)
     setShowPasajeroForm(false); setShowPilotoPicker(false); setPasajeroError(null)
   }
@@ -139,9 +157,15 @@ export default function ReservaDetalle() {
   const openEditPasajero = (p: Pasajero) => {
     setPNombre(p.nombre||''); setPEdad(p.edad!=null?String(p.edad):''); setPPeso(p.peso!=null?String(p.peso):'')
     setPCamara(p.sin_camara?'sin_camara':p.camara_normal?'camara_normal':p.camara_360?'camara_360':null)
+    setPCumpleanero(p.cumpleanero||false)
     const pl = pilotos.find(pl=>pl.id===p.perfil_id)
     setPPilotoId(p.perfil_id||null); setPPilotoNombre(pl?.nombre||'')
     setEditingPasajeroId(p.id); setShowPasajeroForm(true); setPasajeroError(null)
+  }
+
+  const handleCumpleanero = (val: boolean) => {
+    setPCumpleanero(val)
+    if (val) setPCamara('camara_360')
   }
 
   const guardarPasajero = async () => {
@@ -150,7 +174,7 @@ export default function ReservaDetalle() {
     const payload: Record<string,unknown> = {
       nombre:pNombre.trim(), edad:pEdad?parseInt(pEdad,10):null, peso:pPeso?parseInt(pPeso,10):null,
       sin_camara:pCamara==='sin_camara', camara_normal:pCamara==='camara_normal', camara_360:pCamara==='camara_360',
-      perfil_id:pPilotoId||null
+      perfil_id:pPilotoId||null, cumpleanero:pCumpleanero
     }
     setSavingPasajero(true)
     let error: any
@@ -161,8 +185,7 @@ export default function ReservaDetalle() {
       ;({ error } = await supabase.from('reservas_personas').insert(payload))
       if (!error) {
         const newTotal = pasajeros.length + 1
-        const cantActual = parseInt(cantidad,10)||0
-        if (newTotal > cantActual) {
+        if (newTotal > (parseInt(cantidad,10)||0)) {
           await supabase.from('reservas').update({cantidad:newTotal}).eq('id',id)
           setCantidad(String(newTotal))
         }
@@ -183,11 +206,17 @@ export default function ReservaDetalle() {
 
   const horarioLabel = selectedHorarioId
     ? (horarios.find(h=>h.id===selectedHorarioId) ? fmtHorario(horarios.find(h=>h.id===selectedHorarioId)!.horario) : '---')
-    : 'Selecciona un horario'
+    : '---'
 
-  const servicioLabel = selectedServicioId
-    ? (() => { const v=valoresPasajero.find(v=>v.id===selectedServicioId); return v?`${v.servicio} — $${Number(v.monto).toLocaleString('es-CL')}`:'---' })()
-    : 'Selecciona un servicio...'
+  const selectedServicioLabel = selectedServicioId
+    ? (() => { const v=valoresServicios.find(v=>v.id===selectedServicioId); return v ? `${v.servicio} ${v.descuento ? '-' : ''}${fmtCLP(v.monto)}` : '---' })()
+    : 'Agregar servicio o descuento...'
+
+  const totalBruto = reservaServicios.filter(rs=>!rs.valores?.descuento).reduce((s,rs)=>s+(rs.valores?.monto??0),0)
+  const totalDescuentos = reservaServicios.filter(rs=>rs.valores?.descuento).reduce((s,rs)=>s+(rs.valores?.monto??0),0)
+  const totalNeto = totalBruto - totalDescuentos
+  const abonoNum = abono !== '' ? parseInt(abono,10)||0 : 0
+  const saldoRestante = totalNeto - abonoNum
 
   return (
     <div className="min-h-screen bg-[#f8f9fa]">
@@ -200,8 +229,8 @@ export default function ReservaDetalle() {
       <div className="max-w-lg mx-auto px-4 py-5 flex flex-col gap-5">
 
         {/* Datos reserva */}
-        <div className="bg-[#fff3cd] border border-[#ffd700] rounded-2xl p-5">
-          <p className="text-[#1e5a96] font-bold text-base mb-4">Datos de la reserva</p>
+        <div className="bg-[#fff3cd] border border-[#ffd700] rounded-2xl p-4">
+          <p className="text-[#1e5a96] font-bold text-base mb-3">Datos de la reserva</p>
 
           {reservaMsg && (
             <div className={`mb-3 p-3 rounded-lg text-sm ${reservaMsg.type==='ok' ? 'bg-green-100 border border-green-400 text-green-800' : 'bg-red-100 border border-red-400 text-red-800'}`}>
@@ -209,88 +238,144 @@ export default function ReservaDetalle() {
             </div>
           )}
 
-          <label className="block text-[#1e5a96] font-semibold text-sm mb-1">Nombre</label>
-          <input className="w-full border border-[#ffd700] rounded-lg p-3 text-sm mb-3 bg-white" value={nombre} onChange={e=>setNombre(e.target.value)} placeholder="Nombre" />
+          {/* Nombre */}
+          <label className="block text-[#1e5a96] font-semibold text-xs mb-1">Nombre</label>
+          <input className="w-full border border-[#ffd700] rounded-lg p-2.5 text-sm mb-2 bg-white" value={nombre} onChange={e=>setNombre(e.target.value)} placeholder="Nombre" />
 
-          <label className="block text-[#1e5a96] font-semibold text-sm mb-1">Teléfono</label>
-          <input className="w-full border border-[#ffd700] rounded-lg p-3 text-sm mb-3 bg-white" value={telefono} onChange={e=>setTelefono(e.target.value.replace(/[^0-9]/g,''))} placeholder="Teléfono" type="tel" />
+          {/* Teléfono + Fecha */}
+          <div className="flex gap-2 mb-2">
+            <div className="flex-1 min-w-0">
+              <label className="block text-[#1e5a96] font-semibold text-xs mb-1">Teléfono</label>
+              <input className="w-full border border-[#ffd700] rounded-lg p-2.5 text-sm bg-white" value={telefono} onChange={e=>setTelefono(e.target.value.replace(/[^0-9]/g,''))} placeholder="912345678" type="tel" maxLength={15} />
+            </div>
+            <div className="shrink-0">
+              <label className="block text-[#1e5a96] font-semibold text-xs mb-1">Fecha</label>
+              <input className="border border-[#ffd700] rounded-lg p-2.5 text-sm bg-white" type="date" value={fecha} onChange={e=>setFecha(e.target.value)} />
+            </div>
+          </div>
 
-          <label className="block text-[#1e5a96] font-semibold text-sm mb-1">Fecha</label>
-          <input className="w-full border border-[#ffd700] rounded-lg p-3 text-sm mb-3 bg-white" type="date" value={fecha} onChange={e=>setFecha(e.target.value)} />
-
-          <label className="block text-[#1e5a96] font-semibold text-sm mb-1">Horario</label>
-          <div className="relative mb-3">
-            <button type="button" onClick={()=>setShowHorarioPicker(!showHorarioPicker)}
-              className="w-full border border-[#ffd700] rounded-lg p-3 text-sm bg-white text-left">
-              {horarioLabel}
-            </button>
-            {showHorarioPicker && (
-              <div className="absolute z-10 w-full bg-white border border-[#ffd700] rounded-lg mt-1 shadow-lg overflow-hidden">
-                {horarios.map(h => (
-                  <button key={h.id} type="button" onClick={()=>{setSelectedHorarioId(h.id);setShowHorarioPicker(false)}}
-                    className="w-full text-left px-4 py-3 text-sm hover:bg-yellow-50 border-b last:border-b-0 border-gray-100">
-                    {fmtHorario(h.horario)}
-                  </button>
-                ))}
+          {/* Horario + Personas + Abono */}
+          <div className="flex gap-2 mb-3">
+            <div className="flex-1">
+              <label className="block text-[#1e5a96] font-semibold text-xs mb-1">Horario</label>
+              <div className="relative">
+                <button type="button" onClick={()=>setShowHorarioPicker(!showHorarioPicker)}
+                  className="w-full border border-[#ffd700] rounded-lg p-2.5 text-sm bg-white text-left font-medium">
+                  {horarioLabel}
+                </button>
+                {showHorarioPicker && (
+                  <div className="absolute z-10 w-full bg-white border border-[#ffd700] rounded-lg mt-1 shadow-lg overflow-hidden">
+                    {horarios.map(h => (
+                      <button key={h.id} type="button" onClick={()=>{setSelectedHorarioId(h.id);setShowHorarioPicker(false)}}
+                        className="w-full text-left px-4 py-2.5 text-sm hover:bg-yellow-50 border-b last:border-b-0 border-gray-100">
+                        {fmtHorario(h.horario)}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
+            </div>
+            <div className="w-16 shrink-0">
+              <label className="block text-[#1e5a96] font-semibold text-xs mb-1">Pers.</label>
+              <input className="w-full border border-[#ffd700] rounded-lg p-2.5 text-sm bg-white text-center" type="number" min="1" max="99" value={cantidad} onChange={e=>setCantidad(e.target.value)} placeholder="1" />
+            </div>
+            <div className="w-32 shrink-0">
+              <label className="block text-[#1e5a96] font-semibold text-xs mb-1">Abono</label>
+              <div className="flex items-center border border-[#ffd700] rounded-lg bg-white overflow-hidden h-[38px]">
+                <span className="px-2 text-gray-400 text-xs font-semibold select-none">$</span>
+                <input className="flex-1 text-sm bg-transparent outline-none w-0" placeholder="0" value={abono} onChange={e=>setAbono(e.target.value.replace(/[^0-9]/g,''))} maxLength={6} />
+              </div>
+            </div>
+          </div>
+
+          {/* Cuadro blanco de servicios */}
+          <div className="bg-white rounded-xl p-3 mb-3 border border-[#ffe680]">
+            <p className="text-[#1e5a96] font-semibold text-xs mb-2">Servicios</p>
+
+            {/* Chips */}
+            <div className="flex flex-wrap gap-1.5 min-h-8 mb-2">
+              {reservaServicios.length === 0
+                ? <span className="text-gray-400 text-xs self-center">Sin servicios agregados</span>
+                : reservaServicios.map(rs => {
+                    const esDescuento = rs.valores?.descuento
+                    return (
+                      <span key={rs.id}
+                        className={`flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-full
+                          ${esDescuento ? 'bg-red-100 text-red-700' : 'bg-[#dbeeff] text-[#1e5a96]'}`}>
+                        {rs.valores?.servicio}
+                        {esDescuento ? ` -${fmtCLP(rs.valores?.monto??0)}` : ` ${fmtCLP(rs.valores?.monto??0)}`}
+                        <button onClick={()=>eliminarServicio(rs.id)} disabled={deletingServicioId===rs.id}
+                          className="ml-0.5 font-bold hover:opacity-60 disabled:opacity-40 leading-none">
+                          {deletingServicioId===rs.id ? '⏳' : '×'}
+                        </button>
+                      </span>
+                    )
+                  })
+              }
+            </div>
+
+            {/* Picker */}
+            <div className="relative">
+              <button type="button" onClick={()=>setShowServicioPicker(!showServicioPicker)}
+                className="w-full border border-gray-200 rounded-lg p-2.5 text-xs bg-gray-50 text-left text-gray-500">
+                {selectedServicioLabel}
+              </button>
+              {showServicioPicker && (
+                <div className="absolute z-10 w-full bg-white border border-gray-200 rounded-lg mt-1 shadow-lg overflow-hidden">
+                  {valoresServicios.length === 0
+                    ? <p className="p-3 text-gray-400 text-sm">No hay servicios disponibles</p>
+                    : valoresServicios.map(v => (
+                      <button key={v.id} type="button" onClick={()=>{setSelectedServicioId(v.id);setShowServicioPicker(false)}}
+                        className={`w-full text-left px-4 py-2.5 border-b last:border-b-0 border-gray-100 ${v.descuento ? 'hover:bg-red-50' : 'hover:bg-blue-50'}`}>
+                        <span className={`text-sm font-semibold ${v.descuento ? 'text-red-700' : 'text-gray-800'}`}>{v.servicio}</span>
+                        <span className={`text-xs ml-2 ${v.descuento ? 'text-red-500' : 'text-gray-500'}`}>
+                          {v.descuento ? '-' : ''}{fmtCLP(v.monto)}
+                        </span>
+                      </button>
+                    ))
+                  }
+                </div>
+              )}
+            </div>
+            {selectedServicioId && (
+              <button onClick={agregarServicio} disabled={addingServicio}
+                className="w-full mt-2 bg-[#1e5a96] text-white font-bold py-2 rounded-lg text-xs hover:bg-[#174a82] transition-colors disabled:opacity-60">
+                {addingServicio ? 'Agregando...' : '+ Agregar'}
+              </button>
             )}
           </div>
 
-          <label className="block text-[#1e5a96] font-semibold text-sm mb-1">Cantidad personas</label>
-          <input className="w-full border border-[#ffd700] rounded-lg p-3 text-sm mb-4 bg-white" type="number" min="1" value={cantidad} onChange={e=>setCantidad(e.target.value)} placeholder="0" />
+          {/* Resumen */}
+          {(totalBruto > 0 || abonoNum > 0) && (
+            <div className="bg-white rounded-xl p-3 mb-3 border border-[#ffe680] text-sm divide-y divide-gray-100">
+              {totalBruto > 0 && (
+                <div className="flex justify-between py-1.5 text-gray-600">
+                  <span className="text-xs">Total servicios</span>
+                  <span className="text-xs font-semibold">{fmtCLP(totalBruto)}</span>
+                </div>
+              )}
+              {totalDescuentos > 0 && (
+                <div className="flex justify-between py-1.5 text-red-500">
+                  <span className="text-xs">Descuentos</span>
+                  <span className="text-xs font-semibold">- {fmtCLP(totalDescuentos)}</span>
+                </div>
+              )}
+              {abonoNum > 0 && (
+                <div className="flex justify-between py-1.5 text-green-700">
+                  <span className="text-xs">Abono</span>
+                  <span className="text-xs font-semibold">- {fmtCLP(abonoNum)}</span>
+                </div>
+              )}
+              <div className="flex justify-between pt-2 pb-0.5">
+                <span className="text-xs font-bold text-[#1e5a96]">Saldo restante</span>
+                <span className={`text-xs font-bold ${saldoRestante <= 0 ? 'text-green-600' : 'text-[#1e5a96]'}`}>{fmtCLP(saldoRestante)}</span>
+              </div>
+            </div>
+          )}
 
           <button onClick={guardarReserva} disabled={savingReserva}
             className="w-full bg-[#ffd700] text-[#1e5a96] font-bold py-3 rounded-xl hover:bg-yellow-400 transition-colors disabled:opacity-60">
             {savingReserva ? 'Guardando...' : 'Guardar cambios'}
-          </button>
-        </div>
-
-        {/* Servicios */}
-        <div className="bg-white border border-[#d4e6f5] rounded-2xl p-5">
-          <p className="text-[#0d2b5c] font-bold text-base mb-3">Servicios ({reservaServicios.length})</p>
-
-          {reservaServicios.length === 0
-            ? <p className="text-gray-400 text-sm mb-3">Sin servicios asignados</p>
-            : <div className="divide-y divide-gray-100 mb-3">
-                {reservaServicios.map(rs => (
-                  <div key={rs.id} className="flex items-center justify-between py-3">
-                    <div>
-                      <p className="text-[#0d2b5c] font-semibold text-sm">{rs.valores?.servicio ?? 'Servicio'}</p>
-                      <p className="text-gray-500 text-xs">${Number(rs.valores?.monto??0).toLocaleString('es-CL')}</p>
-                    </div>
-                    <button onClick={()=>eliminarServicio(rs.id)} disabled={deletingServicioId===rs.id}
-                      className="p-2 bg-[#ffe5e5] rounded-lg hover:bg-red-100 disabled:opacity-50">
-                      <span className="text-sm">{deletingServicioId===rs.id ? '⏳' : '🗑️'}</span>
-                    </button>
-                  </div>
-                ))}
-              </div>
-          }
-
-          <p className="text-[#1e5a96] font-semibold text-sm mb-2">Agregar servicio</p>
-          <div className="relative mb-3">
-            <button type="button" onClick={()=>setShowServicioPicker(!showServicioPicker)}
-              className="w-full border border-[#b0cce8] rounded-lg p-3 text-sm bg-white text-left text-gray-500">
-              {servicioLabel}
-            </button>
-            {showServicioPicker && (
-              <div className="absolute z-10 w-full bg-white border border-[#b0cce8] rounded-lg mt-1 shadow-lg overflow-hidden">
-                {valoresPasajero.length === 0
-                  ? <p className="p-3 text-gray-400 text-sm">No hay servicios disponibles</p>
-                  : valoresPasajero.map(v => (
-                    <button key={v.id} type="button" onClick={()=>{setSelectedServicioId(v.id);setShowServicioPicker(false)}}
-                      className="w-full text-left px-4 py-3 hover:bg-blue-50 border-b last:border-b-0 border-gray-100">
-                      <p className="text-sm font-semibold text-gray-800">{v.servicio}</p>
-                      <p className="text-xs text-gray-500">${Number(v.monto).toLocaleString('es-CL')}</p>
-                    </button>
-                  ))
-                }
-              </div>
-            )}
-          </div>
-          <button onClick={agregarServicio} disabled={addingServicio||!selectedServicioId}
-            className={`w-full font-bold py-3 rounded-xl transition-colors ${selectedServicioId ? 'bg-[#2e6db4] hover:bg-[#255d9a] text-white' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}>
-            {addingServicio ? 'Agregando...' : '+ Agregar servicio'}
           </button>
         </div>
 
@@ -336,7 +421,7 @@ export default function ReservaDetalle() {
               </div>
 
               <label className="block text-[#1e5a96] font-semibold text-xs mb-1">Piloto (opcional)</label>
-              <div className="relative mb-4">
+              <div className="relative mb-3">
                 <button type="button" onClick={()=>setShowPilotoPicker(!showPilotoPicker)}
                   className="w-full border border-[#4fa3ff] rounded-lg p-3 text-sm bg-white text-left">
                   {pPilotoNombre || <span className="text-gray-400">Seleccionar piloto...</span>}
@@ -358,6 +443,11 @@ export default function ReservaDetalle() {
                 )}
               </div>
 
+              {/* Cumpleañero switch No/Sí */}
+              <div className="bg-white border border-[#4fa3ff] rounded-lg px-3 mb-4">
+                <SwitchSiNo value={pCumpleanero} onChange={handleCumpleanero} label="¿Es cumpleañero?" />
+              </div>
+
               <button onClick={guardarPasajero} disabled={savingPasajero}
                 className="w-full bg-[#1e5a96] text-white font-bold py-3 rounded-xl hover:bg-[#174a82] transition-colors disabled:opacity-60">
                 {savingPasajero ? 'Guardando...' : editingPasajeroId ? 'Guardar cambios' : 'Agregar pasajero'}
@@ -375,10 +465,13 @@ export default function ReservaDetalle() {
                   return (
                     <div key={p.id} className="bg-white rounded-xl p-4 border-l-4 border-[#1e5a96] shadow-sm flex items-start justify-between gap-3">
                       <div className="flex-1">
-                        <p className="text-[#1e5a96] font-bold text-sm">{p.nombre}</p>
+                        <p className="text-[#1e5a96] font-bold text-sm flex items-center gap-1">
+                          {p.nombre}
+                          {p.cumpleanero && <span className="text-lg leading-none">🥳</span>}
+                        </p>
                         {(p.edad||p.peso) && <p className="text-gray-500 text-xs mt-1">{[p.edad&&`${p.edad} años`, p.peso&&`${p.peso} kg`].filter(Boolean).join(' · ')}</p>}
                         {camaras && <p className="text-gray-500 text-xs mt-0.5">📷 {camaras}</p>}
-                        <p className={`text-xs mt-0.5 ${pl?'text-[#1e5a96]':'text-gray-300'}`}>✈️ {pl?pl.nombre:'Sin piloto'}</p>
+                        <p className={`text-xs mt-0.5 ${pl?'text-[#1e5a96]':'text-gray-300'}`}>🪂 {pl?pl.nombre:'Sin piloto'}</p>
                       </div>
                       <div className="flex gap-2 shrink-0">
                         <button onClick={()=>openEditPasajero(p)} className="px-3 py-1.5 bg-[#e8f0f7] text-[#1e5a96] text-xs font-bold rounded-lg hover:bg-[#d0e3f5]">Editar</button>

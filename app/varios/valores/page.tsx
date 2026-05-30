@@ -6,10 +6,9 @@ import { createClient } from '@/lib/supabase-browser'
 
 const supabase = createClient()
 
-type Valor = { id: number; servicio: string; monto: number; piloto: boolean; pasajero: boolean; created_at: string }
+type Valor = { id: number; servicio: string; monto: number; piloto: boolean; pasajero: boolean; descuento: boolean; created_at: string }
 
-const formatCLP = (value: number) =>
-  `$${Number(value).toLocaleString('es-CL')}`
+const formatCLP = (value: number) => `$${Number(value).toLocaleString('es-CL')}`
 
 function Toggle({ value, onChange, label }: { value: boolean; onChange: (v: boolean) => void; label: string }) {
   return (
@@ -32,6 +31,7 @@ export default function Valores() {
   const [monto, setMonto] = useState('')
   const [piloto, setPiloto] = useState(false)
   const [pasajero, setPasajero] = useState(true)
+  const [descuento, setDescuento] = useState(false)
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [editingId, setEditingId] = useState<number | null>(null)
@@ -48,7 +48,7 @@ export default function Valores() {
   useEffect(() => { fetchValores() }, [])
 
   const resetForm = () => {
-    setServicio(''); setMonto(''); setPiloto(false); setPasajero(true)
+    setServicio(''); setMonto(''); setPiloto(false); setPasajero(true); setDescuento(false)
     setEditingId(null); setError(null)
   }
 
@@ -59,7 +59,7 @@ export default function Valores() {
     if (isNaN(numericMonto)) return setError('El monto debe ser un número')
     setSaving(true)
     try {
-      const payload = { servicio: servicio.trim(), monto: numericMonto, piloto, pasajero }
+      const payload = { servicio: servicio.trim(), monto: numericMonto, piloto, pasajero, descuento }
       if (editingId) {
         const { error } = await supabase.from('valores').update(payload).eq('id', editingId)
         if (error) throw error
@@ -83,6 +83,7 @@ export default function Valores() {
     setMonto(String(item.monto ?? ''))
     setPiloto(Boolean(item.piloto))
     setPasajero(item.pasajero !== false)
+    setDescuento(Boolean(item.descuento))
     setEditingId(item.id)
     setError(null)
   }
@@ -95,10 +96,11 @@ export default function Valores() {
   }
 
   const tipoLabel = (item: Valor) => {
-    if (item.piloto && item.pasajero) return 'Piloto · Pasajero'
-    if (item.piloto) return 'Piloto'
-    if (item.pasajero) return 'Pasajero'
-    return 'Sin tipo'
+    const partes: string[] = []
+    if (item.descuento) partes.push('Descuento')
+    if (item.piloto) partes.push('Piloto')
+    if (item.pasajero) partes.push('Pasajero')
+    return partes.join(' · ') || 'Sin tipo'
   }
 
   return (
@@ -127,26 +129,22 @@ export default function Valores() {
           ) : (
             <div className="flex flex-col gap-2">
               {valores.map((item) => (
-                <div key={item.id} className="bg-white border border-[#d4e6f5] rounded-xl p-4 flex items-start justify-between gap-3">
+                <div key={item.id} className={`bg-white border rounded-xl p-4 flex items-start justify-between gap-3 ${item.descuento ? 'border-red-200' : 'border-[#d4e6f5]'}`}>
                   <div className="flex-1 min-w-0">
-                    <p className="text-[#0d2b5c] font-bold text-base truncate">{item.servicio}</p>
-                    <p className="text-[#2e6db4] font-semibold text-sm mt-1">{formatCLP(item.monto)}</p>
-                    <p className="text-gray-500 text-xs mt-1">{tipoLabel(item)}</p>
-                    <p className="text-gray-400 text-xs mt-1">
-                      Creado: {item.created_at ? new Date(item.created_at).toLocaleString('es-CL') : '---'}
+                    <div className="flex items-center gap-2">
+                      <p className="text-[#0d2b5c] font-bold text-base truncate">{item.servicio}</p>
+                      {item.descuento && <span className="shrink-0 text-xs font-bold text-red-500 bg-red-50 border border-red-200 px-1.5 py-0.5 rounded-full">descuento</span>}
+                    </div>
+                    <p className={`font-semibold text-sm mt-1 ${item.descuento ? 'text-red-500' : 'text-[#2e6db4]'}`}>
+                      {item.descuento ? '-' : ''}{formatCLP(item.monto)}
                     </p>
+                    <p className="text-gray-500 text-xs mt-1">{tipoLabel(item)}</p>
                   </div>
                   <div className="flex gap-2 shrink-0">
-                    <button
-                      onClick={() => editValor(item)}
-                      className="px-3 py-1.5 bg-[#2e6db4] text-white text-sm font-bold rounded-lg hover:bg-[#255d9a]"
-                    >
+                    <button onClick={() => editValor(item)} className="px-3 py-1.5 bg-[#2e6db4] text-white text-sm font-bold rounded-lg hover:bg-[#255d9a]">
                       Editar
                     </button>
-                    <button
-                      onClick={() => deleteValor(item)}
-                      className="px-3 py-1.5 bg-[#d9534f] text-white text-sm font-bold rounded-lg hover:bg-[#c9302c]"
-                    >
+                    <button onClick={() => deleteValor(item)} className="px-3 py-1.5 bg-[#d9534f] text-white text-sm font-bold rounded-lg hover:bg-[#c9302c]">
                       Borrar
                     </button>
                   </div>
@@ -186,6 +184,7 @@ export default function Valores() {
           <div className="border border-[#b0cce8] rounded-lg px-3 mb-4 divide-y divide-[#e8f0f7]">
             <Toggle value={piloto} onChange={setPiloto} label="Aplica a piloto" />
             <Toggle value={pasajero} onChange={setPasajero} label="Aplica a pasajero" />
+            <Toggle value={descuento} onChange={setDescuento} label="Es descuento (resta del total)" />
           </div>
 
           <button
