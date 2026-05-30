@@ -2,366 +2,450 @@
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase-browser'
-
-const supabase = createClient()
+import DetalleContent from '@/components/reserva/DetalleContent'
 
 type Horario = { id: number; horario: number }
-type Valor = { id: number; servicio: string; monto: number }
+type Valor   = { id: number; servicio: string; monto: number }
 type Reserva = { id: number; nombre: string; telefono: number; fecha: string; horario_id: number; cantidad: number }
-type ServicioSel = { id: number; servicio: string; monto: number; cantidad: number }
+type SrvSel  = { id: number; servicio: string; monto: number; cantidad: number }
 
-const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
-const DIAS = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb']
-
-const fmtHorario = (v: number) => { const s = String(v).padStart(4,'0'); return `${s.slice(0,2)}:${s.slice(2)}` }
+const MESES  = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
+const DIAS_L = ['DOM','LUN','MAR','MIÉ','JUE','VIE','SÁB']
+const CAL_D  = ['D','L','M','M','J','V','S']
+const fmtH   = (v: number) => { const s = String(v).padStart(4,'0'); return `${s.slice(0,2)}:${s.slice(2)}` }
 const fmtCLP = (v: number) => `$${Number(v).toLocaleString('es-CL')}`
-const toDateStr = (d: Date) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+const toStr  = (d: Date)   => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+const addDays = (s: string, n: number) => { const d = new Date(s+'T12:00:00'); d.setDate(d.getDate()+n); return toStr(d) }
+
+const STEP = 2
 
 export default function Reservas() {
   const router = useRouter()
-  const today = toDateStr(new Date())
+  const today  = toStr(new Date())
+  const sb     = useRef(createClient()).current
 
-  const [selectedDate, setSelectedDate] = useState(today)
-  const [currentMonth, setCurrentMonth] = useState(new Date().getMonth())
-  const [currentYear, setCurrentYear] = useState(new Date().getFullYear())
-  const [diasConReservas, setDiasConReservas] = useState<Set<string>>(new Set())
-  const [reservas, setReservas] = useState<Reserva[]>([])
+  const initStart = useRef(addDays(today, -2)).current
+  const initEnd   = useRef(addDays(today,  2)).current
+
+  // Calendar
+  const [showCal, setShowCal] = useState(false)
+  const [calM, setCalM]       = useState(new Date().getMonth())
+  const [calY, setCalY]       = useState(new Date().getFullYear())
+  const [dots, setDots]       = useState<Set<string>>(new Set())
+
+  // Data
+  const [byDate, setByDate]   = useState<Record<string, Reserva[]>>({})
+  const [windowEnd, setWindowEnd]   = useState(initEnd)
+  const windowEndRef                = useRef(initEnd)
+  const loadingMoreRef              = useRef(false)
+  const [loading, setLoading]       = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
+
   const [horarios, setHorarios] = useState<Horario[]>([])
-  const [valores, setValores] = useState<Valor[]>([])
+  const [valores,  setValores]  = useState<Valor[]>([])
 
-  // Formulario
-  const [showForm, setShowForm] = useState(false)
-  const [nombre, setNombre] = useState('')
-  const [telefono, setTelefono] = useState('')
-  const [selectedHorarioId, setSelectedHorarioId] = useState<number | null>(null)
-  const [showHorarioPicker, setShowHorarioPicker] = useState(false)
-  const [cantidad, setCantidad] = useState('')
-  const [selectedServicios, setSelectedServicios] = useState<ServicioSel[]>([])
-  const [showServicioPicker, setShowServicioPicker] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  // Detail modal (md+)
+  const [detailId, setDetailId] = useState<string|null>(null)
 
+  // Form
+  const [showForm, setShowForm]   = useState(false)
+  const [formDate, setFormDate]   = useState(today)
+  const [nombre, setNombre]       = useState('')
+  const [telefono, setTelefono]   = useState('')
+  const [horId, setHorId]         = useState<number|null>(null)
+  const [showHorPk, setShowHorPk] = useState(false)
+  const [cantidad, setCantidad]   = useState('')
+  const [srvs, setSrvs]           = useState<SrvSel[]>([])
+  const [showSrvPk, setShowSrvPk] = useState(false)
+  const [saving, setSaving]       = useState(false)
+  const [fErr, setFErr]           = useState<string|null>(null)
+
+  const sentinelRef = useRef<HTMLDivElement>(null)
+  const dateRefs    = useRef<Record<string, HTMLDivElement|null>>({})
+
+  // ── Fetch helpers ──────────────────────────────────────
+  const fetchDays = useCallback(async (from: string, to: string) => {
+    const { data } = await sb.from('reservas').select('*')
+      .gte('fecha', from).lte('fecha', to).order('fecha').order('horario_id')
+    const g: Record<string, Reserva[]> = {}
+    for (const r of (data||[]) as Reserva[]) {
+      if (!g[r.fecha]) g[r.fecha] = []
+      g[r.fecha].push(r)
+    }
+    return g
+  }, [sb])
+
+  const fetchDots = useCallback(async (y: number, m: number) => {
+    const f = `${y}-${String(m+1).padStart(2,'0')}-01`
+    const l = `${y}-${String(m+1).padStart(2,'0')}-${new Date(y,m+1,0).getDate()}`
+    const { data } = await sb.from('reservas').select('fecha').gte('fecha',f).lte('fecha',l)
+    setDots(new Set((data||[]).map((r:any)=>r.fecha)))
+  }, [sb])
+
+  const refreshWindow = useCallback(async () => {
+    const data = await fetchDays(initStart, windowEndRef.current)
+    setByDate(data)
+    fetchDots(calY, calM)
+  }, [fetchDays, fetchDots, initStart, calY, calM])
+
+  // ── Initial load ───────────────────────────────────────
   useEffect(() => {
-    fetchHorarios()
-    fetchValores()
-    fetchReservas(today)
-    fetchDiasConReservas(new Date().getFullYear(), new Date().getMonth())
+    const load = async () => {
+      setLoading(true)
+      const [data] = await Promise.all([
+        fetchDays(initStart, initEnd),
+        sb.from('horarios').select('*').order('horario').then(({ data }) => setHorarios((data||[]) as Horario[])),
+        sb.from('valores').select('*').order('servicio').then(({ data }) => setValores((data||[]) as Valor[])),
+        fetchDots(new Date().getFullYear(), new Date().getMonth()),
+      ])
+      setByDate(data)
+      setLoading(false)
+      setTimeout(() => {
+        dateRefs.current[today]?.scrollIntoView({ behavior:'instant', block:'start' })
+      }, 80)
+    }
+    load()
   }, [])
 
-  useEffect(() => { fetchDiasConReservas(currentYear, currentMonth) }, [currentMonth, currentYear])
+  // ── Infinite scroll ────────────────────────────────────
+  useEffect(() => {
+    if (loading) return
+    const sentinel = sentinelRef.current
+    if (!sentinel) return
+    const observer = new IntersectionObserver(async (entries) => {
+      if (!entries[0].isIntersecting || loadingMoreRef.current) return
+      loadingMoreRef.current = true
+      setLoadingMore(true)
+      const from = addDays(windowEndRef.current, 1)
+      const to   = addDays(windowEndRef.current, STEP)
+      const newData = await fetchDays(from, to)
+      setByDate(prev => ({ ...prev, ...newData }))
+      windowEndRef.current = to
+      setWindowEnd(to)
+      loadingMoreRef.current = false
+      setLoadingMore(false)
+    }, { rootMargin:'300px' })
+    observer.observe(sentinel)
+    return () => observer.disconnect()
+  }, [loading, fetchDays])
 
-  const fetchDiasConReservas = async (year: number, month: number) => {
-    const first = `${year}-${String(month+1).padStart(2,'0')}-01`
-    const last  = `${year}-${String(month+1).padStart(2,'0')}-${new Date(year,month+1,0).getDate()}`
-    const { data } = await supabase.from('reservas').select('fecha').gte('fecha',first).lte('fecha',last)
-    setDiasConReservas(new Set((data||[]).map((r:any)=>r.fecha)))
-  }
+  useEffect(() => { fetchDots(calY, calM) }, [calM, calY])
 
-  const fetchReservas = async (date: string) => {
-    const { data } = await supabase.from('reservas').select('*').eq('fecha',date).order('horario_id')
-    setReservas((data||[]) as Reserva[])
-  }
-
-  const fetchHorarios = async () => {
-    const { data } = await supabase.from('horarios').select('*').order('horario')
-    setHorarios((data||[]) as Horario[])
-  }
-
-  const fetchValores = async () => {
-    const { data } = await supabase.from('valores').select('*').order('servicio')
-    setValores((data||[]) as Valor[])
-  }
-
-  const selectDate = (day: number) => {
-    const date = `${currentYear}-${String(currentMonth+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`
-    setSelectedDate(date)
-    fetchReservas(date)
-  }
-
-  const changeMonth = (dir: 'prev'|'next') => {
-    let m = currentMonth + (dir === 'prev' ? -1 : 1)
-    let y = currentYear
-    if (m < 0) { m = 11; y-- }
-    if (m > 11) { m = 0; y++ }
-    setCurrentMonth(m); setCurrentYear(y)
-  }
-
-  const addServicio = (v: Valor) => {
-    setSelectedServicios(prev => {
-      const ex = prev.find(s => s.id === v.id)
-      if (ex) return prev.map(s => s.id === v.id ? {...s, cantidad: s.cantidad+1} : s)
-      return [...prev, {id:v.id, servicio:v.servicio, monto:v.monto, cantidad:1}]
-    })
-    setShowServicioPicker(false)
-  }
-
-  const removeServicio = (id: number) => {
-    setSelectedServicios(prev => {
-      const item = prev.find(s => s.id === id)
-      if (!item) return prev
-      if (item.cantidad <= 1) return prev.filter(s => s.id !== id)
-      return prev.map(s => s.id === id ? {...s, cantidad:s.cantidad-1} : s)
-    })
-  }
-
-  const resetForm = () => {
-    setNombre(''); setTelefono(''); setSelectedHorarioId(null)
-    setSelectedServicios([]); setCantidad(''); setShowForm(false)
-    setShowHorarioPicker(false); setShowServicioPicker(false); setError(null)
-  }
-
-  const crearReserva = async () => {
-    setError(null)
-    const tel = Number(telefono.replace(/[^0-9]/g,''))
-    const totalServ = selectedServicios.reduce((s,i)=>s+i.cantidad,0)
-    if (!nombre || !telefono || !selectedHorarioId || !cantidad || totalServ === 0)
-      return setError('Completa todos los campos y agrega al menos un servicio')
-    if (isNaN(tel)) return setError('El teléfono debe contener solo números')
-
-    setLoading(true)
-    try {
-      const { data, error: err } = await supabase
-        .from('reservas')
-        .insert({ nombre:nombre.trim(), telefono:tel, fecha:selectedDate, horario_id:selectedHorarioId, cantidad:parseInt(cantidad,10) })
-        .select('id').single()
-      if (err || !data) throw err || new Error('No se pudo crear la reserva')
-
-      const servicios: {reserva_id:number; valor_id:number}[] = []
-      selectedServicios.forEach(item => {
-        for (let i=0; i<item.cantidad; i++) servicios.push({reserva_id:data.id, valor_id:item.id})
-      })
-      const { error: sErr } = await supabase.from('reserva_servicios').insert(servicios)
-      if (sErr) throw sErr
-
-      resetForm()
-      await fetchReservas(selectedDate)
-      await fetchDiasConReservas(currentYear, currentMonth)
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Error al crear la reserva')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // Calendario
-  const daysInMonth = new Date(currentYear, currentMonth+1, 0).getDate()
-  const firstWeekday = new Date(currentYear, currentMonth, 1).getDay()
+  // ── Calendar ───────────────────────────────────────────
+  const dIM = new Date(calY, calM+1, 0).getDate()
+  const fw  = new Date(calY, calM, 1).getDay()
   const weeks: (number|null)[][] = []
-  let day = 1
+  let dd = 1
   for (let w=0; w<6; w++) {
-    const week: (number|null)[] = []
-    for (let d=0; d<7; d++) {
-      if ((w===0 && d<firstWeekday) || day>daysInMonth) week.push(null)
-      else { week.push(day); day++ }
+    const wk: (number|null)[] = []
+    for (let i=0; i<7; i++) { if((w===0&&i<fw)||dd>dIM) wk.push(null); else { wk.push(dd); dd++ } }
+    weeks.push(wk); if(dd>dIM) break
+  }
+  const chMo = (dir:'prev'|'next') => {
+    let m=calM+(dir==='prev'?-1:1), y=calY
+    if(m<0){m=11;y--} if(m>11){m=0;y++}
+    setCalM(m); setCalY(y)
+  }
+  const selCalDay = async (ds: string) => {
+    setShowCal(false)
+    if (ds > windowEndRef.current) {
+      const newData = await fetchDays(addDays(windowEndRef.current,1), ds)
+      setByDate(prev => ({ ...prev, ...newData }))
+      windowEndRef.current = ds
+      setWindowEnd(ds)
     }
-    weeks.push(week)
-    if (day > daysInMonth) break
+    setTimeout(() => {
+      dateRefs.current[ds]?.scrollIntoView({ behavior:'smooth', block:'start' })
+    }, 150)
   }
 
-  const horarioLabel = (id: number|null) => {
+  // ── All dates to display ───────────────────────────────
+  const allDates = useMemo(() => {
+    const dates: string[] = []
+    const cur = new Date(initStart+'T12:00:00')
+    const end = new Date(windowEnd+'T12:00:00')
+    while (cur <= end) { dates.push(toStr(cur)); cur.setDate(cur.getDate()+1) }
+    return dates
+  }, [windowEnd, initStart])
+
+  // ── Form ───────────────────────────────────────────────
+  const horLabel = (id: number|null) => {
     if (!id) return '---'
-    const h = horarios.find(h => h.id === id)
-    return h ? fmtHorario(h.horario) : '---'
+    const h = horarios.find(h=>h.id===id)
+    return h ? fmtH(h.horario) : '---'
+  }
+  const resetForm = () => {
+    setNombre(''); setTelefono(''); setHorId(null); setSrvs([])
+    setCantidad(''); setFErr(null); setShowHorPk(false); setShowSrvPk(false); setShowForm(false)
+  }
+  const addSrv = (v: Valor) => {
+    setSrvs(p => { const ex=p.find(s=>s.id===v.id); return ex?p.map(s=>s.id===v.id?{...s,cantidad:s.cantidad+1}:s):[...p,{id:v.id,servicio:v.servicio,monto:v.monto,cantidad:1}] })
+    setShowSrvPk(false)
+  }
+  const remSrv = (id: number) => setSrvs(p => {
+    const it=p.find(s=>s.id===id); if(!it) return p
+    if(it.cantidad<=1) return p.filter(s=>s.id!==id)
+    return p.map(s=>s.id===id?{...s,cantidad:s.cantidad-1}:s)
+  })
+  const crearReserva = async () => {
+    setFErr(null)
+    const tel = Number(telefono.replace(/[^0-9]/g,''))
+    if (!nombre||!telefono||!horId||!cantidad) return setFErr('Completa todos los campos')
+    if (isNaN(tel)) return setFErr('Teléfono inválido')
+    setSaving(true)
+    try {
+      const { data, error:err } = await sb.from('reservas')
+        .insert({ nombre:nombre.trim(), telefono:tel, fecha:formDate, horario_id:horId, cantidad:parseInt(cantidad,10) })
+        .select('id').single()
+      if (err||!data) throw err||new Error('Error')
+      if (srvs.length>0) {
+        const rows = srvs.flatMap(item=>Array.from({length:item.cantidad},()=>({reserva_id:data.id,valor_id:item.id})))
+        await sb.from('reserva_servicios').insert(rows)
+      }
+      resetForm(); await refreshWindow()
+    } catch(e:unknown) { setFErr(e instanceof Error?e.message:'Error al crear') }
+    finally { setSaving(false) }
   }
 
   return (
-    <div className="min-h-screen bg-[#f8f9fa]">
-      {/* Header amarillo */}
-      <header className="bg-[#ffd700] px-5 py-5 flex items-center gap-4">
-        <Link href="/" className="text-[#1e5a96] text-lg font-semibold hover:opacity-70">← Volver</Link>
-        <h1 className="text-[#1e5a96] text-xl font-bold flex-1 text-center">📅 Reservas</h1>
-        <div className="w-16" />
+    <div className="min-h-screen" style={{ background:'linear-gradient(160deg,#e8f2ff 0%,#d0e6ff 100%)' }}>
+
+      {/* ── Header ── */}
+      <header className="sticky top-0 z-20 flex items-center gap-3 px-5 py-4"
+        style={{ background:'linear-gradient(135deg,#0d2b5c 0%,#1a4a85 100%)', boxShadow:'0 2px 12px rgba(13,43,92,0.3)' }}>
+        <Link href="/" className="text-[#7aafd4] text-sm">←</Link>
+        <button onClick={() => setShowCal(!showCal)} className="flex-1 flex items-center gap-1">
+          <span className="text-white font-extrabold text-lg capitalize">{MESES[new Date().getMonth()].toLowerCase()}</span>
+          <span className="text-[#7aafd4] text-sm ml-0.5">▾</span>
+        </button>
+        <button onClick={() => setShowCal(!showCal)} className="p-1.5 text-[#7aafd4] hover:text-[#ffd700] transition-colors">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/>
+            <line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+          </svg>
+        </button>
       </header>
 
-      <div className="max-w-lg mx-auto px-4 py-5">
-
-        {/* Calendario */}
-        <div className="bg-white rounded-2xl shadow-sm p-4 mb-5">
-          <div className="flex items-center justify-between mb-4">
-            <button onClick={() => changeMonth('prev')} className="p-2 text-[#1e5a96] text-xl hover:bg-gray-100 rounded-lg">‹</button>
-            <span className="text-[#1e5a96] font-bold text-base">{MESES[currentMonth]} {currentYear}</span>
-            <button onClick={() => changeMonth('next')} className="p-2 text-[#1e5a96] text-xl hover:bg-gray-100 rounded-lg">›</button>
+      {/* ── Mini calendario ── */}
+      {showCal && (
+        <div className="bg-white shadow-md px-4 pb-4">
+          <div className="flex items-center justify-between py-3">
+            <button onClick={() => chMo('prev')} className="text-[#1e5a96] text-xl w-8 font-bold">‹</button>
+            <span className="text-[#0d2b5c] font-bold text-sm">{MESES[calM]} {calY}</span>
+            <button onClick={() => chMo('next')} className="text-[#1e5a96] text-xl w-8 font-bold text-right">›</button>
           </div>
-
-          <div className="grid grid-cols-7 mb-2">
-            {DIAS.map(d => <div key={d} className="text-center text-gray-400 text-xs py-1">{d}</div>)}
+          <div className="grid grid-cols-7 mb-1">
+            {CAL_D.map((d,i) => <div key={i} className="text-center text-xs text-gray-400 py-1">{d}</div>)}
           </div>
-
-          {weeks.map((week, wi) => (
-            <div key={wi} className="grid grid-cols-7 mb-1">
-              {week.map((d, di) => {
-                if (!d) return <div key={di} />
-                const dateStr = `${currentYear}-${String(currentMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`
-                const selected = dateStr === selectedDate
-                const hasDot = diasConReservas.has(dateStr)
+          {weeks.map((wk,wi) => (
+            <div key={wi} className="grid grid-cols-7">
+              {wk.map((day,di) => {
+                if (!day) return <div key={di} />
+                const ds = `${calY}-${String(calM+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`
+                const isT = ds===today; const hasDot = dots.has(ds)
                 return (
-                  <div key={di} className="flex flex-col items-center">
-                    <button
-                      onClick={() => selectDate(d)}
-                      className={`w-9 h-9 rounded-full text-sm font-medium transition-colors
-                        ${selected ? 'bg-[#1e5a96] text-white font-bold' : 'text-gray-700 hover:bg-gray-100'}`}
-                    >
-                      {d}
+                  <div key={di} className="flex flex-col items-center mb-1">
+                    <button onClick={() => selCalDay(ds)}
+                      className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors
+                        ${isT?'bg-[#2e6db4] text-white font-bold':'text-gray-700 hover:bg-blue-50'}`}>
+                      {day}
                     </button>
-                    {hasDot && (
-                      <div className={`w-1.5 h-1.5 rounded-full mt-0.5 ${selected ? 'bg-white' : 'bg-[#0d2b5c]'}`} />
-                    )}
+                    {hasDot && <div className={`w-1.5 h-1.5 rounded-full mt-0.5 ${isT?'bg-white':'bg-[#2e6db4]'}`} />}
                   </div>
                 )
               })}
             </div>
           ))}
         </div>
+      )}
 
-        {/* Fecha seleccionada */}
-        <p className="text-[#1e5a96] font-bold text-sm mb-1">Seleccionado: {selectedDate}</p>
-        <p className="text-gray-500 text-xs mb-4">Toca un día para ver las reservas de esa fecha.</p>
+      {/* ── Lista ── */}
+      <main className="max-w-lg mx-auto pb-28 px-0">
+        {loading ? (
+          <div className="text-center py-20 text-[#2e6db4] text-sm">Cargando...</div>
+        ) : (
+          <>
+            {allDates.map(ds => {
+              const reservas = byDate[ds] || []
+              const date   = new Date(ds+'T12:00:00')
+              const dn     = DIAS_L[date.getDay()]
+              const num    = date.getDate()
+              const isPast = ds < today
+              const isT    = ds === today
+              const dayColor  = isPast ? '#9b59b6' : isT ? '#2e6db4' : '#1e5a96'
+              const cardStyle = isPast
+                ? { background:'linear-gradient(135deg,#7b52c1,#5e3a99)', boxShadow:'0 3px 12px rgba(123,82,193,0.3)' }
+                : { background:'linear-gradient(135deg,#2e6db4,#1a4a85)', boxShadow:'0 3px 12px rgba(46,109,180,0.3)' }
 
-        {/* Botón nueva reserva */}
-        <button
-          onClick={() => showForm ? resetForm() : setShowForm(true)}
-          className="w-full bg-[#1e5a96] text-white font-semibold py-3 rounded-xl mb-4 hover:bg-[#174a82] transition-colors"
-        >
-          {showForm ? 'Cancelar' : '+ Nueva Reserva'}
-        </button>
+              return (
+                <div key={ds} ref={el => { dateRefs.current[ds] = el }}>
+                  <div className="flex items-start gap-3 px-4 pt-5 pb-1">
+                    <div className="flex flex-col items-center w-10 shrink-0 mt-0.5">
+                      <span className="text-xs font-bold uppercase" style={{ color:dayColor }}>{dn}</span>
+                      <div className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-base mt-0.5 ${isT?'text-white':'text-[#0d2b5c]'}`}
+                        style={{ background: isT ? '#2e6db4' : 'transparent' }}>
+                        {num}
+                      </div>
+                    </div>
+                    <div className="flex-1 flex flex-col gap-2 pt-1">
+                      {reservas.length === 0 ? (
+                        <p className="text-[#b0cce8] text-sm py-2 italic">Sin reservas</p>
+                      ) : reservas.map(r => (
+                        <button key={r.id}
+                          onClick={() => {
+                            if (typeof window !== 'undefined' && window.innerWidth >= 768) {
+                              setDetailId(String(r.id))
+                            } else {
+                              router.push(`/reserva/${r.id}`)
+                            }
+                          }}
+                          className="w-full text-left rounded-2xl px-4 py-3 transition-all hover:opacity-90 active:scale-[0.98]"
+                          style={cardStyle}>
+                          <p className="text-white font-bold text-sm leading-snug">{r.nombre} × {r.cantidad}</p>
+                          <p className="text-white/75 text-xs mt-0.5">{horLabel(r.horario_id)}</p>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="mx-4 mt-4" style={{ borderBottom:'1px solid rgba(30,90,150,0.12)' }} />
+                </div>
+              )
+            })}
 
-        {/* Formulario */}
-        {showForm && (
-          <div className="bg-[#fff3cd] rounded-2xl p-5 mb-5 border border-[#ffd700]">
-            <p className="text-[#1e5a96] font-bold text-base mb-4">Nueva Reserva — {selectedDate}</p>
-
-            {error && (
-              <div className="mb-3 p-3 bg-red-100 border border-red-400 text-red-800 rounded-lg text-sm">{error}</div>
-            )}
-
-            <input
-              className="w-full border border-[#ffd700] rounded-lg p-3 text-sm mb-3 bg-white"
-              placeholder="Nombre"
-              value={nombre}
-              onChange={e => setNombre(e.target.value)}
-            />
-            <input
-              className="w-full border border-[#ffd700] rounded-lg p-3 text-sm mb-3 bg-white"
-              placeholder="Teléfono"
-              type="tel"
-              value={telefono}
-              onChange={e => setTelefono(e.target.value.replace(/[^0-9]/g,''))}
-            />
-
-            {/* Horario picker */}
-            <div className="relative mb-3">
-              <button
-                type="button"
-                onClick={() => setShowHorarioPicker(!showHorarioPicker)}
-                className="w-full border border-[#ffd700] rounded-lg p-3 text-sm bg-white text-left"
-              >
-                {selectedHorarioId ? horarioLabel(selectedHorarioId) : <span className="text-gray-400">Selecciona un horario</span>}
-              </button>
-              {showHorarioPicker && (
-                <div className="absolute z-10 w-full bg-white border border-[#ffd700] rounded-lg mt-1 shadow-lg overflow-hidden">
-                  {horarios.length === 0
-                    ? <p className="p-3 text-gray-400 text-sm">No hay horarios. Agrégalos en Varios → Horarios.</p>
-                    : horarios.map(h => (
-                      <button key={h.id} type="button"
-                        onClick={() => { setSelectedHorarioId(h.id); setShowHorarioPicker(false) }}
-                        className="w-full text-left px-4 py-3 text-sm hover:bg-yellow-50 border-b last:border-b-0 border-gray-100"
-                      >
-                        {fmtHorario(h.horario)}
-                      </button>
-                    ))
-                  }
+            {/* Sentinel para infinite scroll */}
+            <div ref={sentinelRef} className="py-6 text-center">
+              {loadingMore && (
+                <div className="flex items-center justify-center gap-2 text-[#7aafd4] text-sm">
+                  <div className="w-4 h-4 rounded-full border-2 border-[#7aafd4] border-t-transparent animate-spin" />
+                  Cargando más días...
                 </div>
               )}
             </div>
+          </>
+        )}
+      </main>
 
-            {/* Servicios */}
+      {/* ── FAB ── */}
+      <button
+        onClick={() => { setFormDate(today); setShowForm(true) }}
+        className="fixed bottom-6 right-5 z-30 w-14 h-14 rounded-2xl flex items-center justify-center text-3xl font-light transition-all active:scale-95 hover:brightness-110"
+        style={{ background:'#ffd700', color:'#0d2b5c', boxShadow:'0 4px 20px rgba(255,215,0,0.5)' }}>
+        +
+      </button>
+
+      {/* ── Modal detalle (md+) ── */}
+      {detailId && (
+        <div className="fixed inset-0 z-40 hidden md:flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60" onClick={() => { setDetailId(null); refreshWindow() }} />
+          <div className="relative w-full max-w-2xl rounded-2xl overflow-hidden flex flex-col shadow-2xl"
+            style={{ maxHeight:'90vh', background:'linear-gradient(160deg,#e8f2ff 0%,#d0e6ff 100%)' }}>
+            <div className="flex items-center gap-3 px-5 py-4 shrink-0"
+              style={{ background:'linear-gradient(135deg,#0d2b5c 0%,#1a4a85 100%)' }}>
+              <span className="text-white font-extrabold text-base flex-1">Detalle Reserva</span>
+              <button onClick={() => { setDetailId(null); refreshWindow() }}
+                className="text-[#7aafd4] hover:text-white text-2xl leading-none transition-colors">×</button>
+            </div>
+            <div className="overflow-y-auto flex-1">
+              <DetalleContent id={detailId} onSave={refreshWindow} />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Formulario nueva reserva ── */}
+      {showForm && (
+        <div className="fixed inset-0 z-40 flex items-end md:items-center justify-center">
+          <div className="absolute inset-0 bg-black/50" onClick={resetForm} />
+          <div className="relative w-full md:max-w-md rounded-t-2xl md:rounded-2xl px-5 pt-5 pb-8 overflow-y-auto"
+            style={{ background:'#0d2b5c', maxHeight:'88vh', boxShadow:'0 -4px 30px rgba(0,0,0,0.4)' }}>
+            <div className="w-10 h-1 rounded-full bg-white/30 mx-auto mb-4 md:hidden" />
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-white font-extrabold text-base">Nueva Reserva</h2>
+              <button onClick={resetForm} className="text-[#7aafd4] hover:text-white text-2xl leading-none">×</button>
+            </div>
+
+            {fErr && (
+              <div className="mb-3 p-3 rounded-xl text-sm" style={{ background:'rgba(239,68,68,0.15)', border:'1px solid rgba(239,68,68,0.4)', color:'#fca5a5' }}>{fErr}</div>
+            )}
+
+            {[
+              { label:'Fecha',    node: <input type="date" className="w-full rounded-xl p-3 text-sm text-white" style={{ background:'#1a4a85', border:'1px solid #2e6db4' }} value={formDate} onChange={e=>setFormDate(e.target.value)} /> },
+              { label:'Nombre',   node: <input className="w-full rounded-xl p-3 text-sm text-white placeholder-[#7aafd4]" style={{ background:'#1a4a85', border:'1px solid #2e6db4' }} placeholder="Nombre" value={nombre} onChange={e=>setNombre(e.target.value)} /> },
+              { label:'Teléfono', node: <input className="w-full rounded-xl p-3 text-sm text-white placeholder-[#7aafd4]" style={{ background:'#1a4a85', border:'1px solid #2e6db4' }} placeholder="Teléfono" type="tel" value={telefono} onChange={e=>setTelefono(e.target.value.replace(/[^0-9]/g,''))} /> },
+              { label:'Personas', node: <input className="w-full rounded-xl p-3 text-sm text-white placeholder-[#7aafd4]" style={{ background:'#1a4a85', border:'1px solid #2e6db4' }} placeholder="Cantidad" type="number" min="1" value={cantidad} onChange={e=>setCantidad(e.target.value)} /> },
+            ].map(({ label, node }) => (
+              <div key={label} className="mb-3">
+                <label className="text-[#7aafd4] text-xs font-bold uppercase tracking-wide mb-1 block">{label}</label>
+                {node}
+              </div>
+            ))}
+
             <div className="mb-3">
-              <p className="text-[#1e5a96] font-bold text-sm mb-1">Servicios</p>
-              <div className="relative mb-2">
-                <button
-                  type="button"
-                  onClick={() => setShowServicioPicker(!showServicioPicker)}
-                  className="w-full border border-[#ffd700] rounded-lg p-3 text-sm bg-white text-left text-gray-500"
-                >
-                  Seleccionar servicio...
+              <label className="text-[#7aafd4] text-xs font-bold uppercase tracking-wide mb-1 block">Horario</label>
+              <div className="relative">
+                <button type="button" onClick={() => setShowHorPk(!showHorPk)}
+                  className="w-full text-left rounded-xl p-3 text-sm"
+                  style={{ background:'#1a4a85', border:'1px solid #2e6db4', color: horId?'#fff':'#7aafd4' }}>
+                  {horId ? horLabel(horId) : 'Selecciona un horario'}
                 </button>
-                {showServicioPicker && valores.length > 0 && (
-                  <div className="absolute z-10 w-full bg-white border border-[#ffd700] rounded-lg mt-1 shadow-lg overflow-hidden">
-                    {valores.map(v => (
-                      <button key={v.id} type="button"
-                        onClick={() => addServicio(v)}
-                        className="w-full text-left px-4 py-3 hover:bg-yellow-50 border-b last:border-b-0 border-gray-100"
-                      >
-                        <p className="text-sm font-semibold text-gray-800">{v.servicio}</p>
-                        <p className="text-xs text-gray-500">{fmtCLP(v.monto)}</p>
+                {showHorPk && (
+                  <div className="absolute z-10 w-full rounded-xl mt-1 overflow-hidden shadow-2xl" style={{ background:'#0a2248', border:'1px solid #2e6db4' }}>
+                    {horarios.map(h => (
+                      <button key={h.id} type="button" onClick={() => { setHorId(h.id); setShowHorPk(false) }}
+                        className="w-full text-left px-4 py-3 text-sm text-white hover:bg-[#1a4a85]"
+                        style={{ borderBottom:'1px solid rgba(46,109,180,0.2)' }}>
+                        {fmtH(h.horario)}
                       </button>
                     ))}
                   </div>
                 )}
               </div>
-              <div className="min-h-12 border border-[#ffd700] rounded-lg p-3 bg-white flex flex-wrap gap-2">
-                {selectedServicios.length === 0
-                  ? <span className="text-gray-400 text-sm">Los servicios seleccionados aparecerán aquí</span>
-                  : selectedServicios.map(item => (
-                    <span key={item.id} className="flex items-center gap-1 bg-[#e8f7ff] text-[#1e5a96] text-sm font-semibold px-3 py-1 rounded-full">
-                      {item.servicio}{item.cantidad > 1 ? ` ×${item.cantidad}` : ''} · {fmtCLP(item.monto)}
-                      <button type="button" onClick={() => removeServicio(item.id)} className="text-red-600 font-bold ml-1">×</button>
-                    </span>
-                  ))
-                }
-              </div>
             </div>
 
-            <input
-              className="w-full border border-[#ffd700] rounded-lg p-3 text-sm mb-4 bg-white"
-              placeholder="Cantidad de personas"
-              type="number"
-              min="1"
-              value={cantidad}
-              onChange={e => setCantidad(e.target.value)}
-            />
+            <div className="mb-4">
+              <label className="text-[#7aafd4] text-xs font-bold uppercase tracking-wide mb-1 block">Servicios</label>
+              <div className="relative">
+                <button type="button" onClick={() => setShowSrvPk(!showSrvPk)}
+                  className="w-full text-left rounded-xl p-3 text-sm text-[#7aafd4]"
+                  style={{ background:'#1a4a85', border:'1px solid #2e6db4' }}>
+                  Agregar servicio...
+                </button>
+                {showSrvPk && (
+                  <div className="absolute z-10 w-full rounded-xl mt-1 overflow-hidden shadow-2xl" style={{ background:'#0a2248', border:'1px solid #2e6db4' }}>
+                    {valores.map(v => (
+                      <button key={v.id} type="button" onClick={() => addSrv(v)}
+                        className="w-full text-left px-4 py-3 hover:bg-[#1a4a85]"
+                        style={{ borderBottom:'1px solid rgba(46,109,180,0.2)' }}>
+                        <p className="text-sm font-semibold text-white">{v.servicio}</p>
+                        <p className="text-xs text-[#7aafd4]">{fmtCLP(v.monto)}</p>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              {srvs.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {srvs.map(item => (
+                    <span key={item.id} className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-full"
+                      style={{ background:'#2e6db4', color:'#fff' }}>
+                      {item.servicio}{item.cantidad>1?` ×${item.cantidad}`:''} · {fmtCLP(item.monto)}
+                      <button onClick={() => remSrv(item.id)} className="opacity-70 ml-1 hover:opacity-100">×</button>
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
 
-            <button
-              onClick={crearReserva}
-              disabled={loading}
-              className="w-full bg-[#ffd700] text-[#1e5a96] font-bold py-3 rounded-xl hover:bg-yellow-400 transition-colors disabled:opacity-60"
-            >
-              {loading ? 'Creando...' : 'Crear Reserva'}
+            <button onClick={crearReserva} disabled={saving}
+              className="w-full font-bold py-3.5 rounded-xl text-sm transition-all disabled:opacity-60 hover:brightness-110"
+              style={{ background:'linear-gradient(135deg,#2e6db4,#1a4a85)', color:'#fff' }}>
+              {saving ? 'Creando...' : 'Crear Reserva'}
             </button>
           </div>
-        )}
-
-        {/* Lista reservas */}
-        <p className="text-[#1e5a96] font-bold text-sm mb-3">
-          {reservas.length} {reservas.length === 1 ? 'reserva' : 'reservas'} para {selectedDate}
-        </p>
-
-        <div className="flex flex-col gap-3">
-          {reservas.map(r => (
-            <button
-              key={r.id}
-              onClick={() => router.push(`/reserva/${r.id}`)}
-              className="bg-white rounded-xl p-4 border-l-4 border-[#ffd700] shadow-sm text-left hover:shadow-md transition-shadow w-full"
-            >
-              <p className="text-[#1e5a96] font-bold text-base">{r.nombre || 'Reserva'}</p>
-              <p className="text-gray-500 text-xs mt-1">
-                📞 {r.telefono ?? '---'} · ⏰ {horarioLabel(r.horario_id)}
-              </p>
-              <p className="text-gray-500 text-xs mt-0.5">👥 {r.cantidad} personas</p>
-            </button>
-          ))}
-
-          {reservas.length === 0 && (
-            <div className="text-center py-12 text-gray-400">
-              <p className="text-3xl mb-2">📅</p>
-              <p className="text-sm">No hay reservas para esta fecha.</p>
-            </div>
-          )}
         </div>
-
-      </div>
+      )}
     </div>
   )
 }
