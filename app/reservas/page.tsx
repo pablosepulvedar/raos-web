@@ -37,11 +37,16 @@ export default function Reservas() {
 
   // Data
   const [byDate, setByDate]   = useState<Record<string, Reserva[]>>({})
-  const [windowEnd, setWindowEnd]   = useState(initEnd)
-  const windowEndRef                = useRef(initEnd)
-  const loadingMoreRef              = useRef(false)
-  const [loading, setLoading]       = useState(true)
-  const [loadingMore, setLoadingMore] = useState(false)
+  const [windowEnd, setWindowEnd]       = useState(initEnd)
+  const windowEndRef                    = useRef(initEnd)
+  const [windowStart, setWindowStart]   = useState(initStart)
+  const windowStartRef                  = useRef(initStart)
+  const loadingMoreRef                  = useRef(false)
+  const loadingPrevRef                  = useRef(false)
+  const [loading, setLoading]           = useState(true)
+  const [loadingMore, setLoadingMore]   = useState(false)
+  const [loadingPrev, setLoadingPrev]   = useState(false)
+  const listRef                         = useRef<HTMLDivElement>(null)
 
   const [horarios, setHorarios] = useState<Horario[]>([])
   const [valores,  setValores]  = useState<Valor[]>([])
@@ -66,12 +71,33 @@ export default function Reservas() {
 
   const marcarVolo = async (r: Reserva, e: React.MouseEvent) => {
     e.stopPropagation()
-    if (r.volo) return
-    if (!confirm(`¿Ya voló ${r.nombre}?`)) return
+    const msg = r.volo ? `¿Desmarcar vuelo de ${r.nombre}?` : `¿Ya voló ${r.nombre}?`
+    if (!confirm(msg)) return
     setMarcandoVolo(r.id)
-    await sb.from('reservas').update({ volo: true }).eq('id', r.id)
+    await sb.from('reservas').update({ volo: !r.volo }).eq('id', r.id)
     setMarcandoVolo(null)
     await refreshWindow()
+  }
+
+  const cargarAnteriores = async () => {
+    if (loadingPrevRef.current) return
+    loadingPrevRef.current = true
+    setLoadingPrev(true)
+    const to   = addDays(windowStartRef.current, -1)
+    const from = addDays(windowStartRef.current, -STEP)
+    const prevData = await fetchDays(from, to)
+    // Preservar scroll position al prepend
+    const list = listRef.current
+    const prevH = list?.scrollHeight ?? 0
+    const prevTop = list?.scrollTop ?? 0
+    setByDate(prev => ({ ...prevData, ...prev }))
+    windowStartRef.current = from
+    setWindowStart(from)
+    setTimeout(() => {
+      if (list) list.scrollTop = prevTop + (list.scrollHeight - prevH)
+    }, 0)
+    loadingPrevRef.current = false
+    setLoadingPrev(false)
   }
 
   const sentinelRef = useRef<HTMLDivElement>(null)
@@ -99,10 +125,10 @@ export default function Reservas() {
   }, [sb])
 
   const refreshWindow = useCallback(async () => {
-    const data = await fetchDays(initStart, windowEndRef.current)
+    const data = await fetchDays(windowStartRef.current, windowEndRef.current)
     setByDate(data)
     fetchDots(calY, calM)
-  }, [fetchDays, fetchDots, initStart, calY, calM])
+  }, [fetchDays, fetchDots, calY, calM])
 
   // ── Initial load ───────────────────────────────────────
   useEffect(() => {
@@ -169,20 +195,25 @@ export default function Reservas() {
       setByDate(prev => ({ ...prev, ...newData }))
       windowEndRef.current = ds
       setWindowEnd(ds)
+    } else if (ds < windowStartRef.current) {
+      const newData = await fetchDays(ds, addDays(windowStartRef.current,-1))
+      setByDate(prev => ({ ...newData, ...prev }))
+      windowStartRef.current = ds
+      setWindowStart(ds)
     }
     setTimeout(() => {
       dateRefs.current[ds]?.scrollIntoView({ behavior:'smooth', block:'start' })
-    }, 150)
+    }, 200)
   }
 
   // ── All dates to display ───────────────────────────────
   const allDates = useMemo(() => {
     const dates: string[] = []
-    const cur = new Date(initStart+'T12:00:00')
+    const cur = new Date(windowStart+'T12:00:00')
     const end = new Date(windowEnd+'T12:00:00')
     while (cur <= end) { dates.push(toStr(cur)); cur.setDate(cur.getDate()+1) }
     return dates
-  }, [windowEnd, initStart])
+  }, [windowEnd, windowStart])
 
   // ── Form ───────────────────────────────────────────────
   const horLabel = (id: number|null) => {
@@ -242,45 +273,61 @@ export default function Reservas() {
         </button>
       </header>
 
-      {/* ── Mini calendario ── */}
+      {/* ── Calendario modal ── */}
       {showCal && (
-        <div className="bg-white shadow-md px-4 pb-4">
-          <div className="flex items-center justify-between py-3">
-            <button onClick={() => chMo('prev')} className="text-[#1e5a96] text-xl w-8 font-bold">‹</button>
-            <span className="text-[#0d2b5c] font-bold text-sm">{MESES[calM]} {calY}</span>
-            <button onClick={() => chMo('next')} className="text-[#1e5a96] text-xl w-8 font-bold text-right">›</button>
-          </div>
-          <div className="grid grid-cols-7 mb-1">
-            {CAL_D.map((d,i) => <div key={i} className="text-center text-xs text-gray-400 py-1">{d}</div>)}
-          </div>
-          {weeks.map((wk,wi) => (
-            <div key={wi} className="grid grid-cols-7">
-              {wk.map((day,di) => {
-                if (!day) return <div key={di} />
-                const ds = `${calY}-${String(calM+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`
-                const isT = ds===today; const hasDot = dots.has(ds)
-                return (
-                  <div key={di} className="flex flex-col items-center mb-1">
-                    <button onClick={() => selCalDay(ds)}
-                      className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors
-                        ${isT?'bg-[#2e6db4] text-white font-bold':'text-gray-700 hover:bg-blue-50'}`}>
-                      {day}
-                    </button>
-                    {hasDot && <div className={`w-1.5 h-1.5 rounded-full mt-0.5 ${isT?'bg-white':'bg-[#2e6db4]'}`} />}
-                  </div>
-                )
-              })}
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setShowCal(false)} />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm px-4 pb-5 pt-4">
+            <div className="flex items-center justify-between mb-3">
+              <button onClick={() => chMo('prev')} className="text-[#1e5a96] text-2xl w-9 h-9 flex items-center justify-center font-bold hover:bg-blue-50 rounded-xl">‹</button>
+              <span className="text-[#0d2b5c] font-bold text-sm">{MESES[calM]} {calY}</span>
+              <button onClick={() => chMo('next')} className="text-[#1e5a96] text-2xl w-9 h-9 flex items-center justify-center font-bold hover:bg-blue-50 rounded-xl">›</button>
             </div>
-          ))}
+            <div className="grid grid-cols-7 mb-1">
+              {CAL_D.map((d,i) => <div key={i} className="text-center text-xs text-gray-400 py-1">{d}</div>)}
+            </div>
+            {weeks.map((wk,wi) => (
+              <div key={wi} className="grid grid-cols-7">
+                {wk.map((day,di) => {
+                  if (!day) return <div key={di} />
+                  const ds = `${calY}-${String(calM+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`
+                  const isT = ds===today; const hasDot = dots.has(ds)
+                  return (
+                    <div key={di} className="flex flex-col items-center mb-1">
+                      <button onClick={() => selCalDay(ds)}
+                        className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-medium transition-colors
+                          ${isT?'bg-[#2e6db4] text-white font-bold':'text-gray-700 hover:bg-blue-50'}`}>
+                        {day}
+                      </button>
+                      {hasDot && <div className={`w-1.5 h-1.5 rounded-full mt-0.5 ${isT?'bg-white':'bg-[#2e6db4]'}`} />}
+                    </div>
+                  )
+                })}
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
       {/* ── Lista ── */}
-      <main className="max-w-lg mx-auto pb-28 px-0">
+      <main className="max-w-lg mx-auto pb-28 px-0" ref={listRef}>
         {loading ? (
           <div className="text-center py-20 text-[#2e6db4] text-sm">Cargando...</div>
         ) : (
           <>
+            {/* Botón cargar días anteriores */}
+            <div className="flex justify-center pt-4 pb-2">
+              <button
+                onClick={cargarAnteriores}
+                disabled={loadingPrev}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all disabled:opacity-50"
+                style={{ background:'rgba(46,109,180,0.15)', color:'#2e6db4' }}>
+                {loadingPrev
+                  ? <><div className="w-3 h-3 rounded-full border-2 border-[#2e6db4] border-t-transparent animate-spin" /> Cargando...</>
+                  : '↑ Ver días anteriores'}
+              </button>
+            </div>
+
             {allDates.map(ds => {
               const reservas = byDate[ds] || []
               const date   = new Date(ds+'T12:00:00')
@@ -326,11 +373,11 @@ export default function Reservas() {
                           </button>
                           <button
                             onClick={(e) => marcarVolo(r, e)}
-                            disabled={marcandoVolo === r.id || r.volo}
+                            disabled={marcandoVolo === r.id}
                             className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-xl flex items-center justify-center transition-all disabled:opacity-50"
                             style={{ background: r.volo ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.15)', backdropFilter:'blur(4px)' }}
-                            title={r.volo ? 'Ya voló' : 'Marcar como voló'}>
-                            <span className="text-sm">{marcandoVolo === r.id ? '⏳' : r.volo ? '✅' : '✈️'}</span>
+                            title={r.volo ? 'Desmarcar vuelo' : 'Marcar como voló'}>
+                            <span className="text-sm">{marcandoVolo === r.id ? '⏳' : '🪂'}</span>
                           </button>
                         </div>
                         )
