@@ -47,6 +47,8 @@ export default function DetalleContent({ id, onSave }: Props) {
   const [abono, setAbono] = useState('')
   const [horarios, setHorarios] = useState<Horario[]>([])
   const [showHorPk, setShowHorPk] = useState(false)
+  const [volo, setVolo] = useState(false)
+  const [savingVolo, setSavingVolo] = useState(false)
   const [savingRes, setSavingRes] = useState(false)
   const [resMsg, setResMsg] = useState<{type:'ok'|'err', text:string}|null>(null)
   const [editing, setEditing] = useState(false)
@@ -89,6 +91,7 @@ export default function DetalleContent({ id, onSave }: Props) {
       setFecha(data.fecha||''); setHorarioId(data.horario_id??null)
       setCantidad(String(data.cantidad||''))
       setAbono(data.abono != null ? String(data.abono) : '')
+      setVolo(data.volo ?? false)
     }
   }
   const fetchHorarios = async () => {
@@ -116,6 +119,17 @@ export default function DetalleContent({ id, onSave }: Props) {
       data.forEach((row:any) => { if (row.perfiles && !map.has(row.perfiles.id)) map.set(row.perfiles.id, row.perfiles) })
       setPilotos(Array.from(map.values()))
     }
+  }
+
+  const toggleVolo = async () => {
+    const msg = volo ? `¿Desmarcar vuelo de ${nombre}?` : `¿Ya voló ${nombre}?`
+    if (!confirm(msg)) return
+    setSavingVolo(true)
+    const nuevoVolo = !volo
+    await sb.from('reservas').update({ volo: nuevoVolo }).eq('id', id)
+    setVolo(nuevoVolo)
+    setSavingVolo(false)
+    onSave?.()
   }
 
   const guardarReserva = async () => {
@@ -234,7 +248,17 @@ export default function DetalleContent({ id, onSave }: Props) {
       <div className={sectionCls}>
         <div className="flex items-center justify-between mb-4">
           <p className="text-[#0d2b5c] font-bold text-sm uppercase tracking-wide">Datos de la reserva</p>
-          {!editing && <span className="text-xs text-[#7aafd4] font-medium">Solo lectura</span>}
+          <div className="flex items-center gap-2">
+            {!editing && <span className="text-xs text-[#7aafd4] font-medium">Solo lectura</span>}
+            <button
+              onClick={toggleVolo}
+              disabled={savingVolo}
+              title={volo ? 'Desmarcar vuelo' : 'Marcar como voló'}
+              className="w-8 h-8 rounded-xl flex items-center justify-center transition-all disabled:opacity-50"
+              style={{ background: volo ? 'rgba(155,89,182,0.2)' : 'rgba(46,109,180,0.1)' }}>
+              <span className="text-base">{savingVolo ? '⏳' : '🪂'}</span>
+            </button>
+          </div>
         </div>
 
         {resMsg && (
@@ -541,6 +565,7 @@ export default function DetalleContent({ id, onSave }: Props) {
           : <div className="flex flex-col gap-3">
               {pasajeros.map(p => {
                 const camaras = [p.sin_camara&&'Sin cámara', p.camara_normal&&'Normal', p.camara_360&&'360°'].filter(Boolean).join(', ')
+                const camaraEmoji = p.camara_360 ? '📽️' : '📷'
                 const pl = pilotos.find(pl=>pl.id===p.perfil_id)
                 return (
                   <div key={p.id} className="flex items-start justify-between gap-3 rounded-2xl p-4"
@@ -551,7 +576,7 @@ export default function DetalleContent({ id, onSave }: Props) {
                         {p.cumpleanero && <span className="text-base leading-none">🥳</span>}
                       </p>
                       {(p.edad||p.peso) && <p className="text-[#2e6db4] text-xs mt-0.5">{[p.edad&&`${p.edad} años`, p.peso&&`${p.peso} kg`].filter(Boolean).join(' · ')}</p>}
-                      {camaras && <p className="text-gray-500 text-xs mt-0.5">📷 {camaras}</p>}
+                      {camaras && <p className="text-gray-500 text-xs mt-0.5">{camaraEmoji} {camaras}</p>}
                       <p className={`text-xs mt-0.5 ${pl?'text-[#1a4a85]':'text-gray-400'}`}>🪂 {pl?pl.nombre:'Sin piloto'}</p>
                     </div>
                     <div className="flex gap-2 shrink-0">

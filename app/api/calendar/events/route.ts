@@ -9,8 +9,8 @@ const oauth2Client = new google.auth.OAuth2(
 
 // Detecta cámara por emoji en la línea del pasajero
 function parseCamara(text: string): { sin_camara: boolean; camara_normal: boolean; camara_360: boolean } {
-  const tiene360 = /🎥|📹|📽️|🎬/.test(text)
-  const tieneNormal = /📸|📷/.test(text)
+  const tiene360 = /📽️|📹|🎥|🎬/.test(text)
+  const tieneNormal = /📷|📸/.test(text)
   const esCumpleanero = /🥳|🎂|🎁|🎈/.test(text)
   if (esCumpleanero || tiene360) return { sin_camara: false, camara_normal: false, camara_360: true }
   if (tieneNormal)               return { sin_camara: false, camara_normal: true,  camara_360: false }

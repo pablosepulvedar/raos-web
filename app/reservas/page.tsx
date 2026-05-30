@@ -30,10 +30,11 @@ export default function Reservas() {
   const initEnd   = useRef(addDays(today,  2)).current
 
   // Calendar
-  const [showCal, setShowCal] = useState(false)
-  const [calM, setCalM]       = useState(new Date().getMonth())
-  const [calY, setCalY]       = useState(new Date().getFullYear())
-  const [dots, setDots]       = useState<Set<string>>(new Set())
+  const [showCal, setShowCal]       = useState(false)
+  const [calM, setCalM]             = useState(new Date().getMonth())
+  const [calY, setCalY]             = useState(new Date().getFullYear())
+  const [dots, setDots]             = useState<Set<string>>(new Set())
+  const [selectedDate, setSelectedDate] = useState(today)
 
   // Data
   const [byDate, setByDate]   = useState<Record<string, Reserva[]>>({})
@@ -149,27 +150,6 @@ export default function Reservas() {
     load()
   }, [])
 
-  // ── Infinite scroll ────────────────────────────────────
-  useEffect(() => {
-    if (loading) return
-    const sentinel = sentinelRef.current
-    if (!sentinel) return
-    const observer = new IntersectionObserver(async (entries) => {
-      if (!entries[0].isIntersecting || loadingMoreRef.current) return
-      loadingMoreRef.current = true
-      setLoadingMore(true)
-      const from = addDays(windowEndRef.current, 1)
-      const to   = addDays(windowEndRef.current, STEP)
-      const newData = await fetchDays(from, to)
-      setByDate(prev => ({ ...prev, ...newData }))
-      windowEndRef.current = to
-      setWindowEnd(to)
-      loadingMoreRef.current = false
-      setLoadingMore(false)
-    }, { rootMargin:'300px' })
-    observer.observe(sentinel)
-    return () => observer.disconnect()
-  }, [loading, fetchDays])
 
   useEffect(() => { fetchDots(calY, calM) }, [calM, calY])
 
@@ -190,6 +170,11 @@ export default function Reservas() {
   }
   const selCalDay = async (ds: string) => {
     setShowCal(false)
+    setSelectedDate(ds)
+    // Sincroniza el mes del calendario con el día seleccionado
+    const d = new Date(ds + 'T12:00:00')
+    setCalM(d.getMonth())
+    setCalY(d.getFullYear())
     if (ds > windowEndRef.current) {
       const newData = await fetchDays(addDays(windowEndRef.current,1), ds)
       setByDate(prev => ({ ...prev, ...newData }))
@@ -291,15 +276,15 @@ export default function Reservas() {
                 {wk.map((day,di) => {
                   if (!day) return <div key={di} />
                   const ds = `${calY}-${String(calM+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`
-                  const isT = ds===today; const hasDot = dots.has(ds)
+                  const isSel = ds===selectedDate; const isT = ds===today; const hasDot = dots.has(ds)
                   return (
                     <div key={di} className="flex flex-col items-center mb-1">
                       <button onClick={() => selCalDay(ds)}
                         className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-medium transition-colors
-                          ${isT?'bg-[#2e6db4] text-white font-bold':'text-gray-700 hover:bg-blue-50'}`}>
+                          ${isSel?'bg-[#2e6db4] text-white font-bold':isT?'ring-2 ring-[#2e6db4] text-[#2e6db4] font-bold':'text-gray-700 hover:bg-blue-50'}`}>
                         {day}
                       </button>
-                      {hasDot && <div className={`w-1.5 h-1.5 rounded-full mt-0.5 ${isT?'bg-white':'bg-[#2e6db4]'}`} />}
+                      {hasDot && <div className="w-1.5 h-1.5 rounded-full mt-0.5 bg-[#2e6db4]" />}
                     </div>
                   )
                 })}
@@ -389,15 +374,31 @@ export default function Reservas() {
               )
             })}
 
-            {/* Sentinel para infinite scroll */}
-            <div ref={sentinelRef} className="py-6 text-center">
-              {loadingMore && (
-                <div className="flex items-center justify-center gap-2 text-[#7aafd4] text-sm">
-                  <div className="w-4 h-4 rounded-full border-2 border-[#7aafd4] border-t-transparent animate-spin" />
-                  Cargando más días...
-                </div>
-              )}
+            {/* Botón cargar días futuros */}
+            <div className="flex justify-center py-4">
+              <button
+                onClick={async () => {
+                  if (loadingMoreRef.current) return
+                  loadingMoreRef.current = true
+                  setLoadingMore(true)
+                  const from = addDays(windowEndRef.current, 1)
+                  const to   = addDays(windowEndRef.current, STEP)
+                  const newData = await fetchDays(from, to)
+                  setByDate(prev => ({ ...prev, ...newData }))
+                  windowEndRef.current = to
+                  setWindowEnd(to)
+                  loadingMoreRef.current = false
+                  setLoadingMore(false)
+                }}
+                disabled={loadingMore}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all disabled:opacity-50"
+                style={{ background:'rgba(46,109,180,0.15)', color:'#2e6db4' }}>
+                {loadingMore
+                  ? <><div className="w-3 h-3 rounded-full border-2 border-[#2e6db4] border-t-transparent animate-spin" /> Cargando...</>
+                  : 'Ver días futuros ↓'}
+              </button>
             </div>
+            <div ref={sentinelRef} />
           </>
         )}
       </main>
