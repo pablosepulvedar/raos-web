@@ -101,11 +101,22 @@ export async function GET(req: NextRequest) {
       const parsed = parseTitulo(titulo)
       const { pasajeros, abono } = parseDescripcion(desc)
 
+      // Hora real desde el timestamp ISO del evento (formato 24h, ej: 1300)
+      let horaStr: string|null = null
+      if (ev.start?.dateTime) {
+        const d = new Date(ev.start.dateTime)
+        const hh = String(d.getHours()).padStart(2, '0')
+        const mm = String(d.getMinutes()).padStart(2, '0')
+        horaStr = `${hh}:${mm}`
+      } else if (parsed?.horaStr) {
+        horaStr = parsed.horaStr
+      }
+
       return {
         googleId:  ev.id,
         titulo,
         fecha,
-        horaStr:   parsed?.horaStr ?? null,
+        horaStr,
         nombre:    parsed?.nombre  ?? titulo,
         cantidad:  parsed?.cantidad ?? 1,
         abono,

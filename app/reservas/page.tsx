@@ -67,10 +67,12 @@ export default function Reservas() {
 
   // ── Fetch helpers ──────────────────────────────────────
   const fetchDays = useCallback(async (from: string, to: string) => {
-    const { data } = await sb.from('reservas').select('*')
-      .gte('fecha', from).lte('fecha', to).order('fecha').order('horario_id')
+    const { data } = await sb.from('reservas').select('*, horarios(horario)')
+      .gte('fecha', from).lte('fecha', to).order('fecha')
+    const rows = (data||[]) as (Reserva & { horarios?: { horario: number } | null })[]
+    rows.sort((a, b) => (a.horarios?.horario ?? 9999) - (b.horarios?.horario ?? 9999))
     const g: Record<string, Reserva[]> = {}
-    for (const r of (data||[]) as Reserva[]) {
+    for (const r of rows) {
       if (!g[r.fecha]) g[r.fecha] = []
       g[r.fecha].push(r)
     }
