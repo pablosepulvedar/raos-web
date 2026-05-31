@@ -62,6 +62,18 @@ const menuItems = [
     subtexto: '#c8f0d4',
     sombra: 'rgba(52,168,83,0.35)',
   },
+  {
+    href: '/reporte',
+    emoji: '📊',
+    titulo: 'Cuadre del día',
+    descripcion: 'Reporte diario de ingresos, pagos y pilotos',
+    from: '#b45309',
+    to: '#78350f',
+    texto: '#fff',
+    subtexto: '#fde68a',
+    sombra: 'rgba(180,83,9,0.35)',
+    adminOnly: true,
+  },
 ]
 
 const ROLES_RESTRINGIDOS = ['piloto', 'coordinador']
@@ -145,7 +157,7 @@ export default function Home() {
         </p>
 
         <div className="flex flex-col gap-3">
-          {menuItems.filter(item => item.href !== '/usuarios' || esAdmin).map((item) => (
+          {menuItems.filter(item => !((item.href === '/usuarios' || (item as any).adminOnly) && !esAdmin)).map((item) => (
             <Link
               key={item.href}
               href={item.href}

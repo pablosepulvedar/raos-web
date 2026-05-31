@@ -24,30 +24,34 @@ export default function Pilotos() {
   const initEnd   = useRef(addDays(today,  2)).current
 
   // Calendar
-  const [showCal, setShowCal] = useState(false)
-  const [calM, setCalM]       = useState(new Date().getMonth())
-  const [calY, setCalY]       = useState(new Date().getFullYear())
-  const [dots, setDots]       = useState<Set<string>>(new Set())
+  const [showCal, setShowCal]           = useState(false)
+  const [calM, setCalM]                 = useState(new Date().getMonth())
+  const [calY, setCalY]                 = useState(new Date().getFullYear())
+  const [dots, setDots]                 = useState<Set<string>>(new Set())
+  const [selectedDate, setSelectedDate] = useState(today)
 
-  // Data
-  const [byDate, setByDate]                     = useState<Record<string, PilotoResumen[]>>({})
+  // Window
+  const [byDate, setByDate]                             = useState<Record<string, PilotoResumen[]>>({})
   const [reservaIdsByDatePiloto, setReservaIdsByDatePiloto] = useState<Record<string, Record<string, number[]>>>({})
-  const [windowEnd, setWindowEnd]               = useState(initEnd)
-  const windowEndRef                            = useRef(initEnd)
-  const loadingMoreRef                          = useRef(false)
-  const [loading, setLoading]                   = useState(true)
-  const [loadingMore, setLoadingMore]           = useState(false)
+  const [windowEnd, setWindowEnd]                       = useState(initEnd)
+  const windowEndRef                                    = useRef(initEnd)
+  const [windowStart, setWindowStart]                   = useState(initStart)
+  const windowStartRef                                  = useRef(initStart)
+  const [loading, setLoading]                           = useState(true)
+  const [loadingMore, setLoadingMore]                   = useState(false)
+  const [loadingPrev, setLoadingPrev]                   = useState(false)
+  const loadingMoreRef                                  = useRef(false)
+  const loadingPrevRef                                  = useRef(false)
+  const listRef                                         = useRef<HTMLDivElement>(null)
+  const dateRefs                                        = useRef<Record<string, HTMLDivElement|null>>({})
 
   // Service management
-  const [valoresPiloto, setValoresPiloto]         = useState<any[]>([])
-  const [expandedKey, setExpandedKey]             = useState<string|null>(null)
-  const [serviciosSeleccionados, setServicios]    = useState<ServicioPiloto[]>([])
-  const [showSrvPk, setShowSrvPk]                 = useState(false)
-  const [saving, setSaving]                       = useState(false)
-  const [savedMsg, setSavedMsg]                   = useState<string|null>(null)
-
-  const sentinelRef = useRef<HTMLDivElement>(null)
-  const dateRefs    = useRef<Record<string, HTMLDivElement|null>>({})
+  const [valoresPiloto, setValoresPiloto]      = useState<any[]>([])
+  const [expandedKey, setExpandedKey]          = useState<string|null>(null)
+  const [serviciosSeleccionados, setServicios] = useState<ServicioPiloto[]>([])
+  const [showSrvPk, setShowSrvPk]              = useState(false)
+  const [saving, setSaving]                    = useState(false)
+  const [savedMsg, setSavedMsg]                = useState<string|null>(null)
 
   // ── Fetch helpers ──────────────────────────────────────
   const fetchRange = useCallback(async (from: string, to: string) => {
@@ -99,6 +103,12 @@ export default function Pilotos() {
     setDots(new Set(reservasMes.filter((r:any)=>idsConPilotos.has(r.id)).map((r:any)=>r.fecha as string)))
   }, [sb])
 
+  const refreshWindow = useCallback(async () => {
+    const { byDate: d, reservaIds: r } = await fetchRange(windowStartRef.current, windowEndRef.current)
+    setByDate(d); setReservaIdsByDatePiloto(r)
+    fetchDots(calY, calM)
+  }, [fetchRange, fetchDots, calY, calM])
+
   // ── Initial load ───────────────────────────────────────
   useEffect(() => {
     const load = async () => {
@@ -117,30 +127,29 @@ export default function Pilotos() {
     load()
   }, [])
 
-  // ── Infinite scroll ────────────────────────────────────
-  useEffect(() => {
-    if (loading) return
-    const sentinel = sentinelRef.current
-    if (!sentinel) return
-    const observer = new IntersectionObserver(async (entries) => {
-      if (!entries[0].isIntersecting || loadingMoreRef.current) return
-      loadingMoreRef.current = true
-      setLoadingMore(true)
-      const from = addDays(windowEndRef.current, 1)
-      const to   = addDays(windowEndRef.current, STEP)
-      const { byDate: newD, reservaIds: newR } = await fetchRange(from, to)
-      setByDate(prev => ({ ...prev, ...newD }))
-      setReservaIdsByDatePiloto(prev => ({ ...prev, ...newR }))
-      windowEndRef.current = to
-      setWindowEnd(to)
-      loadingMoreRef.current = false
-      setLoadingMore(false)
-    }, { rootMargin:'300px' })
-    observer.observe(sentinel)
-    return () => observer.disconnect()
-  }, [loading, fetchRange])
-
   useEffect(() => { fetchDots(calY, calM) }, [calM, calY])
+
+  // ── Cargar días anteriores ─────────────────────────────
+  const cargarAnteriores = async () => {
+    if (loadingPrevRef.current) return
+    loadingPrevRef.current = true
+    setLoadingPrev(true)
+    const to   = addDays(windowStartRef.current, -1)
+    const from = addDays(windowStartRef.current, -STEP)
+    const { byDate: newD, reservaIds: newR } = await fetchRange(from, to)
+    const list = listRef.current
+    const prevH   = list?.scrollHeight ?? 0
+    const prevTop = list?.scrollTop ?? 0
+    setByDate(prev => ({ ...newD, ...prev }))
+    setReservaIdsByDatePiloto(prev => ({ ...newR, ...prev }))
+    windowStartRef.current = from
+    setWindowStart(from)
+    setTimeout(() => {
+      if (list) list.scrollTop = prevTop + (list.scrollHeight - prevH)
+    }, 0)
+    loadingPrevRef.current = false
+    setLoadingPrev(false)
+  }
 
   // ── Calendar ───────────────────────────────────────────
   const dIM = new Date(calY, calM+1, 0).getDate()
@@ -159,26 +168,34 @@ export default function Pilotos() {
   }
   const selCalDay = async (ds: string) => {
     setShowCal(false)
+    setSelectedDate(ds)
+    const d = new Date(ds+'T12:00:00')
+    setCalM(d.getMonth()); setCalY(d.getFullYear())
+
     if (ds > windowEndRef.current) {
       const { byDate: newD, reservaIds: newR } = await fetchRange(addDays(windowEndRef.current,1), ds)
       setByDate(prev => ({ ...prev, ...newD }))
       setReservaIdsByDatePiloto(prev => ({ ...prev, ...newR }))
-      windowEndRef.current = ds
-      setWindowEnd(ds)
+      windowEndRef.current = ds; setWindowEnd(ds)
+    } else if (ds < windowStartRef.current) {
+      const { byDate: newD, reservaIds: newR } = await fetchRange(ds, addDays(windowStartRef.current,-1))
+      setByDate(prev => ({ ...newD, ...prev }))
+      setReservaIdsByDatePiloto(prev => ({ ...newR, ...prev }))
+      windowStartRef.current = ds; setWindowStart(ds)
     }
     setTimeout(() => {
       dateRefs.current[ds]?.scrollIntoView({ behavior:'smooth', block:'start' })
-    }, 150)
+    }, 200)
   }
 
   // ── All dates in window ────────────────────────────────
   const allDates = useMemo(() => {
     const dates: string[] = []
-    const cur = new Date(initStart+'T12:00:00')
+    const cur = new Date(windowStart+'T12:00:00')
     const end = new Date(windowEnd+'T12:00:00')
     while (cur <= end) { dates.push(toStr(cur)); cur.setDate(cur.getDate()+1) }
     return dates
-  }, [windowEnd, initStart])
+  }, [windowEnd, windowStart])
 
   // ── Service management ─────────────────────────────────
   const fetchExistingServicios = async (perfilId: string, reservaIdList: number[]) => {
@@ -277,41 +294,44 @@ export default function Pilotos() {
         </button>
       </header>
 
-      {/* ── Mini calendario ── */}
+      {/* ── Calendario modal ── */}
       {showCal && (
-        <div className="bg-white shadow-md px-4 pb-4">
-          <div className="flex items-center justify-between py-3">
-            <button onClick={() => chMo('prev')} className="text-[#1e5a96] text-xl w-8 font-bold">‹</button>
-            <span className="text-[#0d2b5c] font-bold text-sm">{MESES[calM]} {calY}</span>
-            <button onClick={() => chMo('next')} className="text-[#1e5a96] text-xl w-8 font-bold text-right">›</button>
-          </div>
-          <div className="grid grid-cols-7 mb-1">
-            {CAL_D.map((d,i) => <div key={i} className="text-center text-xs text-gray-400 py-1">{d}</div>)}
-          </div>
-          {weeks.map((wk,wi) => (
-            <div key={wi} className="grid grid-cols-7">
-              {wk.map((day,di) => {
-                if (!day) return <div key={di} />
-                const ds = `${calY}-${String(calM+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`
-                const isT = ds===today; const hasDot = dots.has(ds)
-                return (
-                  <div key={di} className="flex flex-col items-center mb-1">
-                    <button onClick={() => selCalDay(ds)}
-                      className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors
-                        ${isT?'bg-[#2e6db4] text-white font-bold':'text-gray-700 hover:bg-blue-50'}`}>
-                      {day}
-                    </button>
-                    {hasDot && <div className={`w-1.5 h-1.5 rounded-full mt-0.5 ${isT?'bg-white':'bg-[#2e6db4]'}`} />}
-                  </div>
-                )
-              })}
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setShowCal(false)} />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm px-4 pb-5 pt-4">
+            <div className="flex items-center justify-between mb-3">
+              <button onClick={() => chMo('prev')} className="text-[#1e5a96] text-2xl w-9 h-9 flex items-center justify-center font-bold hover:bg-blue-50 rounded-xl">‹</button>
+              <span className="text-[#0d2b5c] font-bold text-sm">{MESES[calM]} {calY}</span>
+              <button onClick={() => chMo('next')} className="text-[#1e5a96] text-2xl w-9 h-9 flex items-center justify-center font-bold hover:bg-blue-50 rounded-xl">›</button>
             </div>
-          ))}
+            <div className="grid grid-cols-7 mb-1">
+              {CAL_D.map((d,i) => <div key={i} className="text-center text-xs text-gray-400 py-1">{d}</div>)}
+            </div>
+            {weeks.map((wk,wi) => (
+              <div key={wi} className="grid grid-cols-7">
+                {wk.map((day,di) => {
+                  if (!day) return <div key={di} />
+                  const ds = `${calY}-${String(calM+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`
+                  const isSel = ds===selectedDate; const isT = ds===today; const hasDot = dots.has(ds)
+                  return (
+                    <div key={di} className="flex flex-col items-center mb-1">
+                      <button onClick={() => selCalDay(ds)}
+                        className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-medium transition-colors
+                          ${isSel?'bg-[#2e6db4] text-white font-bold':isT?'ring-2 ring-[#2e6db4] text-[#2e6db4] font-bold':'text-gray-700 hover:bg-blue-50'}`}>
+                        {day}
+                      </button>
+                      {hasDot && <div className="w-1.5 h-1.5 rounded-full mt-0.5 bg-[#2e6db4]" />}
+                    </div>
+                  )
+                })}
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
       {/* ── Lista ── */}
-      <main className="max-w-lg mx-auto pb-20 px-0">
+      <main className="max-w-lg mx-auto pb-20 px-0" ref={listRef}>
         {loading ? (
           <div className="flex flex-col items-center justify-center py-24 gap-3">
             <div className="w-8 h-8 rounded-full border-[3px] border-[#2e6db4] border-t-transparent animate-spin" />
@@ -319,6 +339,19 @@ export default function Pilotos() {
           </div>
         ) : (
           <>
+            {/* Botón ver días anteriores */}
+            <div className="flex justify-center pt-4 pb-2">
+              <button
+                onClick={cargarAnteriores}
+                disabled={loadingPrev}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all disabled:opacity-50"
+                style={{ background:'rgba(46,109,180,0.15)', color:'#2e6db4' }}>
+                {loadingPrev
+                  ? <><div className="w-3 h-3 rounded-full border-2 border-[#2e6db4] border-t-transparent animate-spin" /> Cargando...</>
+                  : '↑ Ver días anteriores'}
+              </button>
+            </div>
+
             {allDates.map(ds => {
               const pilotos = byDate[ds] || []
               const date   = new Date(ds+'T12:00:00')
@@ -331,7 +364,6 @@ export default function Pilotos() {
               return (
                 <div key={ds} ref={el => { dateRefs.current[ds] = el }}>
                   <div className="flex items-start gap-3 px-4 pt-5 pb-1">
-                    {/* Day label */}
                     <div className="flex flex-col items-center w-10 shrink-0 mt-0.5">
                       <span className="text-xs font-bold uppercase" style={{ color:dayColor }}>{dn}</span>
                       <div className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-base mt-0.5 ${isT?'text-white':'text-[#0d2b5c]'}`}
@@ -340,21 +372,18 @@ export default function Pilotos() {
                       </div>
                     </div>
 
-                    {/* Pilot cards */}
                     <div className="flex-1 flex flex-col gap-2 pt-1">
                       {pilotos.length === 0 ? (
                         <p className="text-[#b0cce8] text-sm py-2 italic">Sin vuelos</p>
                       ) : pilotos.map(p => {
                         const key        = `${ds}__${p.perfil_id}`
                         const isExpanded = expandedKey === key
-                        const reservaIdList = reservaIdsByDatePiloto[ds]?.[p.perfil_id] || []
                         const usados     = serviciosSeleccionados.reduce((s,x)=>s+x.cantidad,0)
                         const limite     = usados >= p.vuelos
                         const totalSrv   = serviciosSeleccionados.reduce((s,x)=>s+x.monto*x.cantidad,0)
 
                         return (
                           <div key={p.perfil_id}>
-                            {/* Pilot header card */}
                             <button
                               onClick={() => togglePiloto(ds, p.perfil_id)}
                               className="w-full text-left px-4 py-3 transition-all active:scale-[0.98]"
@@ -380,10 +409,8 @@ export default function Pilotos() {
                               </div>
                             </button>
 
-                            {/* Expanded services panel */}
                             {isExpanded && (
                               <div className="rounded-b-2xl p-4" style={{ background:'#f0f6ff', border:'1px solid #b0cce8', borderTop:'none' }}>
-
                                 <div className="flex items-center justify-between mb-3">
                                   <p className="text-[#0d2b5c] font-bold text-xs uppercase tracking-wide">Servicios del piloto</p>
                                   <span className="text-xs font-bold text-white px-2 py-0.5 rounded-full"
@@ -398,7 +425,6 @@ export default function Pilotos() {
                                   </div>
                                 )}
 
-                                {/* Picker */}
                                 {!limite ? (
                                   <div className="relative mb-3">
                                     <button type="button" onClick={() => setShowSrvPk(!showSrvPk)}
@@ -427,7 +453,6 @@ export default function Pilotos() {
                                   </div>
                                 )}
 
-                                {/* Selected services */}
                                 {serviciosSeleccionados.length > 0 ? (
                                   <div className="flex flex-col gap-2 mb-3">
                                     {serviciosSeleccionados.map(s => (
@@ -474,14 +499,29 @@ export default function Pilotos() {
               )
             })}
 
-            {/* Sentinel para infinite scroll */}
-            <div ref={sentinelRef} className="py-6 text-center">
-              {loadingMore && (
-                <div className="flex items-center justify-center gap-2 text-[#7aafd4] text-sm">
-                  <div className="w-4 h-4 rounded-full border-2 border-[#7aafd4] border-t-transparent animate-spin" />
-                  Cargando más días...
-                </div>
-              )}
+            {/* Botón ver días futuros */}
+            <div className="flex justify-center py-4">
+              <button
+                onClick={async () => {
+                  if (loadingMoreRef.current) return
+                  loadingMoreRef.current = true
+                  setLoadingMore(true)
+                  const from = addDays(windowEndRef.current, 1)
+                  const to   = addDays(windowEndRef.current, STEP)
+                  const { byDate: newD, reservaIds: newR } = await fetchRange(from, to)
+                  setByDate(prev => ({ ...prev, ...newD }))
+                  setReservaIdsByDatePiloto(prev => ({ ...prev, ...newR }))
+                  windowEndRef.current = to; setWindowEnd(to)
+                  loadingMoreRef.current = false
+                  setLoadingMore(false)
+                }}
+                disabled={loadingMore}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all disabled:opacity-50"
+                style={{ background:'rgba(46,109,180,0.15)', color:'#2e6db4' }}>
+                {loadingMore
+                  ? <><div className="w-3 h-3 rounded-full border-2 border-[#2e6db4] border-t-transparent animate-spin" /> Cargando...</>
+                  : 'Ver días futuros ↓'}
+              </button>
             </div>
           </>
         )}
