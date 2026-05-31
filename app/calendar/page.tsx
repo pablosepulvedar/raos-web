@@ -45,6 +45,18 @@ export default function CalendarPage() {
     const data = await res.json()
     if (data.error) { setError(data.error); setLoading(false); return }
     setEventos(data.eventos)
+
+    // Pre-marcar eventos que ya fueron importados
+    if (data.eventos.length > 0) {
+      const googleIds = data.eventos.map((e: EventoCalendario) => e.googleId)
+      const { data: existentes } = await supabase
+        .from('reservas').select('google_event_id')
+        .in('google_event_id', googleIds)
+      if (existentes?.length) {
+        setImportados(new Set(existentes.map((r: any) => r.google_event_id)))
+      }
+    }
+
     setLoading(false)
   }
 
@@ -71,7 +83,17 @@ export default function CalendarPage() {
         }
       }
 
-      // 2. Crear reserva
+      // 2. Verificar que no exista ya (por google_event_id)
+      const { data: existente } = await supabase
+        .from('reservas').select('id').eq('google_event_id', ev.googleId).limit(1)
+      if (existente && existente.length > 0) {
+        setImportados(prev => new Set([...prev, ev.googleId]))
+        setMsg({ id: ev.googleId, type: 'ok', text: 'Esta reserva ya estaba importada' })
+        setImportando(null)
+        return
+      }
+
+      // 3. Crear reserva
       const { data: reserva, error: resErr } = await supabase
         .from('reservas')
         .insert({
@@ -81,12 +103,13 @@ export default function CalendarPage() {
           cantidad: ev.cantidad,
           abono: ev.abono,
           telefono: null,
+          google_event_id: ev.googleId,
         })
         .select('id').single()
 
       if (resErr || !reserva) throw new Error(resErr?.message || 'Error al crear reserva')
 
-      // 3. Crear pasajeros
+      // 4. Crear pasajeros
       if (ev.pasajeros.length > 0) {
         const pasPayload = ev.pasajeros.map(p => ({
           reserva_id: reserva.id,
