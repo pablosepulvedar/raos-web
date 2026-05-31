@@ -176,18 +176,25 @@ export default function Reporte() {
     cobrosPorMetodo[m] = (cobrosPorMetodo[m]||0) + g.monto
   })
 
-  // Egresos por método: pilotos + extras gastos
-  const egresosPorMetodo: Record<string, number> = {}
+  // Pagos a pilotos por método
+  const pilagosPorMetodo: Record<string, number> = {}
   pagosAPilotos.forEach(p => {
-    egresosPorMetodo[p.metodo] = (egresosPorMetodo[p.metodo]||0) + p.monto
-  })
-  gastosExtras.filter(g=>g.tipo==='gasto').forEach(g => {
-    const m = g.metodos_pago?.nombre || 'Sin método'
-    egresosPorMetodo[m] = (egresosPorMetodo[m]||0) + g.monto
+    pilagosPorMetodo[p.metodo] = (pilagosPorMetodo[p.metodo]||0) + p.monto
   })
 
-  // Todos los métodos que aparecen
-  const todosMetodos = Array.from(new Set([...Object.keys(cobrosPorMetodo), ...Object.keys(egresosPorMetodo)]))
+  // Otros gastos por método
+  const otrosGastoPorMetodo: Record<string, number> = {}
+  gastosExtras.filter(g=>g.tipo==='gasto').forEach(g => {
+    const m = g.metodos_pago?.nombre || 'Sin método'
+    otrosGastoPorMetodo[m] = (otrosGastoPorMetodo[m]||0) + g.monto
+  })
+
+  // Todos los métodos que aparecen en cualquier columna
+  const todosMetodos = Array.from(new Set([
+    ...Object.keys(cobrosPorMetodo),
+    ...Object.keys(pilagosPorMetodo),
+    ...Object.keys(otrosGastoPorMetodo),
+  ]))
 
   const totalPilotos       = pilotos.reduce((s,p)=>s+p.servicios.reduce((a,sv)=>a+sv.monto*sv.cantidad,0),0)
   const totalPagadoPilotos = pagosAPilotos.reduce((s,p)=>s+p.monto,0)
@@ -412,8 +419,8 @@ export default function Reporte() {
                 <p className={titleCls}>💳 Desglose por método de pago</p>
 
                 {/* Encabezado */}
-                <div className="grid grid-cols-4 gap-1 mb-2 px-1">
-                  {['Método','Cobrado','Pilotos','Neto'].map(h => (
+                <div className="grid grid-cols-5 gap-1 mb-2 px-1">
+                  {['Método','Cobrado','Pilotos','Otros','Neto'].map(h => (
                     <p key={h} className="text-[10px] font-bold text-gray-400 uppercase text-center">{h}</p>
                   ))}
                 </div>
@@ -422,25 +429,28 @@ export default function Reporte() {
                 <div className="flex flex-col gap-1.5">
                   {todosMetodos.map(m => {
                     const cobrado = cobrosPorMetodo[m] || 0
-                    const piloto  = egresosPorMetodo[m] || 0
-                    const neto    = cobrado - piloto
+                    const piloto  = pilagosPorMetodo[m] || 0
+                    const otros   = otrosGastoPorMetodo[m] || 0
+                    const neto    = cobrado - piloto - otros
                     return (
-                      <div key={m} className="grid grid-cols-4 gap-1 py-2.5 px-3 rounded-xl items-center"
+                      <div key={m} className="grid grid-cols-5 gap-1 py-2.5 px-3 rounded-xl items-center"
                         style={{ background:'#f8fbff', border:'1px solid #d4e6f5' }}>
                         <span className="text-xs font-bold text-[#0d2b5c] truncate">{m}</span>
                         <span className="text-xs font-semibold text-green-700 text-center">{cobrado ? fmtCLP(cobrado) : '—'}</span>
                         <span className="text-xs font-semibold text-purple-700 text-center">{piloto ? `−${fmtCLP(piloto)}` : '—'}</span>
+                        <span className="text-xs font-semibold text-red-600 text-center">{otros ? `−${fmtCLP(otros)}` : '—'}</span>
                         <span className={`text-xs font-extrabold text-center ${neto >= 0 ? 'text-[#2e6db4]' : 'text-red-600'}`}>{fmtCLP(neto)}</span>
                       </div>
                     )
                   })}
 
                   {/* Totales */}
-                  <div className="grid grid-cols-4 gap-1 py-2.5 px-3 rounded-xl items-center mt-1"
+                  <div className="grid grid-cols-5 gap-1 py-2.5 px-3 rounded-xl items-center mt-1"
                     style={{ background:'linear-gradient(135deg,#1a4a85,#0d2b5c)' }}>
                     <span className="text-xs font-bold text-white">Total</span>
                     <span className="text-xs font-bold text-green-300 text-center">{fmtCLP(totalCobrado + totalExtrasIngreso)}</span>
-                    <span className="text-xs font-bold text-purple-300 text-center">{(totalPagadoPilotos+totalExtrasGasto) ? `−${fmtCLP(totalPagadoPilotos+totalExtrasGasto)}` : '—'}</span>
+                    <span className="text-xs font-bold text-purple-300 text-center">{totalPagadoPilotos ? `−${fmtCLP(totalPagadoPilotos)}` : '—'}</span>
+                    <span className="text-xs font-bold text-red-300 text-center">{totalExtrasGasto ? `−${fmtCLP(totalExtrasGasto)}` : '—'}</span>
                     <span className={`text-xs font-extrabold text-center ${(totalCobrado+totalExtrasIngreso-totalPagadoPilotos-totalExtrasGasto)>=0?'text-yellow-300':'text-red-300'}`}>
                       {fmtCLP(totalCobrado + totalExtrasIngreso - totalPagadoPilotos - totalExtrasGasto)}
                     </span>
