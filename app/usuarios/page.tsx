@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase-browser'
 
 const supabase = createClient()
@@ -27,6 +27,7 @@ export default function Usuarios() {
   const [selectedRoles, setSelectedRoles] = useState<Rol[]>([])
   const [showRolePicker, setShowRolePicker] = useState(false)
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
+  const formRef = useRef<HTMLDivElement>(null)
   const [loading, setLoading] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -46,20 +47,17 @@ export default function Usuarios() {
   }
 
   const fetchUsuarios = async () => {
-    const { data, error } = await supabase
-      .from('perfiles')
-      .select('*, perfil_roles(id, rol_id, roles(id, nombre))')
-      .order('created_at', { ascending: false })
+    const [perfilesRes, authRes] = await Promise.all([
+      supabase.from('perfiles').select('*, perfil_roles(id, rol_id, roles(id, nombre))').order('created_at', { ascending: false }),
+      fetch('/api/admin/users').then(r => r.ok ? r.json() as Promise<{id:string;email:string}[]> : []).catch(() => [])
+    ])
 
-    if (error) {
-      const { data: fallback } = await supabase
-        .from('perfiles')
-        .select('*')
-        .order('created_at', { ascending: false })
-      setUsuarios((fallback as Usuario[]) || [])
-      return
-    }
-    setUsuarios((data as Usuario[]) || [])
+    const authEmails: Record<string, string> = {}
+    if (Array.isArray(authRes)) authRes.forEach(u => { authEmails[u.id] = u.email })
+
+    const perfiles = (perfilesRes.data || []) as Usuario[]
+    const merged = perfiles.map(p => ({ ...p, email: authEmails[p.id] || p.email || '' }))
+    setUsuarios(merged)
   }
 
   const getRoleNames = (usuario: Usuario) =>
@@ -124,25 +122,21 @@ export default function Usuarios() {
     setShowForm(true)
   }
 
-  const openEditForm = async (usuario: Usuario) => {
-    let userEmail = usuario.email || ''
-    if (!userEmail && usuario.id === currentUserId) {
-      const { data } = await supabase.auth.getUser()
-      userEmail = data.user?.email || ''
-    }
+  const openEditForm = (usuario: Usuario) => {
     const rolesFromProfile: Rol[] = (usuario.perfil_roles || [])
       .map((pr) => pr.roles)
       .filter((r): r is Rol => r !== null)
 
     setEditingId(usuario.id)
     setNombre(usuario.nombre || '')
-    setEmail(userEmail)
+    setEmail(usuario.email || '')
     setPassword('')
     setConfirmPassword('')
     setSelectedRoles(rolesFromProfile)
     setShowRolePicker(false)
     setError(null)
     setShowForm(true)
+    setTimeout(() => formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50)
   }
 
   const toggleActivo = async (usuario: Usuario) => {
@@ -193,15 +187,14 @@ export default function Usuarios() {
         if (profileError) throw profileError
 
         if (password.trim()) {
-          if (editingId === currentUserId) {
-            const { error } = await supabase.auth.updateUser({ password: password.trim() })
-            if (error) throw error
-          } else {
-            const { error } = await supabase.rpc('admin_set_user_password', {
-              target_user_id: editingId,
-              new_password: password.trim(),
-            })
-            if (error) throw new Error('No se pudo cambiar la contraseña de otro usuario.')
+          const res = await fetch('/api/admin/set-password', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: editingId, password: password.trim() }),
+          })
+          if (!res.ok) {
+            const { error } = await res.json()
+            throw new Error(error || 'No se pudo cambiar la contraseña')
           }
         }
 
@@ -278,7 +271,7 @@ export default function Usuarios() {
 
         {/* Formulario */}
         {showForm && (
-          <div className="bg-[#e8f0f7] rounded-xl p-5 mb-5">
+          <div ref={formRef} className="bg-[#e8f0f7] rounded-xl p-5 mb-5">
             <h2 className="text-[#1e5a96] font-bold text-base mb-4">
               {editingId ? 'Editar usuario' : 'Nuevo usuario'}
             </h2>

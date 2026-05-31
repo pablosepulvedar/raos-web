@@ -123,7 +123,10 @@ export default function Valores() {
         <div>
           <p className="text-[#333] text-sm font-semibold mb-3">Valores existentes</p>
           {loading ? (
-            <p className="text-[#2e6db4] text-sm">Cargando...</p>
+            <div className="flex items-center gap-2 py-2">
+              <div className="w-4 h-4 rounded-full border-2 border-[#2e6db4] border-t-transparent animate-spin" />
+              <p className="text-[#2e6db4] text-sm">Cargando...</p>
+            </div>
           ) : valores.length === 0 ? (
             <p className="text-gray-500 text-sm">No hay valores registrados.</p>
           ) : (

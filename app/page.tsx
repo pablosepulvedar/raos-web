@@ -64,9 +64,12 @@ const menuItems = [
   },
 ]
 
+const ROLES_RESTRINGIDOS = ['piloto', 'coordinador']
+
 export default function Home() {
   const router = useRouter()
   const [userName, setUserName] = useState('Usuario')
+  const [esAdmin, setEsAdmin] = useState(true)
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -77,11 +80,19 @@ export default function Home() {
 
         const { data: profile } = await supabase
           .from('perfiles')
-          .select('nombre')
+          .select('nombre, perfil_roles(roles(nombre))')
           .eq('id', data.user.id)
           .single()
 
         setUserName(profile?.nombre || data.user.email?.split('@')[0] || 'Usuario')
+
+        const roles: string[] = (profile?.perfil_roles ?? [])
+          .map((pr: any) => pr.roles?.nombre?.toLowerCase() ?? '')
+          .filter(Boolean)
+
+        const soloRolesRestringidos =
+          roles.length > 0 && roles.every(r => ROLES_RESTRINGIDOS.includes(r))
+        setEsAdmin(!soloRolesRestringidos)
       } catch {
         // Sin acción
       }
@@ -134,7 +145,7 @@ export default function Home() {
         </p>
 
         <div className="flex flex-col gap-3">
-          {menuItems.map((item) => (
+          {menuItems.filter(item => item.href !== '/usuarios' || esAdmin).map((item) => (
             <Link
               key={item.href}
               href={item.href}

@@ -299,7 +299,10 @@ export default function Reservas() {
       {/* ── Lista ── */}
       <main className="max-w-lg mx-auto pb-28 px-0" ref={listRef}>
         {loading ? (
-          <div className="text-center py-20 text-[#2e6db4] text-sm">Cargando...</div>
+          <div className="flex flex-col items-center justify-center py-24 gap-3">
+            <div className="w-8 h-8 rounded-full border-[3px] border-[#2e6db4] border-t-transparent animate-spin" />
+            <p className="text-[#2e6db4] text-sm">Cargando...</p>
+          </div>
         ) : (
           <>
             {/* Botón cargar días anteriores */}
