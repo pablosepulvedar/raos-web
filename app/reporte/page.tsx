@@ -291,6 +291,71 @@ export default function Reporte() {
               )}
             </div>
 
+            {/* ── Otros gastos / ingresos ── */}
+            <div className={sectionCls}>
+              <p className={titleCls}>➕ Otros ingresos y gastos</p>
+
+              {/* Formulario */}
+              <div className="rounded-xl p-3 mb-3" style={{ background:'#f8fbff', border:'1px solid #d4e6f5' }}>
+                <div className="flex gap-2 mb-3">
+                  {(['ingreso','gasto'] as const).map(t => (
+                    <button key={t} onClick={() => setGTipo(t)}
+                      className="flex-1 py-2 rounded-xl text-xs font-bold transition-all"
+                      style={gTipo===t
+                        ? { background: t==='ingreso'?'#16a34a':'#dc2626', color:'white' }
+                        : { background:'#f0f0f0', color:'#888' }}>
+                      {t==='ingreso'?'+ Ingreso':'− Gasto'}
+                    </button>
+                  ))}
+                </div>
+                <input
+                  className="w-full rounded-xl p-2.5 text-sm mb-2 text-[#0d2b5c]"
+                  style={{ border:'1px solid #b0cce8', background:'white' }}
+                  placeholder="Descripción..."
+                  value={gDescripcion}
+                  onChange={e => setGDescripcion(e.target.value)}
+                  onKeyDown={e => e.key==='Enter' && agregarGasto()} />
+                <div className="flex gap-2">
+                  <div className="flex items-center flex-1 rounded-xl overflow-hidden" style={{ border:'1px solid #b0cce8', background:'white' }}>
+                    <span className="pl-3 text-gray-400 text-xs font-semibold select-none">$</span>
+                    <input className="flex-1 text-sm bg-transparent outline-none px-2 py-2.5 text-[#0d2b5c]"
+                      placeholder="0" value={gMonto}
+                      onChange={e => setGMonto(e.target.value.replace(/[^0-9]/g,''))}
+                      onKeyDown={e => e.key==='Enter' && agregarGasto()} />
+                  </div>
+                  <button onClick={agregarGasto} disabled={savingGasto || !gDescripcion.trim() || !gMonto}
+                    className="px-4 py-2 rounded-xl text-xs font-bold text-white disabled:opacity-40 transition-all"
+                    style={{ background: gTipo==='ingreso'?'#16a34a':'#dc2626' }}>
+                    {savingGasto ? '...' : '+ Agregar'}
+                  </button>
+                </div>
+              </div>
+
+              {gastosExtras.length === 0 ? (
+                <p className="text-gray-400 text-xs text-center py-2">Sin registros adicionales</p>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  {gastosExtras.map(g => (
+                    <div key={g.id} className="flex items-center justify-between px-3 py-2.5 rounded-xl"
+                      style={g.tipo==='ingreso'
+                        ? { background:'#f0fff4', border:'1px solid #86efac' }
+                        : { background:'#fff5f5', border:'1px solid #fca5a5' }}>
+                      <div>
+                        <p className="text-sm font-semibold text-[#0d2b5c]">{g.descripcion}</p>
+                        <p className="text-xs font-bold" style={{ color:g.tipo==='ingreso'?'#16a34a':'#dc2626' }}>
+                          {g.tipo==='ingreso'?'+':'−'} {fmtCLP(g.monto)}
+                        </p>
+                      </div>
+                      <button onClick={() => eliminarGasto(g.id)} disabled={deletingGastoId===g.id}
+                        className="text-gray-400 hover:text-red-500 disabled:opacity-40 ml-3 text-lg leading-none">
+                        {deletingGastoId===g.id?'⏳':'×'}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
             {/* ── Desglose por método (cobros vs pilotos) ── */}
             {(todosMetodos.length > 0) && (
               <div className={sectionCls}>
@@ -410,71 +475,6 @@ export default function Reporte() {
                       <span className="text-xs font-extrabold text-white">{fmtCLP(totalPagadoPilotos)}</span>
                     </div>
                   </div>
-                </div>
-              )}
-            </div>
-
-            {/* ── Otros gastos / ingresos ── */}
-            <div className={sectionCls}>
-              <p className={titleCls}>➕ Otros ingresos y gastos</p>
-
-              {/* Formulario */}
-              <div className="rounded-xl p-3 mb-3" style={{ background:'#f8fbff', border:'1px solid #d4e6f5' }}>
-                <div className="flex gap-2 mb-3">
-                  {(['ingreso','gasto'] as const).map(t => (
-                    <button key={t} onClick={() => setGTipo(t)}
-                      className="flex-1 py-2 rounded-xl text-xs font-bold transition-all"
-                      style={gTipo===t
-                        ? { background: t==='ingreso'?'#16a34a':'#dc2626', color:'white' }
-                        : { background:'#f0f0f0', color:'#888' }}>
-                      {t==='ingreso'?'+ Ingreso':'− Gasto'}
-                    </button>
-                  ))}
-                </div>
-                <input
-                  className="w-full rounded-xl p-2.5 text-sm mb-2 text-[#0d2b5c]"
-                  style={{ border:'1px solid #b0cce8', background:'white' }}
-                  placeholder="Descripción..."
-                  value={gDescripcion}
-                  onChange={e => setGDescripcion(e.target.value)}
-                  onKeyDown={e => e.key==='Enter' && agregarGasto()} />
-                <div className="flex gap-2">
-                  <div className="flex items-center flex-1 rounded-xl overflow-hidden" style={{ border:'1px solid #b0cce8', background:'white' }}>
-                    <span className="pl-3 text-gray-400 text-xs font-semibold select-none">$</span>
-                    <input className="flex-1 text-sm bg-transparent outline-none px-2 py-2.5 text-[#0d2b5c]"
-                      placeholder="0" value={gMonto}
-                      onChange={e => setGMonto(e.target.value.replace(/[^0-9]/g,''))}
-                      onKeyDown={e => e.key==='Enter' && agregarGasto()} />
-                  </div>
-                  <button onClick={agregarGasto} disabled={savingGasto || !gDescripcion.trim() || !gMonto}
-                    className="px-4 py-2 rounded-xl text-xs font-bold text-white disabled:opacity-40 transition-all"
-                    style={{ background: gTipo==='ingreso'?'#16a34a':'#dc2626' }}>
-                    {savingGasto ? '...' : '+ Agregar'}
-                  </button>
-                </div>
-              </div>
-
-              {gastosExtras.length === 0 ? (
-                <p className="text-gray-400 text-xs text-center py-2">Sin registros adicionales</p>
-              ) : (
-                <div className="flex flex-col gap-2">
-                  {gastosExtras.map(g => (
-                    <div key={g.id} className="flex items-center justify-between px-3 py-2.5 rounded-xl"
-                      style={g.tipo==='ingreso'
-                        ? { background:'#f0fff4', border:'1px solid #86efac' }
-                        : { background:'#fff5f5', border:'1px solid #fca5a5' }}>
-                      <div>
-                        <p className="text-sm font-semibold text-[#0d2b5c]">{g.descripcion}</p>
-                        <p className="text-xs font-bold" style={{ color:g.tipo==='ingreso'?'#16a34a':'#dc2626' }}>
-                          {g.tipo==='ingreso'?'+':'−'} {fmtCLP(g.monto)}
-                        </p>
-                      </div>
-                      <button onClick={() => eliminarGasto(g.id)} disabled={deletingGastoId===g.id}
-                        className="text-gray-400 hover:text-red-500 disabled:opacity-40 ml-3 text-lg leading-none">
-                        {deletingGastoId===g.id?'⏳':'×'}
-                      </button>
-                    </div>
-                  ))}
                 </div>
               )}
             </div>
