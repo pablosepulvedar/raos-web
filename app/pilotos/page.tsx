@@ -4,8 +4,10 @@ import Link from 'next/link'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase-browser'
 
-type PilotoResumen = { perfil_id: string; nombre: string; vuelos: number }
+type PilotoResumen  = { perfil_id: string; nombre: string; vuelos: number }
 type ServicioPiloto = { id: number; servicio: string; monto: number; cantidad: number }
+type MetodoPago     = { id: number; nombre: string }
+type PagoPiloto     = { id: number; monto: number; metodos_pago: { nombre: string } | null }
 
 const MESES  = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
 const DIAS_L = ['DOM','LUN','MAR','MIÉ','JUE','VIE','SÁB']
@@ -52,6 +54,16 @@ export default function Pilotos() {
   const [showSrvPk, setShowSrvPk]              = useState(false)
   const [saving, setSaving]                    = useState(false)
   const [savedMsg, setSavedMsg]                = useState<string|null>(null)
+
+  // Pagos al piloto
+  const [metodosPago, setMetodosPago]               = useState<MetodoPago[]>([])
+  const [pilotoPagos, setPilotoPagos]               = useState<PagoPiloto[]>([])
+  const [showPagoPk, setShowPagoPk]                 = useState(false)
+  const [selectedPagoMetodoId, setSelectedPagoMetodoId] = useState<number|null>(null)
+  const [pagoMonto, setPagoMonto]                   = useState('')
+  const [addingPago, setAddingPago]                 = useState(false)
+  const [deletingPagoId, setDeletingPagoId]         = useState<number|null>(null)
+  const [pagoError, setPagoError]                   = useState<string|null>(null)
 
   // ── Fetch helpers ──────────────────────────────────────
   const fetchRange = useCallback(async (from: string, to: string) => {
@@ -116,6 +128,7 @@ export default function Pilotos() {
       const [{ byDate: d, reservaIds: r }] = await Promise.all([
         fetchRange(initStart, initEnd),
         sb.from('valores').select('*').eq('piloto',true).order('servicio').then(({ data }) => setValoresPiloto(data||[])),
+        sb.from('metodos_pago').select('id, nombre').eq('activo',true).order('nombre').then(({ data }) => setMetodosPago((data||[]) as MetodoPago[])),
         fetchDots(new Date().getFullYear(), new Date().getMonth()),
       ])
       setByDate(d); setReservaIdsByDatePiloto(r)
@@ -212,13 +225,49 @@ export default function Pilotos() {
     }
   }
 
+  const fetchPilotoPagos = async (perfilId: string, fecha: string) => {
+    const { data } = await sb
+      .from('piloto_pagos')
+      .select('id, monto, metodos_pago(nombre)')
+      .eq('perfil_id', perfilId)
+      .eq('fecha', fecha)
+      .order('created_at')
+    setPilotoPagos((data||[]) as unknown as PagoPiloto[])
+  }
+
+  const agregarPilotoPago = async () => {
+    if (!expandedKey || !selectedPagoMetodoId || !pagoMonto) return
+    const [date, pilotoId] = expandedKey.split('__')
+    setPagoError(null); setAddingPago(true)
+    const { error } = await sb.from('piloto_pagos').insert({
+      perfil_id: pilotoId, fecha: date,
+      metodo_pago_id: selectedPagoMetodoId, monto: parseInt(pagoMonto, 10)
+    })
+    setAddingPago(false)
+    if (error) { setPagoError(error.message); return }
+    setSelectedPagoMetodoId(null); setPagoMonto(''); setShowPagoPk(false)
+    fetchPilotoPagos(pilotoId, date)
+  }
+
+  const eliminarPilotoPago = async (id: number) => {
+    if (!expandedKey) return
+    const [date, pilotoId] = expandedKey.split('__')
+    setDeletingPagoId(id)
+    await sb.from('piloto_pagos').delete().eq('id', id)
+    setDeletingPagoId(null)
+    fetchPilotoPagos(pilotoId, date)
+  }
+
   const togglePiloto = (date: string, pilotoId: string) => {
     const key = `${date}__${pilotoId}`
     if (expandedKey === key) {
-      setExpandedKey(null); setServicios([]); setShowSrvPk(false); setSavedMsg(null)
+      setExpandedKey(null); setServicios([]); setPilotoPagos([])
+      setShowSrvPk(false); setShowPagoPk(false); setSavedMsg(null); setPagoError(null)
     } else {
-      setExpandedKey(key); setServicios([]); setShowSrvPk(false); setSavedMsg(null)
+      setExpandedKey(key); setServicios([]); setPilotoPagos([])
+      setShowSrvPk(false); setShowPagoPk(false); setSavedMsg(null); setPagoError(null)
       fetchExistingServicios(pilotoId, reservaIdsByDatePiloto[date]?.[pilotoId]||[])
+      fetchPilotoPagos(pilotoId, date)
     }
   }
 
@@ -487,6 +536,71 @@ export default function Pilotos() {
                                   style={{ background:'linear-gradient(135deg,#0d2b5c,#1a4a85)' }}>
                                   {saving ? 'Guardando...' : 'Guardar servicios'}
                                 </button>
+
+                                {/* Pagos al piloto */}
+                                <div className="mt-4 rounded-xl p-3" style={{ background:'#f0fff4', border:'1px solid #86efac' }}>
+                                  <p className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color:'#166534' }}>
+                                    💳 Pago al piloto
+                                  </p>
+
+                                  {/* Chips de pagos */}
+                                  <div className="flex flex-wrap gap-1.5 min-h-6 mb-3">
+                                    {pilotoPagos.length === 0
+                                      ? <span className="text-gray-400 text-xs self-center">Sin pagos registrados</span>
+                                      : pilotoPagos.map(p => (
+                                          <span key={p.id} className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-full"
+                                            style={{ background:'#16a34a', color:'#fff' }}>
+                                            {p.metodos_pago?.nombre} · {fmtCLP(p.monto)}
+                                            <button onClick={() => eliminarPilotoPago(p.id)} disabled={deletingPagoId===p.id}
+                                              className="ml-0.5 font-bold hover:opacity-70 disabled:opacity-40 leading-none">
+                                              {deletingPagoId===p.id ? '⏳' : '×'}
+                                            </button>
+                                          </span>
+                                        ))
+                                    }
+                                  </div>
+
+                                  {pagoError && (
+                                    <div className="mb-2 p-2 rounded-lg text-xs text-red-700 bg-red-50 border border-red-200">{pagoError}</div>
+                                  )}
+
+                                  {/* Formulario agregar pago */}
+                                  <div className="flex gap-2 items-center">
+                                    <div className="relative flex-1">
+                                      <button type="button" onClick={() => setShowPagoPk(!showPagoPk)}
+                                        className="w-full text-left rounded-xl p-2.5 text-xs"
+                                        style={{ background:'white', border:'1px dashed #86efac', color: selectedPagoMetodoId ? '#166534' : '#9ca3af' }}>
+                                        {selectedPagoMetodoId ? metodosPago.find(m=>m.id===selectedPagoMetodoId)?.nombre ?? '...' : 'Método de pago...'}
+                                      </button>
+                                      {showPagoPk && (
+                                        <div className="absolute z-10 w-full bg-white rounded-xl mt-1 shadow-xl overflow-hidden" style={{ border:'1px solid #86efac' }}>
+                                          {metodosPago.length === 0
+                                            ? <p className="p-3 text-gray-400 text-sm">No hay métodos activos</p>
+                                            : metodosPago.map(m => (
+                                              <button key={m.id} type="button" onClick={() => { setSelectedPagoMetodoId(m.id); setShowPagoPk(false) }}
+                                                className="w-full text-left px-4 py-2.5 hover:bg-green-50 text-sm text-[#0d2b5c]"
+                                                style={{ borderBottom:'1px solid #e8f0fb' }}>
+                                                {m.nombre}
+                                              </button>
+                                            ))
+                                          }
+                                        </div>
+                                      )}
+                                    </div>
+                                    <div className="flex items-center rounded-xl overflow-hidden shrink-0" style={{ border:'1px solid #86efac', background:'white', width:'90px' }}>
+                                      <span className="pl-2 text-gray-400 text-xs font-semibold select-none">$</span>
+                                      <input className="flex-1 text-sm bg-transparent outline-none px-1 py-2.5 w-0 text-[#0d2b5c]"
+                                        placeholder="0" value={pagoMonto}
+                                        onChange={e => setPagoMonto(e.target.value.replace(/[^0-9]/g,''))}
+                                        maxLength={8} />
+                                    </div>
+                                    <button onClick={agregarPilotoPago} disabled={addingPago || !selectedPagoMetodoId || !pagoMonto}
+                                      className="shrink-0 font-bold py-2.5 px-3 rounded-xl text-xs text-white transition-all"
+                                      style={{ background: (!selectedPagoMetodoId || !pagoMonto) ? '#86efac' : '#16a34a' }}>
+                                      {addingPago ? '...' : '+ Agregar'}
+                                    </button>
+                                  </div>
+                                </div>
                               </div>
                             )}
                           </div>
