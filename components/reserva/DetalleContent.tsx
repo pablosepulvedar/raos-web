@@ -35,10 +35,13 @@ function SwitchSiNo({ value, onChange, label }: { value: boolean; onChange: (v: 
   )
 }
 
-interface Props { id: string; onSave?: () => void }
+interface Props { id: string; onSave?: () => void; onDelete?: () => void }
 
-export default function DetalleContent({ id, onSave }: Props) {
+export default function DetalleContent({ id, onSave, onDelete }: Props) {
   const sb = useRef(createClient()).current
+
+  const [esAdmin, setEsAdmin]       = useState(false)
+  const [eliminando, setEliminando] = useState(false)
 
   // Reserva fields
   const [nombre, setNombre] = useState('')
@@ -95,6 +98,17 @@ export default function DetalleContent({ id, onSave }: Props) {
     fetchReserva(); fetchPasajeros(); fetchReservaServicios()
     fetchHorarios(); fetchPilotos(); fetchValoresServicios()
     fetchMetodosPago(); fetchReservaPagos()
+    // Verificar si es admin
+    sb.auth.getUser().then(async ({ data }) => {
+      if (!data.user) return
+      const { data: roles } = await sb
+        .from('perfil_roles')
+        .select('roles(nombre)')
+        .eq('perfil_id', data.user.id)
+      const nombres: string[] = (roles||[]).map((r:any) => r.roles?.nombre?.toLowerCase() ?? '')
+      const restringidos = ['piloto','coordinador']
+      setEsAdmin(!(nombres.length > 0 && nombres.every(n => restringidos.includes(n))))
+    })
   }, [id])
 
   const fetchReserva = async () => {
@@ -140,6 +154,19 @@ export default function DetalleContent({ id, onSave }: Props) {
   const fetchReservaPagos = async () => {
     const { data } = await sb.from('reserva_pagos').select('id, metodo_pago_id, monto, metodos_pago(nombre)').eq('reserva_id', id).order('created_at')
     setReservaPagos((data||[]) as unknown as ReservaPago[])
+  }
+
+  const eliminarReserva = async () => {
+    if (!confirm(`¿Eliminar la reserva de "${nombre}"? Esta acción no se puede deshacer.`)) return
+    setEliminando(true)
+    // Borrar hijos en orden antes de borrar la reserva
+    await sb.from('perfil_valores').delete().in('reserva_id', [Number(id)])
+    await sb.from('reserva_pagos').delete().eq('reserva_id', Number(id))
+    await sb.from('reserva_servicios').delete().eq('reserva_id', Number(id))
+    await sb.from('reservas_personas').delete().eq('reserva_id', Number(id))
+    await sb.from('reservas').delete().eq('id', Number(id))
+    setEliminando(false)
+    onDelete?.()
   }
 
   const toggleVolo = async () => {
@@ -563,6 +590,15 @@ export default function DetalleContent({ id, onSave }: Props) {
             className="w-full mt-2 font-bold py-2.5 rounded-xl text-sm transition-all"
             style={{ background:'#e8f0fb', color:'#2e6db4' }}>
             Cancelar
+          </button>
+        )}
+        {esAdmin && !editing && (
+          <button
+            onClick={eliminarReserva}
+            disabled={eliminando}
+            className="w-full mt-3 font-bold py-2.5 rounded-xl text-sm transition-all disabled:opacity-50"
+            style={{ background:'#ffeef0', color:'#c0392b', border:'1px solid #fca5a5' }}>
+            {eliminando ? 'Eliminando...' : '🗑️ Eliminar reserva'}
           </button>
         )}
       </div>

@@ -448,7 +448,7 @@ export default function Reservas() {
                 className="text-[#7aafd4] hover:text-white text-2xl leading-none transition-colors">×</button>
             </div>
             <div className="overflow-y-auto flex-1">
-              <DetalleContent id={detailId} onSave={refreshWindow} />
+              <DetalleContent id={detailId} onSave={refreshWindow} onDelete={() => { setDetailId(null); refreshWindow() }} />
             </div>
           </div>
         </div>

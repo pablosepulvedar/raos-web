@@ -1,11 +1,12 @@
 'use client'
 
 import Link from 'next/link'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import DetalleContent from '@/components/reserva/DetalleContent'
 
 export default function ReservaDetallePage() {
   const { id } = useParams<{ id: string }>()
+  const router  = useRouter()
 
   return (
     <div className="min-h-screen" style={{ background:'linear-gradient(160deg,#e8f2ff 0%,#d0e6ff 100%)' }}>
@@ -15,7 +16,7 @@ export default function ReservaDetallePage() {
         <span className="text-white font-extrabold text-base flex-1 text-center">Detalle Reserva</span>
         <div className="w-14" />
       </header>
-      <DetalleContent id={id} />
+      <DetalleContent id={id} onDelete={() => router.push('/reservas')} />
     </div>
   )
 }
