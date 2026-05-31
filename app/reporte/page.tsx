@@ -14,8 +14,9 @@ type PilotoVuelo = {
   perfil_id: string; nombre: string; vuelos: number
   servicios: { servicio: string; monto: number; cantidad: number }[]
 }
-type GastoExtra       = { id: number; descripcion: string; monto: number; tipo: 'ingreso' | 'gasto' }
+type GastoExtra        = { id: number; descripcion: string; monto: number; tipo: 'ingreso' | 'gasto'; metodos_pago: { nombre: string } | null }
 type PagoPilotoDetalle = { perfil_id: string; nombre: string; metodo: string; monto: number }
+type MetodoPago        = { id: number; nombre: string }
 
 const fmtH   = (v: number) => { const s = String(v).padStart(4,'0'); return `${s.slice(0,2)}:${s.slice(2)}` }
 const fmtCLP = (v: number) => `$${Number(v).toLocaleString('es-CL')}`
@@ -39,10 +40,14 @@ export default function Reporte() {
   const [pagosAPilotos, setPagosAPilotos]     = useState<PagoPilotoDetalle[]>([])
   const [gastosExtras, setGastosExtras]       = useState<GastoExtra[]>([])
 
+  const [metodosPago, setMetodosPago]           = useState<MetodoPago[]>([])
+
   // Form gastos extras
   const [gDescripcion, setGDescripcion]         = useState('')
   const [gMonto, setGMonto]                     = useState('')
   const [gTipo, setGTipo]                       = useState<'ingreso'|'gasto'>('gasto')
+  const [gMetodoId, setGMetodoId]               = useState<number|null>(null)
+  const [showGMetodoPk, setShowGMetodoPk]       = useState(false)
   const [savingGasto, setSavingGasto]           = useState(false)
   const [deletingGastoId, setDeletingGastoId]   = useState<number|null>(null)
 
@@ -114,8 +119,12 @@ export default function Reporte() {
     })))
 
     // Gastos extras
-    const { data: gastosData } = await sb.from('gastos_diarios').select('*').eq('fecha', fecha).order('created_at')
-    setGastosExtras((gastosData || []) as GastoExtra[])
+    const [{ data: gastosData }, { data: metodosData }] = await Promise.all([
+      sb.from('gastos_diarios').select('*, metodos_pago(nombre)').eq('fecha', fecha).order('created_at'),
+      sb.from('metodos_pago').select('id, nombre').eq('activo', true).order('nombre'),
+    ])
+    setGastosExtras((gastosData || []) as unknown as GastoExtra[])
+    setMetodosPago((metodosData || []) as MetodoPago[])
 
     setLoading(false)
   }
@@ -123,8 +132,11 @@ export default function Reporte() {
   const agregarGasto = async () => {
     if (!gDescripcion.trim() || !gMonto) return
     setSavingGasto(true)
-    await sb.from('gastos_diarios').insert({ fecha, descripcion: gDescripcion.trim(), monto: parseInt(gMonto, 10), tipo: gTipo })
-    setGDescripcion(''); setGMonto('')
+    await sb.from('gastos_diarios').insert({
+      fecha, descripcion: gDescripcion.trim(), monto: parseInt(gMonto, 10),
+      tipo: gTipo, metodo_pago_id: gMetodoId || null
+    })
+    setGDescripcion(''); setGMonto(''); setGMetodoId(null); setShowGMetodoPk(false)
     setSavingGasto(false)
     fetchData()
   }
@@ -150,7 +162,7 @@ export default function Reporte() {
 
   const saldoPendiente = totalServicios - totalCobrado
 
-  // Cobros de clientes por método
+  // Cobros de clientes por método + extras ingresos
   const cobrosPorMetodo: Record<string, number> = {}
   reservas.forEach(r => {
     ;(r.reserva_pagos||[]).forEach(p => {
@@ -159,15 +171,23 @@ export default function Reporte() {
     })
     if (r.abono) cobrosPorMetodo['Abono'] = (cobrosPorMetodo['Abono']||0) + r.abono
   })
-
-  // Pagos a pilotos por método
-  const pilagosPorMetodo: Record<string, number> = {}
-  pagosAPilotos.forEach(p => {
-    pilagosPorMetodo[p.metodo] = (pilagosPorMetodo[p.metodo]||0) + p.monto
+  gastosExtras.filter(g=>g.tipo==='ingreso').forEach(g => {
+    const m = g.metodos_pago?.nombre || 'Sin método'
+    cobrosPorMetodo[m] = (cobrosPorMetodo[m]||0) + g.monto
   })
 
-  // Todos los métodos que aparecen (en cobros o en pagos a pilotos)
-  const todosMetodos = Array.from(new Set([...Object.keys(cobrosPorMetodo), ...Object.keys(pilagosPorMetodo)]))
+  // Egresos por método: pilotos + extras gastos
+  const egresosPorMetodo: Record<string, number> = {}
+  pagosAPilotos.forEach(p => {
+    egresosPorMetodo[p.metodo] = (egresosPorMetodo[p.metodo]||0) + p.monto
+  })
+  gastosExtras.filter(g=>g.tipo==='gasto').forEach(g => {
+    const m = g.metodos_pago?.nombre || 'Sin método'
+    egresosPorMetodo[m] = (egresosPorMetodo[m]||0) + g.monto
+  })
+
+  // Todos los métodos que aparecen
+  const todosMetodos = Array.from(new Set([...Object.keys(cobrosPorMetodo), ...Object.keys(egresosPorMetodo)]))
 
   const totalPilotos       = pilotos.reduce((s,p)=>s+p.servicios.reduce((a,sv)=>a+sv.monto*sv.cantidad,0),0)
   const totalPagadoPilotos = pagosAPilotos.reduce((s,p)=>s+p.monto,0)
@@ -315,6 +335,28 @@ export default function Reporte() {
                   value={gDescripcion}
                   onChange={e => setGDescripcion(e.target.value)}
                   onKeyDown={e => e.key==='Enter' && agregarGasto()} />
+                {/* Método de pago */}
+                <div className="relative mb-2">
+                  <button type="button" onClick={() => setShowGMetodoPk(!showGMetodoPk)}
+                    className="w-full text-left rounded-xl p-2.5 text-xs"
+                    style={{ border:'1px solid #b0cce8', background:'white', color: gMetodoId ? '#0d2b5c' : '#9ca3af' }}>
+                    {gMetodoId ? metodosPago.find(m=>m.id===gMetodoId)?.nombre : 'Método de pago (opcional)...'}
+                  </button>
+                  {showGMetodoPk && (
+                    <div className="absolute z-10 w-full bg-white rounded-xl mt-1 shadow-xl overflow-hidden" style={{ border:'1px solid #b0cce8' }}>
+                      <button type="button" onClick={() => { setGMetodoId(null); setShowGMetodoPk(false) }}
+                        className="w-full text-left px-4 py-2.5 text-xs text-gray-400 hover:bg-gray-50"
+                        style={{ borderBottom:'1px solid #e8f0fb' }}>Sin método</button>
+                      {metodosPago.map(m => (
+                        <button key={m.id} type="button" onClick={() => { setGMetodoId(m.id); setShowGMetodoPk(false) }}
+                          className="w-full text-left px-4 py-2.5 text-sm text-[#0d2b5c] hover:bg-blue-50"
+                          style={{ borderBottom:'1px solid #e8f0fb' }}>
+                          {m.nombre}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
                 <div className="flex gap-2">
                   <div className="flex items-center flex-1 rounded-xl overflow-hidden" style={{ border:'1px solid #b0cce8', background:'white' }}>
                     <span className="pl-3 text-gray-400 text-xs font-semibold select-none">$</span>
@@ -340,11 +382,19 @@ export default function Reporte() {
                       style={g.tipo==='ingreso'
                         ? { background:'#f0fff4', border:'1px solid #86efac' }
                         : { background:'#fff5f5', border:'1px solid #fca5a5' }}>
-                      <div>
+                      <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold text-[#0d2b5c]">{g.descripcion}</p>
-                        <p className="text-xs font-bold" style={{ color:g.tipo==='ingreso'?'#16a34a':'#dc2626' }}>
-                          {g.tipo==='ingreso'?'+':'−'} {fmtCLP(g.monto)}
-                        </p>
+                        <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                          <p className="text-xs font-bold" style={{ color:g.tipo==='ingreso'?'#16a34a':'#dc2626' }}>
+                            {g.tipo==='ingreso'?'+':'−'} {fmtCLP(g.monto)}
+                          </p>
+                          {g.metodos_pago && (
+                            <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold"
+                              style={{ background:'#e8f0fb', color:'#2e6db4' }}>
+                              💳 {g.metodos_pago.nombre}
+                            </span>
+                          )}
+                        </div>
                       </div>
                       <button onClick={() => eliminarGasto(g.id)} disabled={deletingGastoId===g.id}
                         className="text-gray-400 hover:text-red-500 disabled:opacity-40 ml-3 text-lg leading-none">
@@ -372,7 +422,7 @@ export default function Reporte() {
                 <div className="flex flex-col gap-1.5">
                   {todosMetodos.map(m => {
                     const cobrado = cobrosPorMetodo[m] || 0
-                    const piloto  = pilagosPorMetodo[m] || 0
+                    const piloto  = egresosPorMetodo[m] || 0
                     const neto    = cobrado - piloto
                     return (
                       <div key={m} className="grid grid-cols-4 gap-1 py-2.5 px-3 rounded-xl items-center"
@@ -389,10 +439,10 @@ export default function Reporte() {
                   <div className="grid grid-cols-4 gap-1 py-2.5 px-3 rounded-xl items-center mt-1"
                     style={{ background:'linear-gradient(135deg,#1a4a85,#0d2b5c)' }}>
                     <span className="text-xs font-bold text-white">Total</span>
-                    <span className="text-xs font-bold text-green-300 text-center">{fmtCLP(totalCobrado)}</span>
-                    <span className="text-xs font-bold text-purple-300 text-center">{totalPagadoPilotos ? `−${fmtCLP(totalPagadoPilotos)}` : '—'}</span>
-                    <span className={`text-xs font-extrabold text-center ${(totalCobrado-totalPagadoPilotos)>=0?'text-yellow-300':'text-red-300'}`}>
-                      {fmtCLP(totalCobrado - totalPagadoPilotos)}
+                    <span className="text-xs font-bold text-green-300 text-center">{fmtCLP(totalCobrado + totalExtrasIngreso)}</span>
+                    <span className="text-xs font-bold text-purple-300 text-center">{(totalPagadoPilotos+totalExtrasGasto) ? `−${fmtCLP(totalPagadoPilotos+totalExtrasGasto)}` : '—'}</span>
+                    <span className={`text-xs font-extrabold text-center ${(totalCobrado+totalExtrasIngreso-totalPagadoPilotos-totalExtrasGasto)>=0?'text-yellow-300':'text-red-300'}`}>
+                      {fmtCLP(totalCobrado + totalExtrasIngreso - totalPagadoPilotos - totalExtrasGasto)}
                     </span>
                   </div>
                 </div>
