@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase-browser'
 
 type Horario = { id: number; horario: number }
+type MetodoPago = { id: number; nombre: string }
+type ReservaPago = { id: number; metodo_pago_id: number; monto: number; metodos_pago: { nombre: string } | null }
 type ValorServicio = { id: number; servicio: string; monto: number; descuento: boolean }
 type ReservaServicio = { id: number; valor_id: number; valores: { id: number; servicio: string; monto: number; descuento: boolean } | null }
 type Pasajero = { id: number; nombre: string; edad: number|null; peso: number|null; sin_camara: boolean; camara_normal: boolean; camara_360: boolean; perfil_id: string|null; cumpleanero: boolean }
@@ -44,9 +46,9 @@ export default function DetalleContent({ id, onSave }: Props) {
   const [fecha, setFecha] = useState('')
   const [horarioId, setHorarioId] = useState<number|null>(null)
   const [cantidad, setCantidad] = useState('')
-  const [abono, setAbono] = useState('')
   const [horarios, setHorarios] = useState<Horario[]>([])
   const [showHorPk, setShowHorPk] = useState(false)
+  const [abono, setAbono] = useState('')
   const [volo, setVolo] = useState(false)
   const [savingVolo, setSavingVolo] = useState(false)
   const [savingRes, setSavingRes] = useState(false)
@@ -60,6 +62,16 @@ export default function DetalleContent({ id, onSave }: Props) {
   const [deletingSrvId, setDeletingSrvId] = useState<number|null>(null)
   const [addingSrv, setAddingSrv] = useState(false)
   const [selectedSrvId, setSelectedSrvId] = useState<number|null>(null)
+
+  // Pagos
+  const [reservaPagos, setReservaPagos] = useState<ReservaPago[]>([])
+  const [metodosPago, setMetodosPago] = useState<MetodoPago[]>([])
+  const [showPagoPk, setShowPagoPk] = useState(false)
+  const [selectedPagoMetodoId, setSelectedPagoMetodoId] = useState<number|null>(null)
+  const [pagoMonto, setPagoMonto] = useState('')
+  const [addingPago, setAddingPago] = useState(false)
+  const [deletingPagoId, setDeletingPagoId] = useState<number|null>(null)
+  const [pagoError, setPagoError] = useState<string|null>(null)
 
   // Pasajeros
   const [pasajeros, setPasajeros] = useState<Pasajero[]>([])
@@ -82,6 +94,7 @@ export default function DetalleContent({ id, onSave }: Props) {
     if (!id) return
     fetchReserva(); fetchPasajeros(); fetchReservaServicios()
     fetchHorarios(); fetchPilotos(); fetchValoresServicios()
+    fetchMetodosPago(); fetchReservaPagos()
   }, [id])
 
   const fetchReserva = async () => {
@@ -119,6 +132,14 @@ export default function DetalleContent({ id, onSave }: Props) {
       data.forEach((row:any) => { if (row.perfiles && !map.has(row.perfiles.id)) map.set(row.perfiles.id, row.perfiles) })
       setPilotos(Array.from(map.values()))
     }
+  }
+  const fetchMetodosPago = async () => {
+    const { data } = await sb.from('metodos_pago').select('id, nombre').eq('activo', true).order('nombre')
+    setMetodosPago((data||[]) as MetodoPago[])
+  }
+  const fetchReservaPagos = async () => {
+    const { data } = await sb.from('reserva_pagos').select('id, metodo_pago_id, monto, metodos_pago(nombre)').eq('reserva_id', id).order('created_at')
+    setReservaPagos((data||[]) as unknown as ReservaPago[])
   }
 
   const toggleVolo = async () => {
@@ -162,6 +183,24 @@ export default function DetalleContent({ id, onSave }: Props) {
     setAddingSrv(false)
     setSelectedSrvId(null); setShowSrvPk(false)
     fetchReservaServicios(); onSave?.()
+  }
+
+  const agregarPago = async () => {
+    if (!selectedPagoMetodoId || !pagoMonto) return
+    setPagoError(null)
+    setAddingPago(true)
+    const { error } = await sb.from('reserva_pagos').insert({ reserva_id: Number(id), metodo_pago_id: selectedPagoMetodoId, monto: parseInt(pagoMonto, 10) })
+    setAddingPago(false)
+    if (error) { setPagoError(error.message); return }
+    setSelectedPagoMetodoId(null); setPagoMonto(''); setShowPagoPk(false)
+    fetchReservaPagos(); onSave?.()
+  }
+
+  const eliminarPago = async (pagoId: number) => {
+    setDeletingPagoId(pagoId)
+    await sb.from('reserva_pagos').delete().eq('id', pagoId)
+    setDeletingPagoId(null)
+    fetchReservaPagos(); onSave?.()
   }
 
   const resetPasForm = () => {
@@ -234,8 +273,9 @@ export default function DetalleContent({ id, onSave }: Props) {
   const totalBruto = reservaServicios.filter(rs=>!rs.valores?.descuento).reduce((s,rs)=>s+(rs.valores?.monto??0),0)
   const totalDescuentos = reservaServicios.filter(rs=>rs.valores?.descuento).reduce((s,rs)=>s+(rs.valores?.monto??0),0)
   const totalNeto = totalBruto - totalDescuentos
-  const abonoNum = abono !== '' ? parseInt(abono,10)||0 : 0
-  const saldoRestante = totalNeto - abonoNum
+  const abonoNum = abono !== '' ? parseInt(abono, 10)||0 : 0
+  const totalPagado = reservaPagos.reduce((s, p) => s + p.monto, 0)
+  const saldoRestante = totalNeto - abonoNum - totalPagado
 
   const selectedSrvLabel = selectedSrvId
     ? (() => { const v=valoresServicios.find(v=>v.id===selectedSrvId); return v?`${v.servicio} ${v.descuento?'-':''}${fmtCLP(v.monto)}`:'---' })()
@@ -348,7 +388,6 @@ export default function DetalleContent({ id, onSave }: Props) {
         <div className="rounded-xl p-3 mb-3" style={{ background:'#f0f6ff', border:'1px solid #b0cce8' }}>
           <label className={labelCls + ' mb-2'}>Servicios</label>
 
-          {/* Chips */}
           <div className="flex flex-wrap gap-1.5 min-h-7 mb-2">
             {reservaServicios.length === 0
               ? <span className="text-gray-400 text-xs self-center">Sin servicios</span>
@@ -373,7 +412,6 @@ export default function DetalleContent({ id, onSave }: Props) {
             }
           </div>
 
-          {/* Picker (solo en edición) */}
           {editing && (
             <div>
               <div className="relative">
@@ -411,8 +449,8 @@ export default function DetalleContent({ id, onSave }: Props) {
           )}
         </div>
 
-        {/* Resumen */}
-        {(totalBruto > 0 || abonoNum > 0) && (
+        {/* Resumen financiero */}
+        {(totalBruto > 0 || abonoNum > 0 || totalPagado > 0) && (
           <div className="rounded-xl p-3 mb-3 divide-y divide-[#e8f0fb]" style={{ background:'#f0f6ff', border:'1px solid #b0cce8' }}>
             {totalBruto > 0 && (
               <div className="flex justify-between py-1.5">
@@ -432,12 +470,83 @@ export default function DetalleContent({ id, onSave }: Props) {
                 <span className="text-xs font-semibold text-green-700">- {fmtCLP(abonoNum)}</span>
               </div>
             )}
+            {totalPagado > 0 && (
+              <div className="flex justify-between py-1.5">
+                <span className="text-xs text-green-700">Pagos registrados</span>
+                <span className="text-xs font-semibold text-green-700">- {fmtCLP(totalPagado)}</span>
+              </div>
+            )}
             <div className="flex justify-between pt-2 pb-0.5">
               <span className="text-xs font-bold text-[#0d2b5c]">Saldo restante</span>
               <span className={`text-xs font-bold ${saldoRestante <= 0 ? 'text-green-600' : 'text-[#0d2b5c]'}`}>{fmtCLP(saldoRestante)}</span>
             </div>
           </div>
         )}
+
+        {/* Cuadro pagos */}
+        <div className="rounded-xl p-3 mb-3" style={{ background:'#f0fff4', border:'1px solid #86efac' }}>
+          <label className="block text-xs font-bold uppercase tracking-wide mb-2" style={{ color:'#166534' }}>
+            Pagos
+          </label>
+
+          {/* Chips de pagos registrados */}
+          <div className="flex flex-wrap gap-1.5 min-h-7 mb-3">
+            {reservaPagos.length === 0
+              ? <span className="text-gray-400 text-xs self-center">Sin pagos registrados</span>
+              : reservaPagos.map(p => (
+                  <span key={p.id} className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-full"
+                    style={{ background:'#16a34a', color:'#fff' }}>
+                    💳 {p.metodos_pago?.nombre} · {fmtCLP(p.monto)}
+                    <button onClick={() => eliminarPago(p.id)} disabled={deletingPagoId === p.id}
+                      className="ml-0.5 font-bold hover:opacity-70 disabled:opacity-40 leading-none">
+                      {deletingPagoId === p.id ? '⏳' : '×'}
+                    </button>
+                  </span>
+                ))
+            }
+          </div>
+
+          {pagoError && (
+            <div className="mb-2 p-2 rounded-lg text-xs text-red-700 bg-red-50 border border-red-200">{pagoError}</div>
+          )}
+
+          {/* Formulario agregar pago */}
+          <div className="flex gap-2 items-center">
+            <div className="relative flex-1">
+              <button type="button" onClick={() => setShowPagoPk(!showPagoPk)}
+                className="w-full text-left rounded-xl p-2.5 text-xs"
+                style={{ background:'white', border:'1px dashed #86efac', color: selectedPagoMetodoId ? '#166534' : '#9ca3af' }}>
+                {selectedPagoMetodoId ? metodosPago.find(m => m.id === selectedPagoMetodoId)?.nombre ?? '...' : 'Método de pago...'}
+              </button>
+              {showPagoPk && (
+                <div className="absolute z-10 w-full bg-white rounded-xl mt-1 shadow-xl overflow-hidden" style={{ border:'1px solid #86efac' }}>
+                  {metodosPago.length === 0
+                    ? <p className="p-3 text-gray-400 text-sm">No hay métodos activos</p>
+                    : metodosPago.map(m => (
+                      <button key={m.id} type="button" onClick={() => { setSelectedPagoMetodoId(m.id); setShowPagoPk(false) }}
+                        className="w-full text-left px-4 py-2.5 hover:bg-green-50 text-sm text-[#0d2b5c]"
+                        style={{ borderBottom:'1px solid #e8f0fb' }}>
+                        {m.nombre}
+                      </button>
+                    ))
+                  }
+                </div>
+              )}
+            </div>
+            <div className="flex items-center rounded-xl overflow-hidden shrink-0" style={{ border:'1px solid #86efac', background:'white', width:'96px' }}>
+              <span className="pl-2 text-gray-400 text-xs font-semibold select-none">$</span>
+              <input className="flex-1 text-sm bg-transparent outline-none px-1 py-2.5 w-0 text-[#0d2b5c]"
+                placeholder="0" value={pagoMonto}
+                onChange={e => setPagoMonto(e.target.value.replace(/[^0-9]/g,''))}
+                maxLength={8} />
+            </div>
+            <button onClick={agregarPago} disabled={addingPago || !selectedPagoMetodoId || !pagoMonto}
+              className="shrink-0 font-bold py-2.5 px-3 rounded-xl text-xs text-white transition-all"
+              style={{ background: (!selectedPagoMetodoId || !pagoMonto) ? '#86efac' : '#16a34a' }}>
+              {addingPago ? '...' : '+ Agregar'}
+            </button>
+          </div>
+        </div>
 
         {/* Botón Editar / Guardar */}
         <button
@@ -539,7 +648,6 @@ export default function DetalleContent({ id, onSave }: Props) {
               )}
             </div>
 
-            {/* Cumpleañero switch */}
             <div className="rounded-xl px-3 mb-4 bg-white" style={{ border:'1px solid #b0cce8' }}>
               <SwitchSiNo value={pCumpleanero} onChange={handleCumpleanero} label="¿Es cumpleañero?" />
             </div>

@@ -6,10 +6,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase-browser'
 import DetalleContent from '@/components/reserva/DetalleContent'
 
-type Horario = { id: number; horario: number }
-type Valor   = { id: number; servicio: string; monto: number }
-type Reserva = { id: number; nombre: string; telefono: number; fecha: string; horario_id: number; cantidad: number; volo: boolean }
-type SrvSel  = { id: number; servicio: string; monto: number; cantidad: number }
+type Horario  = { id: number; horario: number }
+type Valor    = { id: number; servicio: string; monto: number }
+type PaxCard  = { id: number; nombre: string; camara_normal: boolean; camara_360: boolean; sin_camara: boolean; cumpleanero: boolean }
+type Reserva  = { id: number; nombre: string; telefono: number; fecha: string; horario_id: number; cantidad: number; volo: boolean; reservas_personas?: PaxCard[] }
+type SrvSel   = { id: number; servicio: string; monto: number; cantidad: number }
 
 const MESES  = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
 const DIAS_L = ['DOM','LUN','MAR','MIÉ','JUE','VIE','SÁB']
@@ -106,7 +107,8 @@ export default function Reservas() {
 
   // ── Fetch helpers ──────────────────────────────────────
   const fetchDays = useCallback(async (from: string, to: string) => {
-    const { data } = await sb.from('reservas').select('*, horarios(horario)')
+    const { data } = await sb.from('reservas')
+      .select('*, horarios(horario), reservas_personas(id, nombre, camara_normal, camara_360, sin_camara, cumpleanero)')
       .gte('fecha', from).lte('fecha', to).order('fecha')
     const rows = (data||[]) as (Reserva & { horarios?: { horario: number } | null })[]
     rows.sort((a, b) => (a.horarios?.horario ?? 9999) - (b.horarios?.horario ?? 9999))
@@ -341,29 +343,48 @@ export default function Reservas() {
                           : isPast
                             ? { background:'linear-gradient(135deg,#7b52c1,#5e3a99)', boxShadow:'0 3px 12px rgba(123,82,193,0.3)' }
                             : { background:'linear-gradient(135deg,#2e6db4,#1a4a85)', boxShadow:'0 3px 12px rgba(46,109,180,0.3)' }
+                        const pax = r.reservas_personas ?? []
                         return (
-                        <div key={r.id} className="relative">
-                          <button
-                            onClick={() => {
-                              if (typeof window !== 'undefined' && window.innerWidth >= 768) {
-                                setDetailId(String(r.id))
-                              } else {
-                                router.push(`/reserva/${r.id}`)
-                              }
-                            }}
-                            className="w-full text-left rounded-2xl px-4 py-3 pr-12 transition-all hover:opacity-90 active:scale-[0.98]"
-                            style={cardStyle}>
-                            <p className="text-white font-bold text-sm leading-snug">{r.nombre} × {r.cantidad}</p>
-                            <p className="text-white/75 text-xs mt-0.5">{horLabel(r.horario_id)}</p>
-                          </button>
-                          <button
-                            onClick={(e) => marcarVolo(r, e)}
-                            disabled={marcandoVolo === r.id}
-                            className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-xl flex items-center justify-center transition-all disabled:opacity-50"
-                            style={{ background: r.volo ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.15)', backdropFilter:'blur(4px)' }}
-                            title={r.volo ? 'Desmarcar vuelo' : 'Marcar como voló'}>
-                            <span className="text-sm">{marcandoVolo === r.id ? '⏳' : '🪂'}</span>
-                          </button>
+                        <div key={r.id} className="rounded-2xl overflow-hidden transition-all active:scale-[0.98]" style={cardStyle}>
+                          <div className="flex items-stretch min-h-[58px]">
+                            {/* Datos principales */}
+                            <button
+                              onClick={() => {
+                                if (typeof window !== 'undefined' && window.innerWidth >= 768) {
+                                  setDetailId(String(r.id))
+                                } else {
+                                  router.push(`/reserva/${r.id}`)
+                                }
+                              }}
+                              className="flex-1 text-left px-4 py-3 hover:opacity-90 min-w-0">
+                              <p className="text-white font-bold text-sm leading-snug truncate">{r.nombre} × {r.cantidad}</p>
+                              <p className="text-white/75 text-xs mt-0.5">{horLabel(r.horario_id)}</p>
+                            </button>
+
+                            {/* Pasajeros — columna fija siempre presente */}
+                            <div className="flex flex-col justify-center py-2 px-2 border-l border-white/20 w-[120px] shrink-0">
+                              {pax.map(p => (
+                                <div key={p.id} className="flex items-center gap-0.5 w-full">
+                                  <span className="text-white/70 text-[10px] leading-tight truncate flex-1 text-right">{p.nombre}</span>
+                                  {p.cumpleanero && <span className="text-[10px] shrink-0">🥳</span>}
+                                  {p.camara_360
+                                    ? <span className="text-[10px] shrink-0">📽️</span>
+                                    : p.camara_normal
+                                      ? <span className="text-[10px] shrink-0">📷</span>
+                                      : null}
+                                </div>
+                              ))}
+                            </div>
+
+                            {/* Botón ya voló — ancho fijo */}
+                            <button
+                              onClick={(e) => marcarVolo(r, e)}
+                              disabled={marcandoVolo === r.id}
+                              className="w-10 flex items-center justify-center border-l border-white/20 shrink-0 disabled:opacity-50 transition-all"
+                              title={r.volo ? 'Desmarcar vuelo' : 'Marcar como voló'}>
+                              <span className="text-base">{marcandoVolo === r.id ? '⏳' : '🪂'}</span>
+                            </button>
+                          </div>
                         </div>
                         )
                       })}
