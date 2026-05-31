@@ -14,7 +14,8 @@ type PilotoVuelo = {
   perfil_id: string; nombre: string; vuelos: number
   servicios: { servicio: string; monto: number; cantidad: number }[]
 }
-type GastoExtra = { id: number; descripcion: string; monto: number; tipo: 'ingreso' | 'gasto' }
+type GastoExtra       = { id: number; descripcion: string; monto: number; tipo: 'ingreso' | 'gasto' }
+type PagoPilotoDetalle = { perfil_id: string; nombre: string; metodo: string; monto: number }
 
 const fmtH   = (v: number) => { const s = String(v).padStart(4,'0'); return `${s.slice(0,2)}:${s.slice(2)}` }
 const fmtCLP = (v: number) => `$${Number(v).toLocaleString('es-CL')}`
@@ -33,9 +34,10 @@ export default function Reporte() {
   const [fecha, setFecha]   = useState(today)
   const [loading, setLoading] = useState(false)
 
-  const [reservas, setReservas]         = useState<ReservaDetalle[]>([])
-  const [pilotos, setPilotos]           = useState<PilotoVuelo[]>([])
-  const [gastosExtras, setGastosExtras] = useState<GastoExtra[]>([])
+  const [reservas, setReservas]               = useState<ReservaDetalle[]>([])
+  const [pilotos, setPilotos]                 = useState<PilotoVuelo[]>([])
+  const [pagosAPilotos, setPagosAPilotos]     = useState<PagoPilotoDetalle[]>([])
+  const [gastosExtras, setGastosExtras]       = useState<GastoExtra[]>([])
 
   // Form gastos extras
   const [gDescripcion, setGDescripcion]         = useState('')
@@ -99,6 +101,18 @@ export default function Reporte() {
       } else { setPilotos([]) }
     } else { setPilotos([]) }
 
+    // Pagos a pilotos del día (con método de pago)
+    const { data: ppData } = await sb
+      .from('piloto_pagos')
+      .select('perfil_id, monto, metodos_pago(nombre), perfiles(nombre)')
+      .eq('fecha', fecha)
+    setPagosAPilotos((ppData || []).map((row: any) => ({
+      perfil_id: row.perfil_id,
+      nombre: row.perfiles?.nombre || 'Sin nombre',
+      metodo: row.metodos_pago?.nombre || 'Sin método',
+      monto: row.monto,
+    })))
+
     // Gastos extras
     const { data: gastosData } = await sb.from('gastos_diarios').select('*').eq('fecha', fecha).order('created_at')
     setGastosExtras((gastosData || []) as GastoExtra[])
@@ -136,19 +150,32 @@ export default function Reporte() {
 
   const saldoPendiente = totalServicios - totalCobrado
 
-  const pagosPorMetodo: Record<string, number> = {}
+  // Cobros de clientes por método
+  const cobrosPorMetodo: Record<string, number> = {}
   reservas.forEach(r => {
     ;(r.reserva_pagos||[]).forEach(p => {
       const m = p.metodos_pago?.nombre || 'Sin método'
-      pagosPorMetodo[m] = (pagosPorMetodo[m]||0) + p.monto
+      cobrosPorMetodo[m] = (cobrosPorMetodo[m]||0) + p.monto
     })
-    if (r.abono) pagosPorMetodo['Abono'] = (pagosPorMetodo['Abono']||0) + r.abono
+    if (r.abono) cobrosPorMetodo['Abono'] = (cobrosPorMetodo['Abono']||0) + r.abono
   })
 
+  // Pagos a pilotos por método
+  const pilagosPorMetodo: Record<string, number> = {}
+  pagosAPilotos.forEach(p => {
+    pilagosPorMetodo[p.metodo] = (pilagosPorMetodo[p.metodo]||0) + p.monto
+  })
+
+  // Todos los métodos que aparecen (en cobros o en pagos a pilotos)
+  const todosMetodos = Array.from(new Set([...Object.keys(cobrosPorMetodo), ...Object.keys(pilagosPorMetodo)]))
+
   const totalPilotos       = pilotos.reduce((s,p)=>s+p.servicios.reduce((a,sv)=>a+sv.monto*sv.cantidad,0),0)
-  const totalExtrasIngreso  = gastosExtras.filter(g=>g.tipo==='ingreso').reduce((s,g)=>s+g.monto,0)
-  const totalExtrasGasto    = gastosExtras.filter(g=>g.tipo==='gasto').reduce((s,g)=>s+g.monto,0)
-  const balance             = totalCobrado + totalExtrasIngreso - totalPilotos - totalExtrasGasto
+  const totalPagadoPilotos = pagosAPilotos.reduce((s,p)=>s+p.monto,0)
+  const totalExtrasIngreso = gastosExtras.filter(g=>g.tipo==='ingreso').reduce((s,g)=>s+g.monto,0)
+  const totalExtrasGasto   = gastosExtras.filter(g=>g.tipo==='gasto').reduce((s,g)=>s+g.monto,0)
+  const totalVuelos        = pilotos.reduce((s,p)=>s+p.vuelos,0)
+  const provisionVuelos    = totalVuelos * 15000
+  const balance            = totalCobrado + totalExtrasIngreso - totalPagadoPilotos - totalExtrasGasto - provisionVuelos
 
   const fechaDisplay = () => {
     const d = new Date(fecha+'T12:00:00')
@@ -264,43 +291,69 @@ export default function Reporte() {
               )}
             </div>
 
-            {/* ── Pagos por método ── */}
-            {Object.keys(pagosPorMetodo).length > 0 && (
+            {/* ── Desglose por método (cobros vs pilotos) ── */}
+            {(todosMetodos.length > 0) && (
               <div className={sectionCls}>
-                <p className={titleCls}>💳 Desglose de pagos</p>
-                <div className="flex flex-col gap-2">
-                  {Object.entries(pagosPorMetodo).map(([metodo, monto]) => (
-                    <div key={metodo} className="flex justify-between items-center py-2.5 px-3 rounded-xl"
-                      style={{ background:'#f0fff4', border:'1px solid #86efac' }}>
-                      <span className="text-sm font-semibold text-[#0d2b5c]">{metodo}</span>
-                      <span className="text-sm font-extrabold text-green-700">{fmtCLP(monto)}</span>
-                    </div>
+                <p className={titleCls}>💳 Desglose por método de pago</p>
+
+                {/* Encabezado */}
+                <div className="grid grid-cols-4 gap-1 mb-2 px-1">
+                  {['Método','Cobrado','Pilotos','Neto'].map(h => (
+                    <p key={h} className="text-[10px] font-bold text-gray-400 uppercase text-center">{h}</p>
                   ))}
-                  <div className="flex justify-between items-center py-2.5 px-3 rounded-xl"
-                    style={{ background:'#16a34a' }}>
-                    <span className="text-sm font-bold text-white">Total cobrado</span>
-                    <span className="text-sm font-extrabold text-white">{fmtCLP(totalCobrado)}</span>
-                  </div>
-                  {saldoPendiente > 0 && (
-                    <div className="flex justify-between items-center py-2.5 px-3 rounded-xl"
-                      style={{ background:'#fff7ed', border:'1px solid #fed7aa' }}>
-                      <span className="text-sm font-semibold text-orange-700">Saldo pendiente clientes</span>
-                      <span className="text-sm font-bold text-orange-700">{fmtCLP(saldoPendiente)}</span>
-                    </div>
-                  )}
                 </div>
+
+                {/* Filas por método */}
+                <div className="flex flex-col gap-1.5">
+                  {todosMetodos.map(m => {
+                    const cobrado = cobrosPorMetodo[m] || 0
+                    const piloto  = pilagosPorMetodo[m] || 0
+                    const neto    = cobrado - piloto
+                    return (
+                      <div key={m} className="grid grid-cols-4 gap-1 py-2.5 px-3 rounded-xl items-center"
+                        style={{ background:'#f8fbff', border:'1px solid #d4e6f5' }}>
+                        <span className="text-xs font-bold text-[#0d2b5c] truncate">{m}</span>
+                        <span className="text-xs font-semibold text-green-700 text-center">{cobrado ? fmtCLP(cobrado) : '—'}</span>
+                        <span className="text-xs font-semibold text-purple-700 text-center">{piloto ? `−${fmtCLP(piloto)}` : '—'}</span>
+                        <span className={`text-xs font-extrabold text-center ${neto >= 0 ? 'text-[#2e6db4]' : 'text-red-600'}`}>{fmtCLP(neto)}</span>
+                      </div>
+                    )
+                  })}
+
+                  {/* Totales */}
+                  <div className="grid grid-cols-4 gap-1 py-2.5 px-3 rounded-xl items-center mt-1"
+                    style={{ background:'linear-gradient(135deg,#1a4a85,#0d2b5c)' }}>
+                    <span className="text-xs font-bold text-white">Total</span>
+                    <span className="text-xs font-bold text-green-300 text-center">{fmtCLP(totalCobrado)}</span>
+                    <span className="text-xs font-bold text-purple-300 text-center">{totalPagadoPilotos ? `−${fmtCLP(totalPagadoPilotos)}` : '—'}</span>
+                    <span className={`text-xs font-extrabold text-center ${(totalCobrado-totalPagadoPilotos)>=0?'text-yellow-300':'text-red-300'}`}>
+                      {fmtCLP(totalCobrado - totalPagadoPilotos)}
+                    </span>
+                  </div>
+                </div>
+
+                {saldoPendiente > 0 && (
+                  <div className="flex justify-between items-center py-2 px-3 rounded-xl mt-2"
+                    style={{ background:'#fff7ed', border:'1px solid #fed7aa' }}>
+                    <span className="text-xs font-semibold text-orange-700">Saldo pendiente de clientes</span>
+                    <span className="text-xs font-bold text-orange-700">{fmtCLP(saldoPendiente)}</span>
+                  </div>
+                )}
               </div>
             )}
 
             {/* ── Pilotos ── */}
             <div className={sectionCls}>
-              <p className={titleCls}>🪂 Pago a pilotos</p>
+              <p className={titleCls}>🪂 Pilotos del día</p>
               {pilotos.length === 0 ? (
                 <p className="text-gray-400 text-sm text-center py-4">Sin pilotos registrados este día</p>
               ) : (
                 <div className="flex flex-col gap-3">
                   {pilotos.map(p => {
-                    const total = p.servicios.reduce((s,sv)=>s+sv.monto*sv.cantidad,0)
+                    const devenga  = p.servicios.reduce((s,sv)=>s+sv.monto*sv.cantidad,0)
+                    const pagadoP  = pagosAPilotos.filter(pp=>pp.perfil_id===p.perfil_id)
+                    const pagadoT  = pagadoP.reduce((s,pp)=>s+pp.monto,0)
+                    const pendienteP = devenga - pagadoT
                     return (
                       <div key={p.perfil_id} className="rounded-xl p-3"
                         style={{ background:'#faf5ff', border:'1px solid #d8b4fe', borderLeft:'3px solid #7e22ce' }}>
@@ -309,10 +362,18 @@ export default function Reporte() {
                             <p className="text-[#0d2b5c] font-bold text-sm">{p.nombre}</p>
                             <p className="text-[#7aafd4] text-xs">{p.vuelos} vuelo{p.vuelos!==1?'s':''}</p>
                           </div>
-                          <p className="font-extrabold text-sm" style={{ color:'#7e22ce' }}>{fmtCLP(total)}</p>
+                          <div className="text-right">
+                            <p className="font-extrabold text-sm" style={{ color:'#7e22ce' }}>{fmtCLP(devenga)}</p>
+                            {pendienteP > 0
+                              ? <p className="text-orange-500 text-xs font-semibold">Debe {fmtCLP(pendienteP)}</p>
+                              : pagadoT > 0
+                                ? <p className="text-green-600 text-xs font-semibold">✓ Pagado</p>
+                                : null}
+                          </div>
                         </div>
+                        {/* Servicios devengados */}
                         {p.servicios.length > 0 && (
-                          <div className="flex flex-wrap gap-1 mt-2">
+                          <div className="flex flex-wrap gap-1 mt-1.5">
                             {p.servicios.map(s => (
                               <span key={s.servicio} className="text-[10px] px-2 py-0.5 rounded-full font-semibold"
                                 style={{ background:'#ede9fe', color:'#6d28d9' }}>
@@ -321,13 +382,33 @@ export default function Reporte() {
                             ))}
                           </div>
                         )}
+                        {/* Pagos realizados */}
+                        {pagadoP.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-1.5">
+                            {pagadoP.map((pp,i) => (
+                              <span key={i} className="text-[10px] px-2 py-0.5 rounded-full font-semibold"
+                                style={{ background:'#dcfce7', color:'#16a34a' }}>
+                                💳 {pp.metodo} {fmtCLP(pp.monto)}
+                              </span>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     )
                   })}
-                  <div className="flex justify-between items-center py-2.5 px-3 rounded-xl"
-                    style={{ background:'#7e22ce' }}>
-                    <span className="text-sm font-bold text-white">Total pilotos</span>
-                    <span className="text-sm font-extrabold text-white">{fmtCLP(totalPilotos)}</span>
+
+                  {/* Totales pilotos */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="flex justify-between items-center py-2.5 px-3 rounded-xl"
+                      style={{ background:'#ede9fe', border:'1px solid #d8b4fe' }}>
+                      <span className="text-xs font-bold text-purple-800">Devengado</span>
+                      <span className="text-xs font-extrabold text-purple-800">{fmtCLP(totalPilotos)}</span>
+                    </div>
+                    <div className="flex justify-between items-center py-2.5 px-3 rounded-xl"
+                      style={{ background:'#7e22ce' }}>
+                      <span className="text-xs font-bold text-white">Pagado</span>
+                      <span className="text-xs font-extrabold text-white">{fmtCLP(totalPagadoPilotos)}</span>
+                    </div>
                   </div>
                 </div>
               )}
@@ -413,10 +494,10 @@ export default function Reporte() {
                     <span className="text-green-400 font-bold text-sm">+ {fmtCLP(totalExtrasIngreso)}</span>
                   </div>
                 )}
-                {totalPilotos > 0 && (
+                {totalPagadoPilotos > 0 && (
                   <div className="flex justify-between">
-                    <span className="text-white/80 text-sm">Pago pilotos</span>
-                    <span className="text-red-400 font-bold text-sm">− {fmtCLP(totalPilotos)}</span>
+                    <span className="text-white/80 text-sm">Pagado a pilotos</span>
+                    <span className="text-red-400 font-bold text-sm">− {fmtCLP(totalPagadoPilotos)}</span>
                   </div>
                 )}
                 {totalExtrasGasto > 0 && (
@@ -425,9 +506,19 @@ export default function Reporte() {
                     <span className="text-red-400 font-bold text-sm">− {fmtCLP(totalExtrasGasto)}</span>
                   </div>
                 )}
+                {totalVuelos > 0 && (
+                  <div className="flex justify-between items-center py-1.5 px-2 rounded-lg mt-1"
+                    style={{ background:'rgba(251,191,36,0.12)', border:'1px solid rgba(251,191,36,0.25)' }}>
+                    <div>
+                      <span className="text-yellow-300 text-xs font-semibold">Provisión fin de mes</span>
+                      <span className="text-yellow-300/60 text-[10px] ml-1">({totalVuelos} vuelo{totalVuelos!==1?'s':''} × $15.000)</span>
+                    </div>
+                    <span className="text-yellow-300 font-bold text-xs">− {fmtCLP(provisionVuelos)}</span>
+                  </div>
+                )}
                 {saldoPendiente > 0 && (
-                  <div className="flex justify-between">
-                    <span className="text-white/50 text-xs italic">Pendiente de cobro</span>
+                  <div className="flex justify-between mt-1">
+                    <span className="text-white/50 text-xs italic">Pendiente de cobro clientes</span>
                     <span className="text-orange-400 text-xs font-semibold">{fmtCLP(saldoPendiente)}</span>
                   </div>
                 )}
