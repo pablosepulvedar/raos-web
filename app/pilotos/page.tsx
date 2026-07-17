@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase-browser'
 
-type PilotoResumen  = { perfil_id: string; nombre: string; vuelos: number }
+type PilotoResumen  = { perfil_id: string; nombre: string; vuelos: number; deuda: number; pagado: number }
 type ServicioPiloto = { id: number; servicio: string; monto: number; cantidad: number }
 type MetodoPago     = { id: number; nombre: string }
 type PagoPiloto     = { id: number; monto: number; metodos_pago: { nombre: string } | null }
@@ -93,10 +93,33 @@ export default function Pilotos() {
       if (!reservaIds[fecha]) reservaIds[fecha] = {}
 
       const ex = byDate[fecha].find(p=>p.perfil_id===pid)
-      if (ex) { ex.vuelos++ } else { byDate[fecha].push({ perfil_id:pid, nombre, vuelos:1 }) }
+      if (ex) { ex.vuelos++ } else { byDate[fecha].push({ perfil_id:pid, nombre, vuelos:1, deuda:0, pagado:0 }) }
 
       if (!reservaIds[fecha][pid]) reservaIds[fecha][pid] = []
       if (!reservaIds[fecha][pid].includes(row.reserva_id)) reservaIds[fecha][pid].push(row.reserva_id)
+    })
+
+    // Deuda (perfil_valores × valores.monto) y pagos por (fecha, piloto)
+    const allReservaIds = reservas.map((r:any)=>r.id)
+    const [{ data: pvs }, { data: pagos }] = await Promise.all([
+      sb.from('perfil_valores').select('perfil_id, reserva_id, cantidad, valores(monto)').in('reserva_id', allReservaIds),
+      sb.from('piloto_pagos').select('perfil_id, fecha, monto').gte('fecha', from).lte('fecha', to),
+    ])
+    const deudaMap: Record<string, Record<string, number>> = {}
+    ;(pvs||[]).forEach((pv:any) => {
+      const fecha = fechaMap[pv.reserva_id]; if(!fecha) return
+      const monto = (pv.valores?.monto||0) * pv.cantidad
+      ;(deudaMap[fecha] ??= {})[pv.perfil_id] = (deudaMap[fecha]?.[pv.perfil_id]||0) + monto
+    })
+    const pagoMap: Record<string, Record<string, number>> = {}
+    ;(pagos||[]).forEach((pg:any) => {
+      ;(pagoMap[pg.fecha] ??= {})[pg.perfil_id] = (pagoMap[pg.fecha]?.[pg.perfil_id]||0) + pg.monto
+    })
+    Object.entries(byDate).forEach(([fecha, arr]) => {
+      arr.forEach(p => {
+        p.deuda  = deudaMap[fecha]?.[p.perfil_id] ?? 0
+        p.pagado = pagoMap[fecha]?.[p.perfil_id] ?? 0
+      })
     })
 
     return { byDate, reservaIds }
@@ -247,6 +270,7 @@ export default function Pilotos() {
     if (error) { setPagoError(error.message); return }
     setSelectedPagoMetodoId(null); setPagoMonto(''); setShowPagoPk(false)
     fetchPilotoPagos(pilotoId, date)
+    refreshWindow()
   }
 
   const eliminarPilotoPago = async (id: number) => {
@@ -256,6 +280,7 @@ export default function Pilotos() {
     await sb.from('piloto_pagos').delete().eq('id', id)
     setDeletingPagoId(null)
     fetchPilotoPagos(pilotoId, date)
+    refreshWindow()
   }
 
   const togglePiloto = (date: string, pilotoId: string) => {
@@ -321,6 +346,7 @@ export default function Pilotos() {
       if (insErr) { setSaving(false); setSavedMsg('Error: '+insErr.message); return }
     }
     setSaving(false); setSavedMsg('Guardado')
+    refreshWindow()
     setTimeout(() => { setExpandedKey(null); setServicios([]); setSavedMsg(null) }, 1000)
   }
 
@@ -430,6 +456,11 @@ export default function Pilotos() {
                         const usados     = serviciosSeleccionados.reduce((s,x)=>s+x.cantidad,0)
                         const limite     = usados >= p.vuelos
                         const totalSrv   = serviciosSeleccionados.reduce((s,x)=>s+x.monto*x.cantidad,0)
+                        const saldado    = p.deuda > 0 && p.pagado >= p.deuda
+                        const debe       = p.deuda > 0 && p.pagado < p.deuda
+                        const accent     = saldado ? '#9b59b6' : debe ? '#e67e22' : '#2e6db4'
+                        const accentBg   = saldado ? '#f7f0fb' : debe ? '#fff6ee' : '#fff'
+                        const chipBg     = saldado ? '#f3e8fb' : debe ? '#fdebd7' : '#e8f0fb'
 
                         return (
                           <div key={p.perfil_id}>
@@ -438,22 +469,30 @@ export default function Pilotos() {
                               className="w-full text-left px-4 py-3 transition-all active:scale-[0.98]"
                               style={isExpanded
                                 ? { background:'linear-gradient(135deg,#2e6db4,#1a4a85)', borderRadius:'1rem 1rem 0 0', boxShadow:'0 3px 12px rgba(46,109,180,0.3)' }
-                                : { background:'#fff', borderRadius:'1rem', borderLeft:'3px solid #2e6db4', boxShadow:'0 2px 6px rgba(13,43,92,0.06)' }}>
+                                : saldado
+                                  ? { background:'linear-gradient(135deg,#9b59b6,#7d3c98)', borderRadius:'1rem', boxShadow:'0 3px 12px rgba(155,89,182,0.4)' }
+                                  : { background:accentBg, borderRadius:'1rem', borderLeft:`3px solid ${accent}`, boxShadow:'0 2px 6px rgba(13,43,92,0.06)' }}>
                               <div className="flex items-center justify-between">
                                 <div>
-                                  <p className={`font-bold text-sm ${isExpanded?'text-white':'text-[#0d2b5c]'}`}>{p.nombre}</p>
-                                  <p className={`text-xs mt-0.5 ${isExpanded?'text-blue-100':'text-[#7aafd4]'}`}>
+                                  <p className={`font-bold text-sm ${isExpanded||saldado?'text-white':'text-[#0d2b5c]'}`}>{p.nombre}</p>
+                                  <p className={`text-xs mt-0.5 ${isExpanded?'text-blue-100':saldado?'text-purple-100':'text-[#7aafd4]'}`}>
                                     {p.vuelos} vuelo{p.vuelos>1?'s':''}
                                   </p>
+                                  {!isExpanded && p.deuda > 0 && (
+                                    <span className="inline-block text-[10px] font-bold mt-1 px-2 py-0.5 rounded-full"
+                                      style={ saldado ? { background:'rgba(255,255,255,0.25)', color:'#fff' } : { background:'#fdebd7', color:'#e67e22' } }>
+                                      {saldado ? '✓ Saldado' : `Debe ${fmtCLP(p.deuda - p.pagado)}`}
+                                    </span>
+                                  )}
                                 </div>
                                 <div className="flex items-center gap-2">
                                   <span className="text-xs font-bold px-2 py-1 rounded-full"
-                                    style={isExpanded
+                                    style={isExpanded||saldado
                                       ? { background:'rgba(255,255,255,0.2)', color:'#fff' }
-                                      : { background:'#e8f0fb', color:'#2e6db4' }}>
+                                      : { background:chipBg, color:accent }}>
                                     ×{p.vuelos}
                                   </span>
-                                  <span className={`text-xs ${isExpanded?'text-white/60':'text-[#b0cce8]'}`}>{isExpanded?'▲':'▼'}</span>
+                                  <span className={`text-xs ${isExpanded?'text-white/60':saldado?'text-white/70':'text-[#b0cce8]'}`}>{isExpanded?'▲':'▼'}</span>
                                 </div>
                               </div>
                             </button>

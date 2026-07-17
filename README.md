@@ -32,6 +32,8 @@ Requiere Docker Desktop corriendo.
 3. `auth.users` no viene precargado en local (el seed solo trae datos de `public`, sin usuarios). Para loguearte, crea un usuario de prueba en Studio local → Authentication → Add user.
 4. `npm run dev` — la app ahora habla con el stack de Docker, no con producción.
 
+> **Nota (analytics / Windows):** en `supabase/config.toml` está `[analytics] enabled = false`. El contenedor de analytics (Logflare) no arranca en Windows (requiere exponer el daemon de Docker en `tcp://localhost:2375`) y tumba todo el `supabase start`. Desactivarlo solo apaga los logs del Studio local; no afecta datos, migraciones, la app ni producción (este archivo es solo para el stack local del CLI). En macOS/Linux podés volver a ponerlo en `true` si querés esos logs.
+
 Migraciones y deploy: ver [docs/DEPLOY.md](docs/DEPLOY.md).
 
 ## Learn More
