@@ -346,7 +346,7 @@ export default function Pilotos() {
       {/* ── Calendario modal ── */}
       {showCal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/50" onClick={() => setShowCal(false)} />
+          <div className="absolute inset-0 bg-black/50" />
           <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm px-4 pb-5 pt-4">
             <div className="flex items-center justify-between mb-3">
               <button onClick={() => chMo('prev')} className="text-[#1e5a96] text-2xl w-9 h-9 flex items-center justify-center font-bold hover:bg-blue-50 rounded-xl">‹</button>

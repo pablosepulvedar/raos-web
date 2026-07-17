@@ -20,6 +20,20 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## Desarrollo local (sin credenciales de producción)
+
+Requiere Docker Desktop corriendo.
+
+1. `npx supabase start` — levanta el stack completo de Supabase en Docker (Postgres, Auth, Storage, Realtime, API REST), aislado de producción. La primera vez imprime en consola la URL y la anon key locales.
+   - API: `http://127.0.0.1:54321`
+   - Studio (dashboard): `http://127.0.0.1:54323`
+   - DB directa: `postgresql://postgres:postgres@127.0.0.1:54322/postgres`
+2. En `.env`, dejar activas las credenciales **LOCAL** (`NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` apuntando a `127.0.0.1:54321`) y las de producción comentadas. Nunca borrar unas al cambiar de entorno, solo comentar/descomentar.
+3. `auth.users` no viene precargado en local (el seed solo trae datos de `public`, sin usuarios). Para loguearte, crea un usuario de prueba en Studio local → Authentication → Add user.
+4. `npm run dev` — la app ahora habla con el stack de Docker, no con producción.
+
+Migraciones y deploy: ver [docs/DEPLOY.md](docs/DEPLOY.md).
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:
@@ -28,10 +42,6 @@ To learn more about Next.js, take a look at the following resources:
 - [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
 
 You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy y migraciones
-
-Ver [docs/DEPLOY.md](docs/DEPLOY.md) para el flujo de deploy (migraciones Supabase + Vercel vía GitHub Actions con aprobación manual).
 
 ## Deploy on Vercel
 

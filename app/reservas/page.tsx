@@ -263,7 +263,7 @@ export default function Reservas() {
       {/* ── Calendario modal ── */}
       {showCal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/50" onClick={() => setShowCal(false)} />
+          <div className="absolute inset-0 bg-black/50" />
           <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm px-4 pb-5 pt-4">
             <div className="flex items-center justify-between mb-3">
               <button onClick={() => chMo('prev')} className="text-[#1e5a96] text-2xl w-9 h-9 flex items-center justify-center font-bold hover:bg-blue-50 rounded-xl">‹</button>
@@ -438,7 +438,7 @@ export default function Reservas() {
       {/* ── Modal detalle (md+) ── */}
       {detailId && (
         <div className="fixed inset-0 z-40 hidden md:flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/60" onClick={() => { setDetailId(null); refreshWindow() }} />
+          <div className="absolute inset-0 bg-black/60" />
           <div className="relative w-full max-w-2xl rounded-2xl overflow-hidden flex flex-col shadow-2xl"
             style={{ maxHeight:'90vh', background:'linear-gradient(160deg,#e8f2ff 0%,#d0e6ff 100%)' }}>
             <div className="flex items-center gap-3 px-5 py-4 shrink-0"
@@ -457,7 +457,7 @@ export default function Reservas() {
       {/* ── Formulario nueva reserva ── */}
       {showForm && (
         <div className="fixed inset-0 z-40 flex items-end md:items-center justify-center">
-          <div className="absolute inset-0 bg-black/50" onClick={resetForm} />
+          <div className="absolute inset-0 bg-black/50" />
           <div className="relative w-full md:max-w-md rounded-t-2xl md:rounded-2xl px-5 pt-5 pb-8 overflow-y-auto"
             style={{ background:'#0d2b5c', maxHeight:'88vh', boxShadow:'0 -4px 30px rgba(0,0,0,0.4)' }}>
             <div className="w-10 h-1 rounded-full bg-white/30 mx-auto mb-4 md:hidden" />
