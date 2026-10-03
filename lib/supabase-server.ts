@@ -25,3 +25,20 @@ export async function createClient() {
     }
   )
 }
+
+// Devuelve el usuario si está logueado y no tiene solo roles restringidos (piloto/coordinador)
+export async function getAdminUser() {
+  const supabase = await createClient()
+  const { data } = await supabase.auth.getUser()
+  if (!data.user) return null
+
+  const { data: roles } = await supabase
+    .from('perfil_roles')
+    .select('roles(nombre)')
+    .eq('perfil_id', data.user.id)
+  const nombres: string[] = (roles || []).map((r: any) => r.roles?.nombre?.toLowerCase() ?? '')
+  const restringidos = ['piloto', 'coordinador']
+  if (nombres.length > 0 && nombres.every(n => restringidos.includes(n))) return null
+
+  return data.user
+}

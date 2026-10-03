@@ -1,7 +1,12 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
+import { getAdminUser } from '@/lib/supabase-server'
 
 export async function POST(request: NextRequest) {
+  if (!(await getAdminUser())) {
+    return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
+  }
+
   const { userId, password } = await request.json()
 
   if (!userId || !password) {
