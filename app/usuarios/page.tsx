@@ -205,29 +205,15 @@ export default function Usuarios() {
         return
       }
 
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: email.trim(),
-        password: password.trim(),
+      const res = await fetch('/api/admin/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim(), password: password.trim(), nombre: nombre.trim() }),
       })
-      if (authError) throw authError
-      if (!authData.user) throw new Error('No se pudo crear el usuario')
+      const created = await res.json()
+      if (!res.ok) throw new Error(created.error || 'No se pudo crear el usuario')
 
-      const profileInsert: Record<string, unknown> = {
-        id: authData.user.id,
-        nombre: nombre.trim(),
-        activo: true,
-        email: email.trim(),
-      }
-
-      let { error: profileError } = await supabase.from('perfiles').insert(profileInsert)
-      if (profileError?.message?.includes('email')) {
-        const { email: _e, ...withoutEmail } = profileInsert
-        const retry = await supabase.from('perfiles').insert(withoutEmail)
-        profileError = retry.error
-      }
-      if (profileError) throw profileError
-
-      await syncPerfilRoles(authData.user.id, selectedRoles.map((r) => r.id))
+      await syncPerfilRoles(created.id, selectedRoles.map((r) => r.id))
       setSuccess('Usuario creado correctamente')
       resetForm()
       await fetchUsuarios()

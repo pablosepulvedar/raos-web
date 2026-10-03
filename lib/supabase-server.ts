@@ -1,4 +1,5 @@
 import { createServerClient } from '@supabase/ssr'
+import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 
 export async function createClient() {
@@ -36,9 +37,19 @@ export async function getAdminUser() {
     .from('perfil_roles')
     .select('roles(nombre)')
     .eq('perfil_id', data.user.id)
-  const nombres: string[] = (roles || []).map((r: any) => r.roles?.nombre?.toLowerCase() ?? '')
+  const nombres: string[] = (roles || []).map((r: { roles: { nombre?: string } | { nombre?: string }[] | null }) => (Array.isArray(r.roles) ? r.roles[0] : r.roles)?.nombre?.toLowerCase() ?? '')
   const restringidos = ['piloto', 'coordinador']
   if (nombres.length > 0 && nombres.every(n => restringidos.includes(n))) return null
 
-  return data.user
+  // supabase con la sesión del usuario: RLS limita todo a su empresa
+  return { user: data.user, supabase }
+}
+
+// Cliente service_role: se salta RLS, filtrar siempre por lo que ve el usuario
+export function createAdminClient() {
+  return createSupabaseClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  )
 }

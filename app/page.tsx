@@ -1,6 +1,5 @@
 'use client'
 
-import Image from 'next/image'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -82,6 +81,7 @@ export default function Home() {
   const router = useRouter()
   const [userName, setUserName] = useState('Usuario')
   const [esAdmin, setEsAdmin] = useState(true)
+  const [empresa, setEmpresa] = useState<{ nombre: string; logo_url: string | null } | null>(null)
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -92,10 +92,11 @@ export default function Home() {
 
         const { data: profile } = await supabase
           .from('perfiles')
-          .select('nombre, perfil_roles(roles(nombre))')
+          .select('nombre, perfil_roles(roles(nombre)), empresas(nombre, logo_url)')
           .eq('id', data.user.id)
           .single()
 
+        setEmpresa((profile?.empresas as unknown as { nombre: string; logo_url: string | null }) ?? null)
         setUserName(profile?.nombre || data.user.email?.split('@')[0] || 'Usuario')
 
         const roles: string[] = (profile?.perfil_roles ?? [])
@@ -126,17 +127,18 @@ export default function Home() {
       <header style={{ background: 'linear-gradient(135deg, #0d2b5c 0%, #1a4a85 100%)' }} className="pt-10 pb-8 px-6 shadow-lg">
         <div className="max-w-lg mx-auto flex items-center gap-4">
           <div className="w-16 h-16 rounded-full border-[3px] border-[#ffd700] overflow-hidden shrink-0 shadow-md">
-            <Image
-              src="/logo.jpg"
-              alt="RAOS Logo"
-              width={64}
-              height={64}
-              className="w-full h-full object-cover"
-            />
+            {empresa?.logo_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={empresa.logo_url} alt={`Logo ${empresa.nombre}`} className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full bg-white/10 flex items-center justify-center text-[#ffd700] text-2xl font-extrabold">
+                {empresa?.nombre?.[0] ?? ''}
+              </div>
+            )}
           </div>
           <div className="flex-1">
             <p className="text-[#ffd700] text-xs font-bold tracking-widest uppercase">
-              Parapente RAOS
+              {empresa?.nombre ?? ''}
             </p>
             <h1 className="text-white text-xl font-extrabold mt-0.5">Bienvenido</h1>
             <p className="text-[#7aafd4] text-sm">{userName}</p>
