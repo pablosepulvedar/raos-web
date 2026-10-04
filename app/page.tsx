@@ -73,6 +73,18 @@ const menuItems = [
     sombra: 'rgba(180,83,9,0.35)',
     adminOnly: true,
   },
+  {
+    href: '/admin',
+    emoji: '🛠️',
+    titulo: 'Panel de empresas',
+    descripcion: 'Empresas, usuarios y soporte (solo superadmin)',
+    from: '#374151',
+    to: '#111827',
+    texto: '#fff',
+    subtexto: '#d1d5db',
+    sombra: 'rgba(17,24,39,0.35)',
+    superOnly: true,
+  },
 ]
 
 const ROLES_RESTRINGIDOS = ['piloto', 'coordinador']
@@ -81,6 +93,7 @@ export default function Home() {
   const router = useRouter()
   const [userName, setUserName] = useState('Usuario')
   const [esAdmin, setEsAdmin] = useState(true)
+  const [esSuper, setEsSuper] = useState(false)
   const [empresa, setEmpresa] = useState<{ nombre: string; logo_url: string | null } | null>(null)
 
   useEffect(() => {
@@ -92,10 +105,11 @@ export default function Home() {
 
         const { data: profile } = await supabase
           .from('perfiles')
-          .select('nombre, perfil_roles(roles(nombre)), empresas(nombre, logo_url)')
+          .select('nombre, es_superadmin, perfil_roles(roles(nombre)), empresas(nombre, logo_url)')
           .eq('id', data.user.id)
           .single()
 
+        setEsSuper(!!profile?.es_superadmin)
         setEmpresa((profile?.empresas as unknown as { nombre: string; logo_url: string | null }) ?? null)
         setUserName(profile?.nombre || data.user.email?.split('@')[0] || 'Usuario')
 
@@ -159,7 +173,7 @@ export default function Home() {
         </p>
 
         <div className="flex flex-col gap-3">
-          {menuItems.filter(item => !((item.href === '/usuarios' || (item as any).adminOnly) && !esAdmin)).map((item) => (
+          {menuItems.filter(item => !((item.href === '/usuarios' || (item as any).adminOnly) && !esAdmin) && !((item as any).superOnly && !esSuper)).map((item) => (
             <Link
               key={item.href}
               href={item.href}

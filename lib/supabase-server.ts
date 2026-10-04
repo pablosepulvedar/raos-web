@@ -45,6 +45,14 @@ export async function getAdminUser() {
   return { user: data.user, supabase }
 }
 
+export async function getSuperadmin() {
+  const supabase = await createClient()
+  const { data } = await supabase.auth.getUser()
+  if (!data.user) return null
+  const { data: esSuper } = await supabase.rpc('es_superadmin')
+  return esSuper ? { user: data.user, supabase } : null
+}
+
 // Cliente service_role: se salta RLS, filtrar siempre por lo que ve el usuario
 export function createAdminClient() {
   return createSupabaseClient(

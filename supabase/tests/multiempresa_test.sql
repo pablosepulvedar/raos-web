@@ -81,6 +81,31 @@ begin
   assert n > 0, 'superadmin de vuelta en RAOS';
   reset role;
 
+  -- panel: solo superadmin
+  perform pg_temp.como('joel@raos.cl');
+  ok := false;
+  begin
+    perform public.sa_empresas();
+  exception when others then ok := true;
+  end;
+  assert ok, 'sa_empresas deberia fallar sin superadmin';
+  reset role;
+
+  perform pg_temp.como('pablo.sepulveda.retamal@gmail.com');
+  select count(*) into n from public.sa_empresas();
+  assert n >= 2, 'superadmin deberia ver todas las empresas';
+  perform public.sa_guardar_empresa(null, 'test-emp', 'Test Emp', null, null, true);
+  reset role;
+  select count(*) into n from public.roles r join public.empresas e on e.id = r.empresa_id where e.slug = 'test-emp';
+  assert n = 3, 'empresa nueva deberia tener 3 roles base';
+
+  -- empresa desactivada: sus usuarios no ven datos
+  update public.empresas set activa = false where slug = 'demo';
+  perform pg_temp.como('test-demo@local');
+  select count(*) into n from public.valores;
+  assert n = 0, 'empresa inactiva no deberia ver datos';
+  reset role;
+
   raise notice 'multiempresa: OK';
 end $$;
 
