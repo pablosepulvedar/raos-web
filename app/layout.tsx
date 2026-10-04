@@ -8,7 +8,7 @@ const geist = Geist({
 });
 
 export const metadata: Metadata = {
-  title: "Parapente RAOS",
+  title: "Sistema de Reservas",
   description: "Sistema de gestión de reservas y vuelos",
 };
 

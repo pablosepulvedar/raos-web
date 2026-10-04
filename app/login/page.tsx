@@ -1,9 +1,13 @@
 'use client'
 
-import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase-browser'
+
+type Empresa = { nombre: string; logo_url: string | null }
+
+// raos.reservasps.dev / raos.<cuenta>.workers.dev / raos.localhost -> 'raos'
+const slugDelHost = () => window.location.hostname.split('.')[0]
 
 export default function Login() {
   const router = useRouter()
@@ -11,6 +15,13 @@ export default function Login() {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [empresa, setEmpresa] = useState<Empresa | null>(null)
+
+  useEffect(() => {
+    createClient()
+      .rpc('empresa_publica', { p_slug: slugDelHost() })
+      .then(({ data }) => setEmpresa(data?.[0] ?? null))
+  }, [])
 
   const login = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -27,12 +38,33 @@ export default function Login() {
       email: email.trim(),
       password: password.trim(),
     })
-    setLoading(false)
 
     if (error) {
+      setLoading(false)
       setError(error.message)
       return
     }
+
+    // El usuario debe pertenecer a la empresa del subdominio (superadmin se cambia a ella)
+    const slug = slugDelHost()
+    const { data: perfil } = await supabase
+      .from('perfiles')
+      .select('es_superadmin, empresas(slug)')
+      .single()
+    const suEmpresa = (perfil?.empresas as unknown as { slug: string } | null)?.slug
+    // Solo si el host es de una empresa (localhost u otro host: sin chequeo, RLS igual aísla)
+    if (empresa && suEmpresa !== slug) {
+      const cambio = perfil?.es_superadmin
+        ? await supabase.rpc('cambiar_empresa', { p_slug: slug })
+        : { error: true }
+      if (cambio.error) {
+        await supabase.auth.signOut()
+        setLoading(false)
+        setError('Este usuario no pertenece a esta empresa')
+        return
+      }
+    }
+    setLoading(false)
 
     router.push('/')
     router.refresh()
@@ -43,17 +75,17 @@ export default function Login() {
       {/* Logo */}
       <div className="flex flex-col items-center mb-9">
         <div className="w-40 h-40 rounded-full border-4 border-[#ffd700] overflow-hidden shadow-[0_0_30px_rgba(255,215,0,0.35)]">
-          <Image
-            src="/logo.jpg"
-            alt="RAOS Logo"
-            width={160}
-            height={160}
-            className="w-full h-full object-cover"
-            priority
-          />
+          {empresa?.logo_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={empresa.logo_url} alt={`Logo ${empresa.nombre}`} className="w-full h-full object-cover" />
+          ) : (
+            <div className="w-full h-full bg-white/10 flex items-center justify-center text-[#ffd700] text-6xl font-extrabold">
+              {empresa?.nombre?.[0] ?? ''}
+            </div>
+          )}
         </div>
-        <h1 className="text-[#ffd700] text-2xl font-extrabold mt-4 tracking-wide">
-          PARAPENTE RAOS
+        <h1 className="text-[#ffd700] text-2xl font-extrabold mt-4 tracking-wide uppercase">
+          {empresa?.nombre ?? ''}
         </h1>
         <p className="text-[#a8c4e0] text-sm mt-1">Sistema de gestión de reservas</p>
       </div>
@@ -111,7 +143,7 @@ export default function Login() {
         </button>
       </form>
 
-      <p className="text-white/20 text-xs mt-8">© Parapente RAOS</p>
+      {empresa && <p className="text-white/20 text-xs mt-8">© {empresa.nombre}</p>}
     </div>
   )
 }

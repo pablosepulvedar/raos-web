@@ -8,10 +8,17 @@
     "directory": ".open-next/assets",
     "binding": "ASSETS"
   },
-  "services": [
-    {
-      "binding": "WORKER_SELF_REFERENCE",
-      "service": "raos-web"
+  "services": [{ "binding": "WORKER_SELF_REFERENCE", "service": "raos-web" }],
+  // Un worker por empresa mientras no haya dominio propio: <nombre>.<cuenta>.workers.dev
+  // ponytail: con dominio propio se reemplaza por un comodín *.dominio y un solo worker
+  "env": {
+    "raos": {
+      "name": "raos",
+      "services": [{ "binding": "WORKER_SELF_REFERENCE", "service": "raos" }]
+    },
+    "demo": {
+      "name": "demo",
+      "services": [{ "binding": "WORKER_SELF_REFERENCE", "service": "demo" }]
     }
-  ]
+  }
 }
