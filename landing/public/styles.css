@@ -178,6 +178,24 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 .note { display: flex; gap: .6em; align-items: flex-start; justify-content: center; font-size: .88rem; color: var(--muted); margin-bottom: 24px; text-align: left; }
 .note .ic { color: var(--blue); margin-top: .2em; }
 
+/* Tarjeta partida: mitad foto, mitad panel (rafting sin foto propia todavía) */
+.card-split { display: flex; overflow: hidden; }
+.split-a { flex: 1; background-size: cover; background-position: center; }
+.split-b { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; background: linear-gradient(140deg, var(--blue), var(--blue-2)); color: #fff; font-weight: 600; font-size: .85rem; letter-spacing: .04em; text-transform: uppercase; border-left: 3px solid #fff; }
+.split-b .ic { width: 30px; height: 30px; }
+
+/* Comparación de cámara tradicional vs 360 */
+.cams { margin: 0 auto 28px; max-width: 760px; }
+.cams-title { text-align: center; font-weight: 600; margin-bottom: 16px; }
+.cams-grid { display: grid; gap: 16px; }
+@media (min-width: 640px) { .cams-grid { grid-template-columns: 1fr 1fr; } }
+.cams figure { margin: 0; background: #fff; border: 1px solid #dde5f0; border-radius: var(--radius); overflow: hidden; }
+.cams img { width: 100%; height: auto; }
+.cams figcaption { padding: 12px 14px; display: flex; flex-direction: column; gap: 3px; }
+.cams figcaption strong { font-size: .9rem; color: var(--blue); }
+.cams figcaption span { font-size: .82rem; color: var(--muted); }
+.cams .note { margin: 16px 0 0; }
+
 /* Requisitos y horarios */
 .info { display: grid; gap: 20px; }
 @media (min-width: 820px) { .info { grid-template-columns: repeat(3, 1fr); } }
