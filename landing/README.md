@@ -75,11 +75,23 @@ Las 11 imágenes de `public/img/` son fotos reales de vuelos en Las Vizcachas, s
 
 | Archivo | Uso | Origen |
 |---|---|---|
-| `hero.jpg` | Fondo del hero (1920x1440) | `E:\29-03-2026\Ahyzamac...\Ahyzamac 2_000142.jpg`, recorte aéreo sin personas |
+| `hero.jpg` | Fondo del hero (1920x1080) | frame del dron 4K `E:\Dron 16-11\DJI_20241116121348_0014_D.MP4` a los 30 s |
 | `vuelo-biplaza.jpg`, `para-dos.jpg`, `grupos.jpg`, `rafting.jpg` | Tarjetas de vuelos (800x500) | 22-02-2026, 15-02-2026, 29-03-2026 |
 | `c1.jpg` – `c4.jpg` | Collage de testimonios (480x854) | mismos sets, planos 360 "tiny planet" y de giro |
-| `banda.jpg` | Fondo de "Cómo reservar" (1600x901) | 29-03-2026 |
-| `og.jpg` | Vista previa al compartir (1200x630) | 22-02-2026 |
+| `banda.jpg` | Fondo de "Cómo reservar" (1600x900) | frame del dron 4K `DJI_20241116130714_0025_D.MP4` a los 60 s |
+| `og.jpg` | Vista previa al compartir (1200x630) | mismo frame de dron que el hero |
+
+### Por qué el hero sale del dron y no de las fotos de vuelo
+
+Las imágenes anchas (hero, banda, `og:image`) salen del material de dron en `E:\Dron 16-11\` (3840x2160 real). Bajar de 4K a 1920 da una imagen nítida de verdad.
+
+Las fotos de vuelo de los pasajeros **no sirven para eso**: aunque `ffprobe` reporte 1920x1080, los `.mp4` traen `rotation=90`, o sea que en realidad son verticales de 1080 de ancho. Estirarlas a un hero de 1920 las deja blandas — fue el primer intento y se notaba. Sí sirven para las tarjetas y el collage, donde se reducen en vez de agrandarse.
+
+El dron se grabó un día nublado, así que las tres anchas llevan corrección de color:
+
+```
+-vf "eq=contrast=1.2:saturation=1.4:gamma=0.97,unsharp=5:5:0.5,scale=1920:1080:flags=lanczos"
+```
 
 Criterio de selección: sin stickers ni logos de otras empresas, con sol, y descartando todo lo que mostrara menores de edad. Para cambiar una foto basta reemplazar el archivo conservando el nombre, y actualizar su `aria-label` en `public/index.html`.
 
