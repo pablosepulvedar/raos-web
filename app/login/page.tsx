@@ -44,7 +44,7 @@ export default function Login() {
 
     setLoading(true)
     const supabase = createClient()
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data: sesion, error } = await supabase.auth.signInWithPassword({
       email: email.trim(),
       password: password.trim(),
     })
@@ -60,6 +60,7 @@ export default function Login() {
     const { data: perfil } = await supabase
       .from('perfiles')
       .select('es_superadmin, empresas(slug)')
+      .eq('id', sesion.user.id)
       .single()
     const suEmpresa = (perfil?.empresas as unknown as { slug: string } | null)?.slug
     // Solo si el host es de una empresa (localhost u otro host: sin chequeo, RLS igual aísla)
