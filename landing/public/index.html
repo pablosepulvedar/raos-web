@@ -1,0 +1,392 @@
+<!doctype html>
+<!--
+  ============================================================
+  POR CONFIRMAR CON RAOS (buscar y reemplazar en este archivo)
+  ============================================================
+  56941495370 / +56 9 4149 5370 -> WhatsApp CONFIRMADO por el cliente (2026-10-10).
+  ramonocando1@gmail.com        -> email del registro Sernatur. Cambiar por
+                                   contacto@parapenteraos.cl cuando exista el dominio.
+  maps.google.com/?q=...        -> reemplazar por el pin exacto del punto de encuentro.
+  Testimonios (#testimonios)    -> textos de EJEMPLO, reemplazar por reales con autorizacion.
+  Cifras "+18.000" y "4.9/5 - +450 resenas" -> vienen del diseno del cliente: confirmar.
+  Fotos                         -> son de Unsplash, se cambian en styles.css (bloque "FOTOS").
+  Dominio futuro: parapenteraos.cl (el antiguo parapenteraos.com esta caido).
+  Esta landing vive en raos-web/landing/ pero se despliega como worker
+  aparte (raos-landing). Ver landing/README.md.
+  Promociones (cumpleanos, miercoles 360) -> NO se publican aqui: cambian seguido.
+  ============================================================
+-->
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Parapente RAOS | Vuelos en parapente en Santiago, Cajón del Maipo</title>
+  <meta name="description" content="Vuelos en parapente biplaza sobre Santiago, sector Las Vizcachas, Cajón del Maipo. Licencia DGAC 1541 y registro Sernatur 79723. Desde $65.000. Reserva por WhatsApp.">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="es_CL">
+  <meta property="og:title" content="Parapente RAOS | Vuelos en parapente en Santiago">
+  <meta property="og:description" content="Vuela sobre Santiago y siente la máxima libertad desde las alturas. Licencia DGAC 1541. Reserva por WhatsApp.">
+  <meta property="og:image" content="https://raos-landing.pablo-sepulveda-retamal.workers.dev/img/og.jpg">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="theme-color" content="#0b1a33">
+  <link rel="icon" href="logo.jpg" type="image/jpeg">
+  <link rel="apple-touch-icon" href="logo.jpg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@1,800&family=Kaushan+Script&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- Íconos SVG (se reutilizan con <use href="#i-...">) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-wa" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2c-1.5 0-3-.4-4.3-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.2-.4.7-1.4.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.4.1-.7.3-.2.3-.9.9-.9 2.2s.9 2.5 1 2.7c.1.2 1.8 2.8 4.4 3.9 1.6.7 2.3.8 3.1.6.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.3-.2-.5-.3Z"/></symbol>
+  <symbol id="i-pin" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21Z"/><circle cx="12" cy="9.5" r="2.5" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+  <symbol id="i-badge" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6l-8-3Z"/><path fill="none" stroke="currentColor" stroke-width="2" d="m8.5 12 2.5 2.5 4.5-5"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="1.6"/><path fill="currentColor" d="M10 8.5v7l5.5-3.5z"/></symbol>
+  <symbol id="i-star" viewBox="0 0 24 24"><path fill="currentColor" d="m12 2 3 6.3 6.9.9-5 4.8 1.2 6.9L12 17.6 5.9 20.9 7.1 14l-5-4.8 6.9-.9z"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-glider" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" d="M3 9c2.5-3 5.5-4.5 9-4.5S18.5 6 21 9M4 9l7 9M20 9l-7 9M8.5 7.5 11.5 18M15.5 7.5 12.5 18"/><circle cx="12" cy="19.5" r="1.5" fill="currentColor"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="2"/><path stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M12 7v5l3 2"/></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5" fill="none" stroke="currentColor" stroke-width="2"/><path fill="none" stroke="currentColor" stroke-width="2" d="M2.5 20c.5-3.5 3-5.5 6.5-5.5s6 2 6.5 5.5M16 4.8a3.5 3.5 0 0 1 0 6.4M18 14.8c2 .7 3.2 2.5 3.5 5.2"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M12 11v6M12 7.5v.5"/></symbol>
+  <symbol id="i-card" viewBox="0 0 24 24"><rect x="2.5" y="5" width="19" height="14" rx="2.5" fill="none" stroke="currentColor" stroke-width="2"/><path stroke="currentColor" stroke-width="2" d="M2.5 10h19"/></symbol>
+  <symbol id="i-cam" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" d="M3 8h3.5L8 5.5h8L17.5 8H21v11H3z"/><circle cx="12" cy="13.5" r="3.5" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+  <symbol id="i-wave" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M2 16c2.5-2.5 4.5-2.5 7 0s4.5 2.5 7 0 4.5-2.5 6 0M2 10c2.5-2.5 4.5-2.5 7 0s4.5 2.5 7 0 4.5-2.5 6 0"/></symbol>
+  <symbol id="i-weight" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M5 8h14l2 13H3L5 8Z"/><circle cx="12" cy="5" r="2.5" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+  <symbol id="i-ig" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="5" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="17.5" cy="6.5" r="1.2" fill="currentColor"/></symbol>
+  <symbol id="i-fb" viewBox="0 0 24 24"><path fill="currentColor" d="M14 8V6.5c0-.8.4-1.5 1.6-1.5H17V2h-2.6C11.6 2 11 4 11 5.9V8H8.5v3H11v11h3V11h2.6l.4-3z"/></symbol>
+  <symbol id="i-tt" viewBox="0 0 24 24"><path fill="currentColor" d="M16.5 2h-3v13.3a2.8 2.8 0 1 1-2-2.7V9.5a5.8 5.8 0 1 0 5 5.8V8.7A7 7 0 0 0 21 10V7a4.5 4.5 0 0 1-4.5-5Z"/></symbol>
+  <symbol id="i-mail" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path fill="none" stroke="currentColor" stroke-width="2" d="m3.5 6 8.5 7 8.5-7"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path fill="none" stroke="currentColor" stroke-width="2" d="M8 11V8a4 4 0 0 1 8 0v3"/></symbol>
+</svg>
+
+<a class="skip" href="#main">Saltar al contenido</a>
+
+<header class="site-header">
+  <div class="container header-row">
+    <a href="#inicio" class="brand" aria-label="Parapente RAOS, ir al inicio">
+      <img src="logo.jpg" alt="Logo Parapente RAOS" width="64" height="64">
+    </a>
+    <button class="menu-toggle" aria-expanded="false" aria-controls="menu">
+      <span class="bars" aria-hidden="true"></span><span class="sr">Abrir menú</span>
+    </button>
+    <nav id="menu" class="nav" aria-label="Principal">
+      <ul>
+        <li><a href="#inicio" aria-current="page">Inicio</a></li>
+        <li class="has-sub">
+          <a href="#vuelos">Vuelos <span aria-hidden="true">▾</span></a>
+          <ul class="sub">
+            <li><a href="#vuelos">Vuelo biplaza</a></li>
+            <li><a href="#vuelos">Para dos</a></li>
+            <li><a href="#vuelos">Grupos 3 o más</a></li>
+            <li><a href="#vuelos">Rafting + Parapente</a></li>
+          </ul>
+        </li>
+        <li><a href="#requisitos">Requisitos</a></li>
+        <li><a href="#experiencia">Cómo reservar</a></li>
+        <li><a href="#testimonios">Testimonios</a></li>
+        <li><a href="#nosotros">Nosotros</a></li>
+        <li><a class="intranet" href="https://raos.pablo-sepulveda-retamal.workers.dev"><svg class="ic"><use href="#i-lock"/></svg>Intranet</a></li>
+      </ul>
+      <ul class="nav-social">
+        <li><a href="https://www.instagram.com/parapenteraos/" aria-label="Instagram de Parapente RAOS"><svg class="ic"><use href="#i-ig"/></svg></a></li>
+        <li><a href="https://www.tiktok.com/@parapente.raos" aria-label="TikTok de Parapente RAOS"><svg class="ic"><use href="#i-tt"/></svg></a></li>
+      </ul>
+      <a class="btn btn-yellow btn-sm" href="https://wa.me/56941495370?text=Hola%20RAOS%2C%20quiero%20reservar%20un%20vuelo%20en%20parapente"><svg class="ic"><use href="#i-wa"/></svg>Reservar por WhatsApp</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+
+<section id="inicio" class="hero photo-hero">
+  <div class="container hero-inner">
+    <div class="hero-copy">
+      <p class="kicker kicker-yellow">Vive la libertad <svg class="ic"><use href="#i-sun"/></svg></p>
+      <h1 class="display">Vuelos en<br>parapente</h1>
+      <p class="lead">Vuela sobre Santiago y siente la máxima libertad desde las alturas.</p>
+      <ul class="facts">
+        <li><svg class="ic"><use href="#i-pin"/></svg>Las Vizcachas, Cajón del Maipo</li>
+        <li><svg class="ic"><use href="#i-badge"/></svg>Licencia DGAC 1541</li>
+        <li><svg class="ic"><use href="#i-check"/></svg>Registro Sernatur 79723</li>
+      </ul>
+      <div class="actions">
+        <a class="btn btn-yellow" href="https://wa.me/56941495370?text=Hola%20RAOS%2C%20quiero%20reservar%20mi%20vuelo%20en%20parapente"><svg class="ic"><use href="#i-wa"/></svg>Reservar mi vuelo</a>
+        <a class="btn btn-ghost" href="#experiencia"><svg class="ic ic-lg"><use href="#i-play"/></svg>Ver experiencia</a>
+      </div>
+    </div>
+    <!-- Cifras del diseño del cliente: CONFIRMAR CON RAOS -->
+    <div class="stats">
+      <div class="stat">
+        <span class="avatars" aria-hidden="true"><i></i><i></i><i></i></span>
+        <p><strong>+18.000</strong><span>Aventureros felices</span></p>
+      </div>
+      <div class="stat">
+        <span class="stat-ic" aria-hidden="true"><svg class="ic"><use href="#i-star"/></svg></span>
+        <p><strong>4.9/5</strong><span><b>+450</b> reseñas</span></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="creds" aria-label="Certificaciones y redes sociales">
+  <div class="container creds-row">
+    <div class="cred">
+      <span class="cred-seal"><svg class="ic"><use href="#i-badge"/></svg></span>
+      <p><strong>Registro Sernatur N° 79723</strong><span>Empresa de turismo aventura con registro vigente y bajo inspección</span></p>
+    </div>
+    <div class="cred">
+      <span class="cred-seal"><svg class="ic"><use href="#i-glider"/></svg></span>
+      <p><strong>Licencia DGAC 1541</strong><span>Pilotos certificados por la Dirección General de Aeronáutica Civil</span></p>
+    </div>
+    <div class="cred cred-social">
+      <p><strong>Síguenos</strong><span>Mira vuelos reales todos los días</span></p>
+      <div class="cred-links">
+        <a class="soc soc-ig" href="https://www.instagram.com/parapenteraos/"><svg class="ic"><use href="#i-ig"/></svg>@parapenteraos</a>
+        <a class="soc soc-tt" href="https://www.tiktok.com/@parapente.raos"><svg class="ic"><use href="#i-tt"/></svg>@parapente.raos</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="vuelos" class="section light">
+  <div class="container">
+    <p class="kicker">Nuestros vuelos</p>
+    <h2 class="title">Elige tu <em class="script">aventura</em></h2>
+    <div class="cards">
+      <article class="card">
+        <div class="card-photo photo-clasico" role="img" aria-label="Vuelo biplaza sobre la cordillera en el Cajón del Maipo"><span class="card-ic"><svg class="ic"><use href="#i-glider"/></svg></span></div>
+        <div class="card-body">
+          <h3>Vuelo biplaza</h3>
+          <p>Vuelas acompañado de un piloto certificado por la DGAC. Ideal para la primera vez.</p>
+          <p class="dur"><svg class="ic"><use href="#i-clock"/></svg>8 a 15 min de vuelo</p>
+          <div class="price-row">
+            <p class="price"><small>1 persona</small>$65.000</p>
+            <a class="btn btn-yellow btn-xs" href="https://wa.me/56941495370?text=Hola%20RAOS%2C%20quiero%20reservar%20un%20vuelo%20para%201%20persona">Reservar</a>
+          </div>
+        </div>
+      </article>
+      <article class="card">
+        <div class="card-photo photo-termico" role="img" aria-label="Pasajera volando en parapente con la cordillera de fondo"><span class="card-ic"><svg class="ic"><use href="#i-users"/></svg></span></div>
+        <div class="card-body">
+          <h3>Para dos</h3>
+          <p>Dos vuelos biplaza. Les sale a $60.000 por persona.</p>
+          <p class="dur"><svg class="ic"><use href="#i-clock"/></svg>8 a 15 min cada uno</p>
+          <div class="price-row">
+            <p class="price"><small>2 personas</small>$120.000</p>
+            <a class="btn btn-yellow btn-xs" href="https://wa.me/56941495370?text=Hola%20RAOS%2C%20quiero%20reservar%20vuelos%20para%202%20personas">Reservar</a>
+          </div>
+        </div>
+      </article>
+      <article class="card">
+        <div class="card-photo photo-extendido" role="img" aria-label="Pasajera y piloto preparados en la zona de despegue"><span class="card-ic"><svg class="ic"><use href="#i-users"/></svg></span></div>
+        <div class="card-body">
+          <h3>Grupos 3 o más</h3>
+          <p>Cumpleaños, familias, empresas o grupos de amigos.</p>
+          <p class="dur"><svg class="ic"><use href="#i-clock"/></svg>8 a 15 min cada uno</p>
+          <div class="price-row">
+            <p class="price"><small>Por persona</small>$59.000</p>
+            <a class="btn btn-yellow btn-xs" href="https://wa.me/56941495370?text=Hola%20RAOS%2C%20quiero%20reservar%20vuelos%20para%20un%20grupo%20de%203%20o%20m%C3%A1s">Reservar</a>
+          </div>
+        </div>
+      </article>
+      <article class="card">
+        <div class="card-photo photo-premium" role="img" aria-label="Vuelo en parapente sobre el valle del río Maipo"><span class="card-ic"><svg class="ic"><use href="#i-wave"/></svg></span></div>
+        <div class="card-body">
+          <h3>Rafting + Parapente</h3>
+          <p>Tu vuelo más 9 km de rafting en el río Maipo, nivel 3 (intermedio). Incluye fotos y video tradicional del parapente.</p>
+          <p class="dur"><svg class="ic"><use href="#i-info"/></svg>Rafting operado por empresa colaboradora</p>
+          <div class="price-row">
+            <p class="price"><small>Por persona</small>$90.000</p>
+            <a class="btn btn-yellow btn-xs" href="https://wa.me/56941495370?text=Hola%20RAOS%2C%20quiero%20reservar%20el%20pack%20Rafting%20%2B%20Parapente">Reservar</a>
+          </div>
+        </div>
+      </article>
+    </div>
+    <p class="note"><svg class="ic"><use href="#i-cam"/></svg><span><strong>Fotos y video Premium 360°</strong> (GoPro Max, Full HD): $15.000. No necesitas traer MicroSD.</span></p>
+    <p class="center"><a class="btn btn-blue" href="https://wa.me/56941495370?text=Hola%20RAOS%2C%20quiero%20informaci%C3%B3n%20de%20los%20vuelos">Consultar disponibilidad</a></p>
+  </div>
+</section>
+
+<section id="requisitos" class="section">
+  <div class="container">
+    <p class="kicker">Antes de volar</p>
+    <h2 class="title">Requisitos y <em class="script">horarios</em></h2>
+    <div class="info">
+      <div class="panel">
+        <h3><svg class="ic"><use href="#i-weight"/></svg>Requisitos</h3>
+        <ul class="ticks">
+          <li><svg class="ic"><use href="#i-check"/></svg>Peso entre 25 y 110 kg</li>
+          <li><svg class="ic"><use href="#i-check"/></svg>Edad mínima 5 años</li>
+          <li><svg class="ic"><use href="#i-check"/></svg>Menores de edad deben ir con su representante</li>
+          <li><svg class="ic"><use href="#i-check"/></svg>No apto en estado de embarazo</li>
+        </ul>
+      </div>
+      <div class="panel">
+        <h3><svg class="ic"><use href="#i-clock"/></svg>Duración</h3>
+        <ul class="ticks">
+          <li><svg class="ic"><use href="#i-check"/></svg>El vuelo dura entre 8 y 15 minutos aprox.</li>
+          <li><svg class="ic"><use href="#i-check"/></svg>La actividad completa toma de 40 minutos a 1 hora aprox.</li>
+          <li><svg class="ic"><use href="#i-info"/></svg>Los tiempos varían según la temporada y las condiciones climáticas.</li>
+        </ul>
+      </div>
+      <div class="panel">
+        <h3><svg class="ic"><use href="#i-sun"/></svg>Horarios primavera y verano</h3>
+        <ul class="ticks">
+          <li><svg class="ic"><use href="#i-check"/></svg>Miércoles a viernes: 13:00 a 18:00</li>
+          <li><svg class="ic"><use href="#i-check"/></svg>Sábado y domingo: 12:00 a 18:00</li>
+          <li><svg class="ic"><use href="#i-info"/></svg>Todo vuelo es con reserva previa, mínimo un día de anticipación.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="experiencia" class="section dark photo-band">
+  <div class="container how">
+    <div>
+      <p class="kicker kicker-light">¿Cómo reservar?</p>
+      <h2 class="title">Así de fácil es <em class="script script-yellow">volar</em></h2>
+      <ol class="steps">
+        <li><span class="step-ic"><svg class="ic"><use href="#i-wa"/></svg></span><h3><b>1</b>Escríbenos</h3><p>Por WhatsApp, con al menos un día de anticipación. Envía nombre completo, edad, peso en kg, día y hora que quieres volar.</p></li>
+        <li><span class="step-ic"><svg class="ic"><use href="#i-card"/></svg></span><h3><b>2</b>Abona</h3><p>Para confirmar, transfiere $10.000 por persona. El saldo lo pagas el día del vuelo.</p></li>
+        <li><span class="step-ic"><svg class="ic"><use href="#i-info"/></svg></span><h3><b>3</b>Nos reunimos</h3><p>Te esperamos en el punto de encuentro para la charla de seguridad y la preparación.</p></li>
+        <li><span class="step-ic"><svg class="ic"><use href="#i-glider"/></svg></span><h3><b>4</b>¡A volar!</h3><p>Subes al despegue en camioneta 4x4 y vuelas con tu piloto.</p></li>
+      </ol>
+      <p class="pay"><svg class="ic"><use href="#i-card"/></svg>El saldo se paga presencialmente: efectivo, transferencia, débito o crédito.</p>
+    </div>
+    <div class="checkbox">
+      <h3>El vuelo incluye</h3>
+      <ul>
+        <li><svg class="ic"><use href="#i-check"/></svg>Piloto certificado por la DGAC</li>
+        <li><svg class="ic"><use href="#i-check"/></svg>Subida al despegue en camioneta 4x4</li>
+        <li><svg class="ic"><use href="#i-check"/></svg>Área de espera</li>
+        <li><svg class="ic"><use href="#i-check"/></svg>Estacionamiento gratis</li>
+        <li><svg class="ic"><use href="#i-check"/></svg>Baños gratis</li>
+      </ul>
+      <a class="btn btn-yellow" href="https://wa.me/56941495370?text=Hola%20RAOS%2C%20quiero%20reservar%20mi%20vuelo%20en%20parapente"><svg class="ic"><use href="#i-wa"/></svg>Reservar mi vuelo</a>
+    </div>
+  </div>
+</section>
+
+<section id="testimonios" class="section">
+  <div class="container testi">
+    <div>
+      <p class="kicker">Testimonios</p>
+      <h2 class="title">Lo que dicen nuestros pasajeros</h2>
+      <!-- TEXTOS DE EJEMPLO: reemplazar por testimonios reales con autorización de cada pasajero -->
+      <div class="quotes">
+        <figure class="quote">
+          <div class="stars" role="img" aria-label="5 de 5 estrellas"><svg class="ic"><use href="#i-star"/></svg><svg class="ic"><use href="#i-star"/></svg><svg class="ic"><use href="#i-star"/></svg><svg class="ic"><use href="#i-star"/></svg><svg class="ic"><use href="#i-star"/></svg></div>
+          <blockquote>“Texto de ejemplo: una experiencia increíble, me sentí muy seguro y la vista es espectacular.”</blockquote>
+          <figcaption>Nombre del pasajero</figcaption>
+        </figure>
+        <figure class="quote">
+          <div class="stars" role="img" aria-label="5 de 5 estrellas"><svg class="ic"><use href="#i-star"/></svg><svg class="ic"><use href="#i-star"/></svg><svg class="ic"><use href="#i-star"/></svg><svg class="ic"><use href="#i-star"/></svg><svg class="ic"><use href="#i-star"/></svg></div>
+          <blockquote>“Texto de ejemplo: el equipo es muy profesional y buena onda. Volvería a hacerlo.”</blockquote>
+          <figcaption>Nombre del pasajero</figcaption>
+        </figure>
+        <figure class="quote">
+          <div class="stars" role="img" aria-label="5 de 5 estrellas"><svg class="ic"><use href="#i-star"/></svg><svg class="ic"><use href="#i-star"/></svg><svg class="ic"><use href="#i-star"/></svg><svg class="ic"><use href="#i-star"/></svg><svg class="ic"><use href="#i-star"/></svg></div>
+          <blockquote>“Texto de ejemplo: cumplí el sueño que tenía hace años. Totalmente recomendado.”</blockquote>
+          <figcaption>Nombre del pasajero</figcaption>
+        </figure>
+      </div>
+    </div>
+    <div class="collage">
+      <div class="photo-c1" role="img" aria-label="Vista 360 grados del parapente sobre el cerro"></div>
+      <div class="photo-c2" role="img" aria-label="Pasajero recostado en vuelo con el horizonte curvo"></div>
+      <div class="photo-c3" role="img" aria-label="Giro del parapente sobre el valle"></div>
+      <div class="photo-c4" role="img" aria-label="Zona de despegue vista en 360 grados"></div>
+      <a class="btn btn-blue btn-sm" href="https://www.instagram.com/parapenteraos/">Ver más experiencias <svg class="ic"><use href="#i-ig"/></svg></a>
+    </div>
+  </div>
+</section>
+
+<section id="nosotros" class="section light">
+  <div class="container about">
+    <p class="kicker">Nosotros</p>
+    <h2 class="title">Somos <em class="script">Parapente RAOS</em></h2>
+    <p>Empresa de turismo aventura con <strong>licencia DGAC 1541</strong> y <strong>registro Sernatur N° 79723 vigente</strong>, dedicada a vuelos en parapente biplaza con pilotos que llevan décadas surcando los cielos de Santiago. Volamos desde el sector de Las Vizcachas, en la entrada del Cajón del Maipo.</p>
+    <p>Nuestro objetivo es que vivas tu primer (o próximo) vuelo con seguridad, tranquilidad y una vista que no vas a olvidar.</p>
+    <div class="social-cta">
+      <p class="social-cta-title">Síguenos y mira vuelos reales</p>
+      <div class="cred-links">
+        <a class="soc soc-ig" href="https://www.instagram.com/parapenteraos/"><svg class="ic"><use href="#i-ig"/></svg>@parapenteraos</a>
+        <a class="soc soc-tt" href="https://www.tiktok.com/@parapente.raos"><svg class="ic"><use href="#i-tt"/></svg>@parapente.raos</a>
+        <a class="soc soc-fb" href="https://www.facebook.com/parapenteraos"><svg class="ic"><use href="#i-fb"/></svg>Facebook</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="contacto" class="cta">
+  <div class="container cta-row">
+    <div>
+      <h2>¿Listo para vivir la experiencia?</h2>
+      <p>Reserva con un día de anticipación y asegura tu lugar.</p>
+    </div>
+    <div class="actions">
+      <a class="btn btn-yellow" href="https://wa.me/56941495370?text=Hola%20RAOS%2C%20quiero%20reservar%20un%20vuelo%20en%20parapente"><svg class="ic"><use href="#i-wa"/></svg>Reservar por WhatsApp</a>
+      <a class="btn btn-outline" href="https://maps.google.com/?q=Camino+a+San+Jos%C3%A9+del+Maipo+07820,+Las+Vizcachas,+Puente+Alto"><svg class="ic"><use href="#i-pin"/></svg>Ver ubicación</a>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer class="footer">
+  <div class="container footer-grid">
+    <div class="foot-brand">
+      <img src="logo.jpg" alt="" width="56" height="56">
+      <div>
+        <p class="foot-name">Parapente RAOS</p>
+        <p>Vuelos en parapente en Santiago de Chile.<br>Licencia DGAC 1541 · Sernatur 79723</p>
+      </div>
+    </div>
+    <nav aria-label="Pie de página">
+      <h2>Navegación</h2>
+      <ul class="foot-links">
+        <li><a href="#inicio">Inicio</a></li>
+        <li><a href="#testimonios">Testimonios</a></li>
+        <li><a href="#vuelos">Vuelos</a></li>
+        <li><a href="#nosotros">Nosotros</a></li>
+        <li><a href="#requisitos">Requisitos</a></li>
+        <li><a href="#contacto">Contacto</a></li>
+        <li><a href="#experiencia">Cómo reservar</a></li>
+      </ul>
+    </nav>
+    <div>
+      <h2>Síguenos</h2>
+      <ul class="social">
+        <li><a href="https://www.instagram.com/parapenteraos/" aria-label="Instagram"><svg class="ic"><use href="#i-ig"/></svg></a></li>
+        <li><a href="https://www.tiktok.com/@parapente.raos" aria-label="TikTok"><svg class="ic"><use href="#i-tt"/></svg></a></li>
+        <li><a href="https://www.facebook.com/parapenteraos" aria-label="Facebook"><svg class="ic"><use href="#i-fb"/></svg></a></li>
+      </ul>
+    </div>
+    <div>
+      <h2>Contáctanos</h2>
+      <ul class="contact">
+        <li><a href="https://wa.me/56941495370"><svg class="ic"><use href="#i-wa"/></svg>+56 9 4149 5370</a></li>
+        <li><a href="mailto:ramonocando1@gmail.com"><svg class="ic"><use href="#i-mail"/></svg>ramonocando1@gmail.com</a></li>
+        <li><a href="https://maps.google.com/?q=Camino+a+San+Jos%C3%A9+del+Maipo+07820,+Las+Vizcachas,+Puente+Alto"><svg class="ic"><use href="#i-pin"/></svg>Las Vizcachas, Puente Alto</a></li>
+      </ul>
+    </div>
+  </div>
+  <p class="container copy">© 2026 Parapente RAOS</p>
+</footer>
+
+<script>
+  // Menú móvil
+  const t = document.querySelector('.menu-toggle'), m = document.getElementById('menu');
+  t.addEventListener('click', () => {
+    const open = t.getAttribute('aria-expanded') !== 'true';
+    t.setAttribute('aria-expanded', open);
+    m.classList.toggle('open', open);
+  });
+  m.addEventListener('click', e => { if (e.target.closest('a')) { t.setAttribute('aria-expanded', false); m.classList.remove('open'); } });
+</script>
+</body>
+</html>
