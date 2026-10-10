@@ -6,6 +6,13 @@ import { createClient } from '@/lib/supabase-browser'
 
 type Empresa = { nombre: string; logo_url: string | null }
 
+// Credenciales visibles del demo (las crea supabase/migrations/20261010120000_usuarios_demo.sql)
+const USUARIOS_PRUEBA = [
+  { email: 'demo1@demo.cl', rol: 'Administrador' },
+  { email: 'demo2@demo.cl', rol: 'Coordinador' },
+  { email: 'demo3@demo.cl', rol: 'Piloto' },
+]
+
 // raos.reservasps.dev / raos.<cuenta>.workers.dev / raos.localhost -> 'raos'
 const slugDelHost = () => window.location.hostname.split('.')[0]
 
@@ -16,8 +23,11 @@ export default function Login() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [empresa, setEmpresa] = useState<Empresa | null>(null)
+  const [slug, setSlug] = useState('')
+  const [verPrueba, setVerPrueba] = useState(false)
 
   useEffect(() => {
+    setSlug(slugDelHost())
     createClient()
       .rpc('empresa_publica', { p_slug: slugDelHost() })
       .then(({ data }) => setEmpresa(data?.[0] ?? null))
@@ -71,7 +81,7 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0d2b5c] flex flex-col items-center justify-center px-8 py-10">
+    <div className="flex-1 bg-[#0d2b5c] flex flex-col items-center justify-center px-8 py-10">
       {/* Logo */}
       <div className="flex flex-col items-center mb-9">
         <div className="w-40 h-40 rounded-full border-4 border-[#ffd700] overflow-hidden shadow-[0_0_30px_rgba(255,215,0,0.35)]">
@@ -87,7 +97,40 @@ export default function Login() {
         <h1 className="text-[#ffd700] text-2xl font-extrabold mt-4 tracking-wide uppercase">
           {empresa?.nombre ?? ''}
         </h1>
-        <p className="text-[#a8c4e0] text-sm mt-1">Sistema de gestión de reservas</p>
+        <div className="relative flex items-center gap-2 mt-1">
+          <p className="text-[#a8c4e0] text-sm">Sistema de gestión de reservas</p>
+          {slug === 'demo' && (
+            <button
+              type="button"
+              onClick={() => setVerPrueba((v) => !v)}
+              aria-label="Usuarios de prueba"
+              className="w-5 h-5 shrink-0 rounded-full border border-[#ffd700] text-[#ffd700] text-xs font-bold leading-none hover:bg-[#ffd700] hover:text-[#0d2b5c] transition-colors"
+            >
+              ?
+            </button>
+          )}
+          {verPrueba && (
+            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-3 w-72 z-10 rounded-xl border border-[#ffd700]/40 bg-[#0d2b5c] p-4 text-left shadow-xl">
+              <p className="text-[#ffd700] text-xs font-bold uppercase tracking-wider mb-2">Usuarios de prueba</p>
+              <p className="text-[#a8c4e0] text-xs mb-3">Toca uno para entrar con él. Contraseña: <span className="text-white font-mono">123456</span></p>
+              {USUARIOS_PRUEBA.map((u) => (
+                <button
+                  key={u.email}
+                  type="button"
+                  onClick={() => {
+                    setEmail(u.email)
+                    setPassword('123456')
+                    setVerPrueba(false)
+                  }}
+                  className="w-full text-left px-3 py-2 mb-1 rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
+                >
+                  <span className="block text-white text-sm font-mono">{u.email}</span>
+                  <span className="block text-[#a8c4e0] text-xs">{u.rol}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Formulario */}
