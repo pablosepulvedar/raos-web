@@ -1,7 +1,11 @@
 import { NextResponse, type NextRequest } from 'next/server'
 
 export function middleware(request: NextRequest) {
-  const isLoginPage = request.nextUrl.pathname === '/login'
+  const path = request.nextUrl.pathname
+  const isLoginPage = path === '/login'
+
+  // La ficha de riesgo la abre el pasajero sin sesión, con su token
+  if (path.startsWith('/ficha/') || path === '/api/ficha') return NextResponse.next()
 
   // La cookie de sesión de Supabase tiene el formato sb-<project-ref>-auth-token
   const hasSession = request.cookies.getAll().some(

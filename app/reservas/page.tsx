@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase-browser'
 import DetalleContent from '@/components/reserva/DetalleContent'
+import DiaDeVuelo from '@/components/reserva/DiaDeVuelo'
 
 type Horario  = { id: number; horario: number }
 type Valor    = { id: number; servicio: string; monto: number }
@@ -52,6 +53,8 @@ export default function Reservas() {
 
   const [horarios, setHorarios] = useState<Horario[]>([])
   const [valores,  setValores]  = useState<Valor[]>([])
+
+  const [tab, setTab] = useState<'agenda'|'hoy'>('agenda')
 
   // Detail modal (md+)
   const [detailId, setDetailId] = useState<string|null>(null)
@@ -260,6 +263,17 @@ export default function Reservas() {
         </button>
       </header>
 
+      {/* ── Pestañas ── */}
+      <div className="max-w-lg mx-auto w-full flex gap-1 px-4 pt-3">
+        {([['agenda','Agenda'],['hoy','Hoy']] as const).map(([k, label]) => (
+          <button key={k} onClick={() => setTab(k)}
+            className={`flex-1 py-2 rounded-xl text-sm font-bold transition-colors ${
+              tab === k ? 'bg-[#2e6db4] text-white' : 'bg-[rgba(46,109,180,0.12)] text-[#2e6db4]'}`}>
+            {label}
+          </button>
+        ))}
+      </div>
+
       {/* ── Calendario modal ── */}
       {showCal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -297,6 +311,7 @@ export default function Reservas() {
       )}
 
       {/* ── Lista ── */}
+      {tab === 'hoy' ? <DiaDeVuelo /> : (
       <main className="max-w-lg mx-auto pb-28 px-0" ref={listRef}>
         {loading ? (
           <div className="flex flex-col items-center justify-center py-24 gap-3">
@@ -426,14 +441,15 @@ export default function Reservas() {
           </>
         )}
       </main>
+      )}
 
       {/* ── FAB ── */}
-      <button
+      {tab === 'agenda' && <button
         onClick={() => { setFormDate(today); setShowForm(true) }}
         className="fixed bottom-6 right-5 z-30 w-14 h-14 rounded-2xl flex items-center justify-center text-3xl font-light transition-all active:scale-95 hover:brightness-110"
         style={{ background:'#ffd700', color:'#0d2b5c', boxShadow:'0 4px 20px rgba(255,215,0,0.5)' }}>
         +
-      </button>
+      </button>}
 
       {/* ── Modal detalle (md+) ── */}
       {detailId && (
