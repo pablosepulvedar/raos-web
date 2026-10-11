@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase-browser'
 
-type Ficha = { id: number; token: string; nombre: string | null; aceptada_at: string | null }
+type Ficha = { id: number; token: string; nombre: string | null; aceptada_at: string | null; persona_id: number | null }
 type Persona = { id: number; nombre: string; sin_camara: boolean; camara_normal: boolean; camara_360: boolean }
 type Pago = { id: number; monto: number; metodos_pago: { nombre: string } | null }
 type Servicio = { id: number; valores: { monto: number; descuento: boolean } | null }
@@ -34,6 +34,11 @@ const fmtH = (v: number) => `${String(v).padStart(4, '0').slice(0, 2)}:${String(
 const fmtCLP = (v: number) => `$${Number(v).toLocaleString('es-CL')}`
 const linkDe = (token: string) => `${window.location.origin}/ficha/${token}`
 const tieneCamara = (p: Persona) => p.sin_camara || p.camara_normal || p.camara_360
+
+// Manda el ultimo dato: firmar escribe en reservas_personas y el detalle tambien,
+// asi que esa es la lista buena. La ficha solo cubre el caso sin pasajero enlazado.
+const nombreDe = (f: Ficha, r: Reserva, i: number) =>
+  r.reservas_personas.find(p => p.id === f.persona_id)?.nombre || f.nombre || `Pasajero ${i + 1}`
 
 // Mismo cálculo que el detalle de la reserva: neto menos abono menos pagos.
 const saldo = (r: Reserva) => {
@@ -80,7 +85,7 @@ export default function DiaDeVuelo() {
       .from('reservas')
       .select(`id, nombre, telefono, cantidad, horario_id, volo, abono,
                reservas_personas(id, nombre, sin_camara, camara_normal, camara_360),
-               fichas_riesgo(id, token, nombre, aceptada_at),
+               fichas_riesgo(id, token, nombre, aceptada_at, persona_id),
                reserva_servicios(id, valores(monto, descuento)),
                reserva_pagos(id, monto, metodos_pago(nombre))`)
       .eq('fecha', hoy())
@@ -121,7 +126,7 @@ export default function DiaDeVuelo() {
     const cuerpo = [
       `Hola ${r.nombre}! Antes del vuelo necesitamos que cada pasajero complete su ficha de aceptación de riesgo.`,
       '',
-      ...pendientes.map((f, i) => `${i + 1}. ${f.nombre || `Pasajero ${i + 1}`}: ${linkDe(f.token)}`),
+      ...pendientes.map((f, i) => `${i + 1}. ${nombreDe(f, r, i)}: ${linkDe(f.token)}`),
       '',
       'Cada link es personal: compártelo con quien corresponda. ¡Nos vemos!',
     ].join('\n')
@@ -225,7 +230,7 @@ export default function DiaDeVuelo() {
                           <div key={f.id} className="flex items-center gap-2">
                             <span className="text-base shrink-0">{f.aceptada_at ? '✅' : '⏳'}</span>
                             <span className={`text-sm flex-1 truncate ${f.aceptada_at ? 'text-[#2e9e52] font-semibold' : 'text-gray-600'}`}>
-                              {f.nombre || `Pasajero ${i + 1}`}
+                              {nombreDe(f, r, i)}
                             </span>
                             {!f.aceptada_at && (
                               <button onClick={() => copiar(linkDe(f.token), f.token)}
