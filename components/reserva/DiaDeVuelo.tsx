@@ -166,6 +166,7 @@ export default function DiaDeVuelo() {
       {reservas.map(r => {
         const etapas = pasos(r)
         const listas = etapas.filter(e => e.ok).length
+        const completa = listas === etapas.length
         const fichas = r.fichas_riesgo
         const firmadas = fichas.filter(f => f.aceptada_at).length
         const faltan = fichas.filter(f => !f.aceptada_at)
@@ -176,25 +177,34 @@ export default function DiaDeVuelo() {
           <div key={r.id} className="bg-white rounded-2xl shadow-sm overflow-hidden">
             <button onClick={() => setAbierta(expandida ? null : r.id)} className="w-full text-left">
               <div className="flex items-center gap-3 px-4 py-3"
-                style={{ background: r.volo ? 'linear-gradient(135deg,#9b59b6,#7d3c98)' : 'linear-gradient(135deg,#2e6db4,#1a4a85)' }}>
+                style={{ background: completa
+                  ? 'linear-gradient(135deg,#2e9e52,#1e7a3c)'
+                  : r.volo ? 'linear-gradient(135deg,#9b59b6,#7d3c98)' : 'linear-gradient(135deg,#2e6db4,#1a4a85)' }}>
                 <span className="text-white font-extrabold text-sm">{horLabel(r.horario_id)}</span>
                 <span className="text-white/90 text-sm flex-1 truncate">{r.nombre}</span>
                 <span className="text-white/70 text-xs">{r.cantidad} pax</span>
-                <span className="text-white/70 text-xs">{listas}/5</span>
+                <span className={`text-xs font-bold ${completa ? 'text-white' : 'text-white/70'}`}>
+                  {completa ? '✓ listo' : `${listas}/${etapas.length}`}
+                </span>
                 <span className="text-white/70 text-xs">{expandida ? '▴' : '▾'}</span>
               </div>
 
-              <div className="flex items-start gap-1 px-4 pt-3 pb-1">
-                {etapas.map((p, i) => (
-                  <div key={p.label} className="flex items-center flex-1 last:flex-none">
-                    <div className="flex flex-col items-center">
-                      <div className={`w-3 h-3 rounded-full ${p.ok ? 'bg-[#2e9e52]' : 'bg-gray-300'}`} />
-                      <span className={`text-[10px] mt-1 ${p.ok ? 'text-[#2e9e52] font-bold' : 'text-gray-400'}`}>{p.label}</span>
-                    </div>
-                    {i < etapas.length - 1 && <div className={`flex-1 h-0.5 mx-1 mb-4 ${p.ok ? 'bg-[#2e9e52]' : 'bg-gray-200'}`} />}
-                  </div>
+              <div className="flex flex-wrap gap-1.5 px-4 pt-3 pb-1">
+                {etapas.map(p => (
+                  <span key={p.label}
+                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold ${
+                      p.ok ? 'bg-[#e6f4ea] text-[#2e9e52]' : 'bg-gray-100 text-gray-400'}`}>
+                    <span className={`w-2 h-2 rounded-full ${p.ok ? 'bg-[#2e9e52]' : 'bg-gray-300'}`} />
+                    {p.label}
+                  </span>
                 ))}
               </div>
+
+              {completa && (
+                <p className="mx-4 mb-3 mt-1 py-1.5 rounded-lg bg-[#e6f4ea] text-[#2e9e52] text-xs font-bold text-center">
+                  ✓ Todo listo
+                </p>
+              )}
             </button>
 
             {expandida && (
