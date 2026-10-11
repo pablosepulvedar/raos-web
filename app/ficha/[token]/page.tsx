@@ -9,7 +9,8 @@ import {
 } from '@/lib/ficha-texto'
 
 type Ficha = {
-  empresa: string; fecha: string; horario: number | null; aceptada_at: string | null
+  empresa: string; registro_sernatur: string | null
+  fecha: string; horario: number | null; aceptada_at: string | null
   nombre: string | null; edad: number | null
 }
 
@@ -189,9 +190,15 @@ export default function FichaPublica() {
       </div>
 
       <h1 className="text-[#ffd700] text-xl font-extrabold leading-snug">{t.titulo}</h1>
-      <p className="text-[#a8c4e0] text-sm mt-1 mb-6">
+      <p className="text-[#a8c4e0] text-sm mt-1">
         {ficha.empresa} · {t.vuelo} {ficha.fecha} {fmtH(ficha.horario)}
       </p>
+      {ficha.registro_sernatur && (
+        <p className="text-[#a8c4e0]/60 text-xs mt-0.5 mb-6">
+          N° Registro Sernatur {ficha.registro_sernatur}
+        </p>
+      )}
+      {!ficha.registro_sernatur && <div className="mb-6" />}
 
       {/* 1 */}
       <h2 className={label}>{t.datos}</h2>
