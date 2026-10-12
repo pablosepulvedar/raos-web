@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Reservaps">
+  <rect width="64" height="64" rx="15" fill="#0d2b5c"/>
+  <rect x="14" y="16" width="36" height="34" rx="7" fill="none" stroke="#2e6db4" stroke-width="3.5"/>
+  <path d="M22 12.5 v7 M42 12.5 v7" stroke="#2e6db4" stroke-width="3.5" stroke-linecap="round"/>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="miter" stroke-miterlimit="5">
+    <path d="M18 43 L24 34 L28.5 38.5 L37 24 L41 29 L46 41" stroke="#ffb020" stroke-width="4.5"/>
+    <path d="M33.5 29.5 L37 24 L40.5 28.5" stroke="#eaf2ff" stroke-width="4.5"/>
+  </g>
+</svg>

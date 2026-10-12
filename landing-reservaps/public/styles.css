@@ -1,0 +1,102 @@
+:root {
+  --navy: #0d2b5c;
+  --navy-2: #0a2049;
+  --blue: #2e6db4;
+  --amber: #ffb020;
+  --snow: #eaf2ff;
+  --text: #16243a;
+  --muted: #5d6b80;
+  --line: #dde4ee;
+  --radius: 16px;
+}
+
+* { box-sizing: border-box }
+html { scroll-behavior: smooth }
+body {
+  margin: 0;
+  font: 16px/1.65 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color: var(--text);
+  background: #fff;
+}
+h1, h2, h3 { line-height: 1.15; letter-spacing: -.6px; margin: 0 }
+a { color: inherit }
+.contenedor { max-width: 1060px; margin: 0 auto; padding: 0 24px }
+
+/* marca */
+.marca { display: flex; align-items: center; gap: 11px; font-weight: 800; font-size: 22px; letter-spacing: -.7px }
+.marca span { color: var(--amber) }
+.marca img { width: 36px; height: 36px }
+
+/* barra */
+header.barra {
+  position: sticky; top: 0; z-index: 10; background: rgba(13,43,92,.95);
+  backdrop-filter: blur(6px); color: #fff; border-bottom: 1px solid rgba(255,255,255,.1);
+}
+header.barra .contenedor { display: flex; align-items: center; gap: 24px; height: 68px }
+header.barra nav { margin-left: auto; display: flex; gap: 22px; font-size: 15px }
+header.barra nav a { color: #c6d8ef; text-decoration: none }
+header.barra nav a:hover { color: #fff }
+
+.btn {
+  display: inline-flex; align-items: center; gap: 9px; padding: 13px 22px; border-radius: 12px;
+  font-weight: 700; text-decoration: none; border: 2px solid transparent; font-size: 15px;
+}
+.btn-primario { background: var(--amber); color: var(--navy) }
+.btn-primario:hover { background: #ffc14d }
+.btn-borde { border-color: rgba(255,255,255,.35); color: #fff }
+.btn-borde:hover { border-color: #fff }
+
+/* hero */
+.hero { background: linear-gradient(170deg, var(--navy) 0%, var(--navy-2) 100%); color: #fff; padding: 76px 0 0; overflow: hidden }
+.hero h1 { font-size: clamp(32px, 5vw, 52px); max-width: 15ch }
+.hero p.bajada { color: #b9cde6; font-size: clamp(17px, 2vw, 20px); max-width: 56ch; margin: 20px 0 30px }
+.hero .acciones { display: flex; gap: 14px; flex-wrap: wrap }
+.hero .chapa { display: inline-block; font-size: 13px; font-weight: 700; letter-spacing: 1.4px; text-transform: uppercase;
+               color: var(--amber); border: 1px solid rgba(255,176,32,.45); border-radius: 999px; padding: 6px 14px; margin-bottom: 22px }
+.sierra-hero { display: block; width: 100%; max-width: 760px; margin: 50px auto -6px; opacity: .9 }
+
+/* bloques */
+section { padding: 76px 0 }
+section.claro { background: #f7f9fc }
+.titulo { font-size: clamp(25px, 3.4vw, 34px); max-width: 22ch }
+.sub { color: var(--muted); max-width: 62ch; margin: 14px 0 0; font-size: 17px }
+
+.grilla { display: grid; gap: 22px; margin-top: 42px; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)) }
+.tarjeta { background: #fff; border: 1px solid var(--line); border-radius: var(--radius); padding: 26px }
+.tarjeta h3 { font-size: 19px; margin-bottom: 10px }
+.tarjeta p { color: var(--muted); margin: 0; font-size: 15.5px }
+.tarjeta .ico { width: 42px; height: 42px; border-radius: 11px; background: #eaf1fb; color: var(--blue);
+                display: flex; align-items: center; justify-content: center; margin-bottom: 16px }
+.tarjeta .ico svg { width: 23px; height: 23px }
+
+/* jerga */
+.jerga { width: 100%; border-collapse: collapse; margin-top: 36px; font-size: 15px; background: #fff;
+         border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden }
+.jerga th, .jerga td { padding: 13px 16px; text-align: left; border-bottom: 1px solid var(--line) }
+.jerga thead th { background: var(--navy); color: #fff; font-size: 13px; text-transform: uppercase; letter-spacing: 1px }
+.jerga tbody tr:last-child td { border-bottom: none }
+.jerga td:first-child { font-weight: 700 }
+
+/* codigo */
+pre { background: var(--navy); color: #d9e7fb; border-radius: var(--radius); padding: 22px; overflow-x: auto;
+      font: 13.5px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; margin: 32px 0 0 }
+pre b { color: var(--amber); font-weight: 600 }
+
+/* demo */
+.demo { background: var(--navy); color: #fff; border-radius: 20px; padding: 40px; display: grid; gap: 30px;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); align-items: center }
+.demo h2 { font-size: 27px }
+.demo p { color: #b9cde6 }
+.claves { background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.14); border-radius: 13px; padding: 20px;
+          font: 14px/1.9 ui-monospace, Menlo, monospace }
+.claves b { color: var(--amber); font-weight: 600 }
+
+/* pie */
+footer { background: var(--navy-2); color: #93aed0; padding: 48px 0; font-size: 14.5px }
+footer .contenedor { display: flex; gap: 26px; flex-wrap: wrap; align-items: center; justify-content: space-between }
+footer a { color: #cfe0f5 }
+
+@media (max-width: 640px) {
+  header.barra nav { display: none }
+  .demo { padding: 28px }
+}
