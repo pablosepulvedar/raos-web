@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
+import { InputPassword } from '@/components/InputPassword'
 import { createClient } from '@/lib/supabase-browser'
 
 type Empresa = { nombre: string; logo_url: string | null }
@@ -25,7 +26,6 @@ export default function Login() {
   const [empresa, setEmpresa] = useState<Empresa | null>(null)
   const [slug, setSlug] = useState('')
   const [verPrueba, setVerPrueba] = useState(false)
-  const [verPassword, setVerPassword] = useState(false)
 
   const esAdmin = slug === 'admin'
 
@@ -178,37 +178,19 @@ export default function Login() {
         <label className="block text-[#a8c4e0] text-xs font-bold mb-1.5 tracking-wider uppercase">
           Contraseña
         </label>
-        <div className="relative mb-6">
-          <input
-            type={verPassword ? 'text' : 'password'}
+        <div className="mb-6">
+          <InputPassword
             placeholder="••••••••"
             autoComplete="current-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full px-4 py-3.5 pr-12 rounded-xl text-white placeholder-white/30 text-base outline-none focus:border-[#ffd700]/60 transition-colors"
+            botonClassName="text-[#a8c4e0] hover:text-[#ffd700]"
+            className="w-full px-4 py-3.5 rounded-xl text-white placeholder-white/30 text-base outline-none focus:border-[#ffd700]/60 transition-colors"
             style={{
               background: 'rgba(255,255,255,0.1)',
               border: '1px solid rgba(255,255,255,0.15)',
             }}
           />
-          <button
-            type="button"
-            onClick={() => setVerPassword((v) => !v)}
-            aria-label={verPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-            className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-[#a8c4e0] hover:text-[#ffd700] transition-colors"
-          >
-            {verPassword ? (
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                <path d="M3 3l18 18M10.6 10.6a2 2 0 002.8 2.8" />
-                <path d="M9.4 5.2A9.5 9.5 0 0112 5c5 0 9 4.5 9 7 0 .9-.9 2.4-2.4 3.8M6.3 7.2C4 8.7 3 10.5 3 12c0 2.5 4 7 9 7 1.4 0 2.6-.3 3.7-.8" />
-              </svg>
-            ) : (
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                <path d="M3 12s4-7 9-7 9 7 9 7-4 7-9 7-9-7-9-7z" />
-                <circle cx="12" cy="12" r="2.5" />
-              </svg>
-            )}
-          </button>
         </div>
 
         <button

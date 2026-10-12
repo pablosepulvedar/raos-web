@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
+import { InputPassword } from '@/components/InputPassword'
 import { createClient } from '@/lib/supabase-browser'
 
 const supabase = createClient()
@@ -277,7 +278,7 @@ function NuevaEmpresa({ cargando, onCrear }: { cargando: boolean; onCrear: (d: D
       <label className={label}>Email</label>
       <input className={input} type="email" value={d.email} onChange={set('email')} />
       <label className={label}>Contraseña (mín. 6)</label>
-      <input className={input} type="password" value={d.password} onChange={set('password')} autoComplete="new-password" />
+      <InputPassword className={input} value={d.password} onChange={set('password')} autoComplete="new-password" />
 
       <button type="submit" disabled={cargando || !slugValido || !d.nombre || adminIncompleto} className={`w-full ${btn}`}>
         {cargando ? 'Creando...' : 'Crear empresa'}
@@ -303,6 +304,7 @@ function DetalleEmpresa({ empresa, usuarios, cargando, onGuardar, onSoporte, onA
   const [d, setD] = useState({ nombre: empresa.nombre, logo_url: empresa.logo_url ?? '', color: empresa.color ?? '#2e6db4', activa: empresa.activa })
   const [nuevo, setNuevo] = useState({ nombre: '', email: '', password: '', roles: ['Admin'] })
   const [mostrarNuevo, setMostrarNuevo] = useState(false)
+  const [cambiando, setCambiando] = useState<Usuario | null>(null)
 
   return (
     <div className="bg-white rounded-xl shadow-sm p-5">
@@ -359,7 +361,7 @@ function DetalleEmpresa({ empresa, usuarios, cargando, onGuardar, onSoporte, onA
           <label className={label}>Email</label>
           <input className={input} type="email" value={nuevo.email} onChange={(e) => setNuevo({ ...nuevo, email: e.target.value })} required />
           <label className={label}>Contraseña (mín. 6)</label>
-          <input className={input} type="password" minLength={6} value={nuevo.password} onChange={(e) => setNuevo({ ...nuevo, password: e.target.value })} autoComplete="new-password" required />
+          <InputPassword className={input} minLength={6} value={nuevo.password} onChange={(e) => setNuevo({ ...nuevo, password: e.target.value })} autoComplete="new-password" required />
           <p className={label}>Roles</p>
           <div className="flex gap-4 mb-4">
             {ROLES.map((r) => (
@@ -387,16 +389,7 @@ function DetalleEmpresa({ empresa, usuarios, cargando, onGuardar, onSoporte, onA
               </p>
               <p className="text-xs text-gray-500 break-all">{u.email} · {u.roles || 'Sin roles'} · último acceso {fecha(u.ultimo_login)}</p>
             </div>
-            <button
-              className={btnSec}
-              onClick={() => {
-                const p = window.prompt(`Nueva contraseña para ${u.email} (mín. 6 caracteres):`)
-                if (p && p.length >= 6) onPassword(u, p)
-                else if (p) window.alert('La contraseña debe tener al menos 6 caracteres')
-              }}
-            >
-              Contraseña
-            </button>
+            <button className={btnSec} onClick={() => setCambiando(u)}>Contraseña</button>
             <button className={btnSec} onClick={() => onBloquear(u)}>{u.bloqueado ? 'Desbloquear' : 'Bloquear'}</button>
           </div>
         ))}
@@ -404,6 +397,60 @@ function DetalleEmpresa({ empresa, usuarios, cargando, onGuardar, onSoporte, onA
       </div>
 
       <TokensApi empresa={empresa} />
+
+      {cambiando && (
+        <ModalPassword
+          usuario={cambiando}
+          cargando={cargando}
+          onCerrar={() => setCambiando(null)}
+          onGuardar={(password) => { onPassword(cambiando, password); setCambiando(null) }}
+        />
+      )}
+    </div>
+  )
+}
+
+// Cambio de contraseña: modal con el ojito, sin prompt del navegador
+function ModalPassword({ usuario, cargando, onCerrar, onGuardar }: {
+  usuario: Usuario
+  cargando: boolean
+  onCerrar: () => void
+  onGuardar: (password: string) => void
+}) {
+  const [password, setPassword] = useState('')
+  const corta = password.length > 0 && password.length < 6
+
+  return (
+    <div
+      className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"
+      onClick={onCerrar}
+      onKeyDown={(e) => e.key === 'Escape' && onCerrar()}
+    >
+      <form
+        className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+        onSubmit={(e) => { e.preventDefault(); onGuardar(password) }}
+      >
+        <h3 className="text-[#0d2b5c] font-extrabold text-lg mb-1">Nueva contraseña</h3>
+        <p className="text-sm text-gray-500 mb-4 break-all">{usuario.nombre} · {usuario.email}</p>
+
+        <InputPassword
+          autoFocus
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder="Mínimo 6 caracteres"
+          autoComplete="new-password"
+          className={input.replace('mb-3', 'mb-1')}
+        />
+        <p className={`text-xs mb-4 ${corta ? 'text-red-600' : 'text-gray-500'}`}>
+          {corta ? 'Debe tener al menos 6 caracteres' : 'El usuario la usará en su próximo inicio de sesión'}
+        </p>
+
+        <div className="flex gap-2 justify-end">
+          <button type="button" className={btnSec} onClick={onCerrar}>Cancelar</button>
+          <button type="submit" className={btn} disabled={cargando || password.length < 6}>Guardar</button>
+        </div>
+      </form>
     </div>
   )
 }
@@ -423,6 +470,7 @@ function TokensApi({ empresa }: { empresa: Empresa }) {
   const [nombre, setNombre] = useState('')
   const [nuevo, setNuevo] = useState<string | null>(null)
   const [err, setErr] = useState<string | null>(null)
+  const [porRevocar, setPorRevocar] = useState<number | null>(null)
   const base = urlEmpresa(empresa.slug)
 
   const cargar = async () => {
@@ -449,7 +497,7 @@ function TokensApi({ empresa }: { empresa: Empresa }) {
   }
 
   const revocar = async (t: Token) => {
-    if (!window.confirm(`Revocar "${t.nombre}"? Su web dejará de poder crear reservas.`)) return
+    setPorRevocar(null)
     await fetch('/api/superadmin/tokens', {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
@@ -501,7 +549,15 @@ function TokensApi({ empresa }: { empresa: Empresa }) {
                 {t.prefijo}… · creado {fecha(t.creado_at)} · último uso {fecha(t.ultimo_uso_at)}
               </p>
             </div>
-            {!t.revocado_at && <button className={btnSec} onClick={() => revocar(t)}>Revocar</button>}
+            {!t.revocado_at && (porRevocar === t.id ? (
+              <span className="flex items-center gap-2 text-xs text-gray-600">
+                ¿Revocar? Su web dejará de crear reservas.
+                <button className={`${btnSec} border-red-600 text-red-700`} onClick={() => revocar(t)}>Sí, revocar</button>
+                <button className={btnSec} onClick={() => setPorRevocar(null)}>No</button>
+              </span>
+            ) : (
+              <button className={btnSec} onClick={() => setPorRevocar(t.id)}>Revocar</button>
+            ))}
           </div>
         ))}
         {tokens.length === 0 && <p className="text-sm text-gray-500 py-2">Sin tokens todavía.</p>}
