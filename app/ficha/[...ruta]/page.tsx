@@ -92,7 +92,10 @@ function SiNo({ value, onChange, si, no }: { value: boolean; onChange: (v: boole
 }
 
 export default function FichaPublica() {
-  const token = String(useParams().token ?? '')
+  // /ficha/<token> y tambien /ficha/<token>/<nombre>: el nombre va solo para que
+  // se lea de quien es el link cuando se comparte por WhatsApp.
+  const ruta = useParams().ruta
+  const token = String(Array.isArray(ruta) ? ruta[0] : ruta ?? '')
   const [idioma, setIdioma] = useState<Idioma>('es')
   const [ficha, setFicha] = useState<Ficha | null>(null)
   const [noExiste, setNoExiste] = useState(false)

@@ -8,29 +8,41 @@ export async function POST(request: NextRequest) {
   const b = await request.json()
   const idioma: Idioma = b.idioma === 'en' ? 'en' : 'es'
 
-  if (!b.token || !b.acepta) {
-    return NextResponse.json({ error: 'Falta aceptar la declaración' }, { status: 400 })
-  }
-
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     { auth: { persistSession: false } }
   )
 
-  // El texto nombra a la empresa, así que el hash se calcula sobre el texto que
-  // realmente se mostró, no sobre la plantilla.
-  const { data: fichas } = await supabase.rpc('ficha_por_token', { p_token: b.token })
-  const empresa = fichas?.[0]?.empresa
-  if (!empresa) return NextResponse.json({ error: 'Ficha no encontrada' }, { status: 404 })
-
-  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(fichaTexto(idioma, empresa)))
-  const hash = [...new Uint8Array(digest)].map(x => x.toString(16).padStart(2, '0')).join('')
-
   const ip =
     request.headers.get('cf-connecting-ip') ||
     request.headers.get('x-forwarded-for')?.split(',')[0].trim() ||
     ''
+  const userAgent = request.headers.get('user-agent') || ''
+
+  // Queda registro de cada intento, haya firmado o no.
+  const log = (evento: string, detalle: string) =>
+    supabase.rpc('registrar_ficha_log', {
+      p_token: b.token, p_evento: evento, p_detalle: detalle,
+      p_ip: ip, p_user_agent: userAgent,
+    })
+
+  if (!b.token || !b.acepta) {
+    if (b.token) await log('error', 'No marcó la declaración')
+    return NextResponse.json({ error: 'Falta aceptar la declaración' }, { status: 400 })
+  }
+
+  // El texto nombra a la empresa, así que el hash se calcula sobre el texto que
+  // realmente se mostró, no sobre la plantilla.
+  const { data: fichas } = await supabase.rpc('ficha_por_token', { p_token: b.token })
+  const empresa = fichas?.[0]?.empresa
+  if (!empresa) {
+    await log('error', 'Token no encontrado')
+    return NextResponse.json({ error: 'Ficha no encontrada' }, { status: 404 })
+  }
+
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(fichaTexto(idioma, empresa)))
+  const hash = [...new Uint8Array(digest)].map(x => x.toString(16).padStart(2, '0')).join('')
 
   const { error } = await supabase.rpc('firmar_ficha', {
     p_token: b.token,
@@ -54,9 +66,14 @@ export async function POST(request: NextRequest) {
     p_texto_hash: hash,
     p_idioma: idioma,
     p_ip: ip,
-    p_user_agent: request.headers.get('user-agent') || '',
+    p_user_agent: userAgent,
   })
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+  if (error) {
+    await log('error', error.message)
+    return NextResponse.json({ error: error.message }, { status: 400 })
+  }
+
+  await log('firmada', `${b.nombre} · ${b.documento} · ${idioma} · ${FICHA_VERSION}`)
   return NextResponse.json({ ok: true })
 }

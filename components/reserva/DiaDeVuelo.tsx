@@ -4,7 +4,11 @@ import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase-browser'
 
-type Ficha = { id: number; token: string; nombre: string | null; aceptada_at: string | null; persona_id: number | null }
+type Ficha = {
+  id: number; token: string; nombre: string | null; aceptada_at: string | null
+  persona_id: number | null; ip: string | null
+}
+type Log = { id: number; evento: string; detalle: string | null; ip: string | null; created_at: string }
 type Persona = { id: number; nombre: string; sin_camara: boolean; camara_normal: boolean; camara_360: boolean }
 type Pago = { id: number; monto: number; metodos_pago: { nombre: string } | null }
 type Servicio = { id: number; valores: { monto: number; descuento: boolean } | null }
@@ -32,7 +36,18 @@ const hoy = () => {
 }
 const fmtH = (v: number) => `${String(v).padStart(4, '0').slice(0, 2)}:${String(v).padStart(4, '0').slice(2)}`
 const fmtCLP = (v: number) => `$${Number(v).toLocaleString('es-CL')}`
-const linkDe = (token: string) => `${window.location.origin}/ficha/${token}`
+const slug = (nombre: string) =>
+  nombre.normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+
+const linkDe = (token: string, nombre?: string) => {
+  const base = `${window.location.origin}/ficha/${token}`
+  const s = nombre ? slug(nombre) : ''
+  return s ? `${base}/${s}` : base
+}
+
+const fmtFecha = (iso: string) =>
+  new Date(iso).toLocaleString('es-CL', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
 const tieneCamara = (p: Persona) => p.sin_camara || p.camara_normal || p.camara_360
 
 // Manda el ultimo dato: firmar escribe en reservas_personas y el detalle tambien,
@@ -74,6 +89,7 @@ export default function DiaDeVuelo() {
   const [abierta, setAbierta] = useState<number | null>(null)
   const [ocupado, setOcupado] = useState<string | null>(null)
   const [copiado, setCopiado] = useState<string | null>(null)
+  const [logs, setLogs] = useState<Record<number, Log[]>>({})
 
   // Formulario de pago, por reserva abierta
   const [metodoId, setMetodoId] = useState<number | null>(null)
@@ -85,7 +101,7 @@ export default function DiaDeVuelo() {
       .from('reservas')
       .select(`id, nombre, telefono, cantidad, horario_id, volo, abono,
                reservas_personas(id, nombre, sin_camara, camara_normal, camara_360),
-               fichas_riesgo(id, token, nombre, aceptada_at, persona_id),
+               fichas_riesgo(id, token, nombre, aceptada_at, persona_id, ip),
                reserva_servicios(id, valores(monto, descuento)),
                reserva_pagos(id, monto, metodos_pago(nombre))`)
       .eq('fecha', hoy())
@@ -115,6 +131,16 @@ export default function DiaDeVuelo() {
     setOcupado(null)
   }
 
+  const verLog = async (fichaId: number) => {
+    if (logs[fichaId]) return setLogs(prev => { const n = { ...prev }; delete n[fichaId]; return n })
+    const { data } = await sb
+      .from('fichas_log')
+      .select('id, evento, detalle, ip, created_at')
+      .eq('ficha_id', fichaId)
+      .order('created_at', { ascending: false })
+    setLogs(prev => ({ ...prev, [fichaId]: data ?? [] }))
+  }
+
   const copiar = async (texto: string, marca: string) => {
     await navigator.clipboard.writeText(texto)
     setCopiado(marca)
@@ -126,7 +152,7 @@ export default function DiaDeVuelo() {
     const cuerpo = [
       `Hola ${r.nombre}! Antes del vuelo necesitamos que cada pasajero complete su ficha de aceptación de riesgo.`,
       '',
-      ...pendientes.map((f, i) => `${i + 1}. ${nombreDe(f, r, i)}: ${linkDe(f.token)}`),
+      ...pendientes.map((f, i) => `${i + 1}. ${nombreDe(f, r, i)}: ${linkDe(f.token, nombreDe(f, r, i))}`),
       '',
       'Cada link es personal: compártelo con quien corresponda. ¡Nos vemos!',
     ].join('\n')
@@ -227,16 +253,44 @@ export default function DiaDeVuelo() {
                     <>
                       <div className="space-y-1.5 mb-3">
                         {fichas.map((f, i) => (
-                          <div key={f.id} className="flex items-center gap-2">
-                            <span className="text-base shrink-0">{f.aceptada_at ? '✅' : '⏳'}</span>
-                            <span className={`text-sm flex-1 truncate ${f.aceptada_at ? 'text-[#2e9e52] font-semibold' : 'text-gray-600'}`}>
-                              {nombreDe(f, r, i)}
-                            </span>
-                            {!f.aceptada_at && (
-                              <button onClick={() => copiar(linkDe(f.token), f.token)}
-                                className="text-xs font-semibold text-[#2e6db4] px-2 py-1 rounded-lg hover:bg-blue-50">
-                                {copiado === f.token ? 'copiado' : 'copiar link'}
+                          <div key={f.id}>
+                            <div className="flex items-center gap-2">
+                              <span className="text-base shrink-0">{f.aceptada_at ? '✅' : '⏳'}</span>
+                              <span className={`text-sm flex-1 truncate ${f.aceptada_at ? 'text-[#2e9e52] font-semibold' : 'text-gray-600'}`}>
+                                {nombreDe(f, r, i)}
+                              </span>
+                              <button onClick={() => verLog(f.id)}
+                                className="text-xs font-semibold text-gray-400 px-2 py-1 rounded-lg hover:bg-gray-100">
+                                registro
                               </button>
+                              {!f.aceptada_at && (
+                                <button onClick={() => copiar(linkDe(f.token, nombreDe(f, r, i)), f.token)}
+                                  className="text-xs font-semibold text-[#2e6db4] px-2 py-1 rounded-lg hover:bg-blue-50">
+                                  {copiado === f.token ? 'copiado' : 'copiar link'}
+                                </button>
+                              )}
+                            </div>
+
+                            {f.aceptada_at && (
+                              <p className="text-[11px] text-gray-400 ml-7">
+                                firmada {fmtFecha(f.aceptada_at)}{f.ip ? ` · IP ${f.ip}` : ''}
+                              </p>
+                            )}
+
+                            {logs[f.id] && (
+                              <div className="ml-7 mt-1 mb-2 p-2 rounded-lg bg-gray-50 space-y-1">
+                                {logs[f.id].length === 0 ? (
+                                  <p className="text-[11px] text-gray-400">Sin intentos registrados.</p>
+                                ) : logs[f.id].map(l => (
+                                  <p key={l.id} className="text-[11px] text-gray-500">
+                                    <span className={l.evento === 'firmada' ? 'text-[#2e9e52] font-bold' : 'text-red-400 font-bold'}>
+                                      {l.evento}
+                                    </span>
+                                    {' '}{fmtFecha(l.created_at)}{l.ip ? ` · ${l.ip}` : ''}
+                                    {l.detalle ? ` · ${l.detalle}` : ''}
+                                  </p>
+                                ))}
+                              </div>
                             )}
                           </div>
                         ))}
