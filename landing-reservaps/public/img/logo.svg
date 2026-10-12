@@ -1,10 +1,10 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Reservaps">
-  <rect width="64" height="64" rx="15" fill="#0d2b5c"/>
-  <rect x="14" y="16" width="36" height="34" rx="7" fill="none" stroke="#2e6db4" stroke-width="3.5"/>
-  <path d="M22 12.5 v7 M42 12.5 v7" stroke="#2e6db4" stroke-width="3.5" stroke-linecap="round"/>
+  <rect width="64" height="64" rx="15" fill="#24914c"/>
+  <rect x="14" y="16" width="36" height="34" rx="7" fill="none" stroke="#a9e8bd" stroke-width="3.5"/>
+  <path d="M22 12.5 v7 M42 12.5 v7" stroke="#a9e8bd" stroke-width="3.5" stroke-linecap="round"/>
   <g fill="none" stroke-linecap="round" stroke-linejoin="miter" stroke-miterlimit="5">
-    <path d="M17 44 L21.5 36 L24.5 39.5 L28 32.5 L31 36 L37 23.5 L40 27 L42.5 24.5 L47 42" stroke="#ffb020" stroke-width="3.2"/>
-    <path d="M33.5 29.5 L37 23.5 L40 27" stroke="#eaf2ff" stroke-width="3.2"/>
-    <path d="M17.5 45.5 L23 41 L27 43.5 L32.5 39.5 L38 43.5 L43 41 L46.5 44.5" stroke="#2e6db4" stroke-width="2.6" stroke-linejoin="round"/>
+    <path d="M17 44 L21.5 36 L24.5 39.5 L28 32.5 L31 36 L37 23.5 L40 27 L42.5 24.5 L47 42" stroke="#cdf3da" stroke-width="3.2"/>
+    <path d="M33.5 29.5 L37 23.5 L40 27" stroke="#ffffff" stroke-width="3.4"/>
+    <path d="M17.5 45.5 L23 41 L27 43.5 L32.5 39.5 L38 43.5 L43 41 L46.5 44.5" stroke="#136637" stroke-width="2.6" stroke-linejoin="round"/>
   </g>
 </svg>
