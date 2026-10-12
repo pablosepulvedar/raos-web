@@ -402,6 +402,114 @@ function DetalleEmpresa({ empresa, usuarios, cargando, onGuardar, onSoporte, onA
         ))}
         {usuarios.length === 0 && <p className="text-sm text-gray-500 py-3">Sin usuarios todavía.</p>}
       </div>
+
+      <TokensApi empresa={empresa} />
+    </div>
+  )
+}
+
+type Token = {
+  id: number
+  nombre: string
+  prefijo: string
+  creado_at: string
+  ultimo_uso_at: string | null
+  revocado_at: string | null
+}
+
+// Tokens para que la web de la empresa cree reservas al cobrar un vuelo
+function TokensApi({ empresa }: { empresa: Empresa }) {
+  const [tokens, setTokens] = useState<Token[]>([])
+  const [nombre, setNombre] = useState('')
+  const [nuevo, setNuevo] = useState<string | null>(null)
+  const [err, setErr] = useState<string | null>(null)
+  const base = urlEmpresa(empresa.slug)
+
+  const cargar = async () => {
+    const res = await fetch(`/api/superadmin/tokens?empresa=${empresa.id}`)
+    const data = await res.json()
+    setTokens(res.ok ? data : [])
+    if (!res.ok) setErr(data.error)
+  }
+  useEffect(() => { cargar() }, [empresa.id]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const crear = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setErr(null)
+    const res = await fetch('/api/superadmin/tokens', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ empresa_id: empresa.id, nombre }),
+    })
+    const data = await res.json()
+    if (!res.ok) return setErr(data.error)
+    setNuevo(data.token)
+    setNombre('')
+    cargar()
+  }
+
+  const revocar = async (t: Token) => {
+    if (!window.confirm(`Revocar "${t.nombre}"? Su web dejará de poder crear reservas.`)) return
+    await fetch('/api/superadmin/tokens', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: t.id }),
+    })
+    cargar()
+  }
+
+  return (
+    <div className="mt-6">
+      <h3 className="text-[#1e5a96] font-bold mb-1">API de reservas</h3>
+      <p className="text-xs text-gray-500 mb-3">
+        Para que la web de {empresa.nombre} cree la reserva cuando le pagan. El token va en el servidor de su web, nunca en el navegador.
+      </p>
+
+      <form onSubmit={crear} className="flex flex-wrap gap-2 mb-3">
+        <input
+          className="flex-1 min-w-[180px] border border-[#2e6db4] rounded-lg p-2.5 text-sm bg-white"
+          placeholder="Nombre del token (ej: web wordpress)"
+          value={nombre}
+          onChange={(e) => setNombre(e.target.value)}
+          required
+        />
+        <button type="submit" className={btn}>+ Token</button>
+      </form>
+
+      {err && <p className="text-sm text-red-700 mb-3">{err}</p>}
+
+      {nuevo && (
+        <div className="bg-[#fff8e1] border border-[#ffd700] rounded-xl p-4 mb-4">
+          <p className="text-sm font-bold text-[#8a6d00] mb-2">Cópialo ahora: no se vuelve a mostrar.</p>
+          <code className="block bg-white rounded-lg p-3 text-xs break-all mb-2">{nuevo}</code>
+          <div className="flex gap-2">
+            <button className={btnSec} onClick={() => navigator.clipboard.writeText(nuevo)}>Copiar token</button>
+            <button className={btnSec} onClick={() => setNuevo(null)}>Listo</button>
+          </div>
+        </div>
+      )}
+
+      <div className="divide-y mb-4">
+        {tokens.map((t) => (
+          <div key={t.id} className="py-2.5 flex flex-wrap items-center gap-2">
+            <div className="flex-1 min-w-[180px]">
+              <p className="font-semibold text-gray-800 text-sm">
+                {t.nombre}
+                {t.revocado_at && <span className="ml-2 text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full">Revocado</span>}
+              </p>
+              <p className="text-xs text-gray-500 break-all">
+                {t.prefijo}… · creado {fecha(t.creado_at)} · último uso {fecha(t.ultimo_uso_at)}
+              </p>
+            </div>
+            {!t.revocado_at && <button className={btnSec} onClick={() => revocar(t)}>Revocar</button>}
+          </div>
+        ))}
+        {tokens.length === 0 && <p className="text-sm text-gray-500 py-2">Sin tokens todavía.</p>}
+      </div>
+
+      <a href={`${base}/docs/api`} target="_blank" rel="noreferrer" className={btnSec}>
+        Ver documentación de la API ↗
+      </a>
     </div>
   )
 }

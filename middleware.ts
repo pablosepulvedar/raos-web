@@ -7,6 +7,10 @@ export function middleware(request: NextRequest) {
   // La ficha de riesgo la abre el pasajero sin sesión, con su token
   if (path.startsWith('/ficha/') || path === '/api/ficha') return NextResponse.next()
 
+  // API pública de integración: autentica con su propio token Bearer, no con sesión.
+  // Su documentación es pública para que el desarrollador del cliente la lea sin cuenta.
+  if (path.startsWith('/api/v1/') || path === '/docs/api') return NextResponse.next()
+
   // La cookie de sesión de Supabase tiene el formato sb-<project-ref>-auth-token
   const hasSession = request.cookies.getAll().some(
     (c) => c.name.startsWith('sb-') && c.name.endsWith('-auth-token')
