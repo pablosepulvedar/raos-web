@@ -35,11 +35,12 @@ export async function getAdminUser() {
 
   const { data: roles } = await supabase
     .from('perfil_roles')
-    .select('roles(nombre)')
+    .select('roles(restringido)')
     .eq('perfil_id', data.user.id)
-  const nombres: string[] = (roles || []).map((r: { roles: { nombre?: string } | { nombre?: string }[] | null }) => (Array.isArray(r.roles) ? r.roles[0] : r.roles)?.nombre?.toLowerCase() ?? '')
-  const restringidos = ['piloto', 'coordinador']
-  if (nombres.length > 0 && nombres.every(n => restringidos.includes(n))) return null
+  // restringido lo marca la tabla roles: el piloto del parapente es el guía del rafting
+  const marcas: boolean[] = (roles || []).map((r: { roles: { restringido?: boolean } | { restringido?: boolean }[] | null }) =>
+    (Array.isArray(r.roles) ? r.roles[0] : r.roles)?.restringido === true)
+  if (marcas.length > 0 && marcas.every(Boolean)) return null
 
   // supabase con la sesión del usuario: RLS limita todo a su empresa
   return { user: data.user, supabase }

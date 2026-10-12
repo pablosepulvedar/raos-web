@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { May, useJerga } from '@/lib/jerga'
 import { createClient } from '@/lib/supabase-browser'
 
 type PilotoResumen  = { perfil_id: string; nombre: string; vuelos: number; deuda: number; pagado: number }
@@ -19,6 +20,7 @@ const addDays = (s: string, n: number) => { const d = new Date(s+'T12:00:00'); d
 const STEP = 2
 
 export default function Pilotos() {
+  const j = useJerga()
   const sb    = useRef(createClient()).current
   const today = toStr(new Date())
 
@@ -449,7 +451,7 @@ export default function Pilotos() {
 
                     <div className="flex-1 flex flex-col gap-2 pt-1">
                       {pilotos.length === 0 ? (
-                        <p className="text-[#b0cce8] text-sm py-2 italic">Sin vuelos</p>
+                        <p className="text-[#b0cce8] text-sm py-2 italic">Sin {j.actividad_plural}</p>
                       ) : pilotos.map(p => {
                         const key        = `${ds}__${p.perfil_id}`
                         const isExpanded = expandedKey === key
@@ -500,7 +502,7 @@ export default function Pilotos() {
                             {isExpanded && (
                               <div className="rounded-b-2xl p-4" style={{ background:'#f0f6ff', border:'1px solid #b0cce8', borderTop:'none' }}>
                                 <div className="flex items-center justify-between mb-3">
-                                  <p className="text-[#0d2b5c] font-bold text-xs uppercase tracking-wide">Servicios del piloto</p>
+                                  <p className="text-[#0d2b5c] font-bold text-xs uppercase tracking-wide">Servicios del {j.operador}</p>
                                   <span className="text-xs font-bold text-white px-2 py-0.5 rounded-full"
                                     style={{ background: limite ? '#e74c3c' : '#2e6db4' }}>
                                     {usados}/{p.vuelos} vuelos
@@ -567,7 +569,7 @@ export default function Pilotos() {
                                     </div>
                                   </div>
                                 ) : (
-                                  <p className="text-gray-400 text-sm text-center py-3">Agrega servicios para este piloto</p>
+                                  <p className="text-gray-400 text-sm text-center py-3">Agrega servicios para este {j.operador}</p>
                                 )}
 
                                 <button onClick={guardarServicios} disabled={saving}

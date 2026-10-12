@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { May, useJerga, type Jerga } from '@/lib/jerga'
 import { createClient } from '@/lib/supabase-browser'
 
 type Ficha = {
@@ -63,7 +64,7 @@ const saldo = (r: Reserva) => {
   return { neto: bruto - dcto, pagado, resta: bruto - dcto - pagado }
 }
 
-const pasos = (r: Reserva) => {
+const pasos = (r: Reserva, j: Jerga) => {
   const fichas = r.fichas_riesgo
   const firmadas = fichas.filter(f => f.aceptada_at).length
   const pax = r.reservas_personas
@@ -73,13 +74,14 @@ const pasos = (r: Reserva) => {
     { label: 'Fichas', ok: fichas.length > 0 && firmadas === fichas.length },
     { label: 'Pago', ok: neto > 0 && resta <= 0 },
     { label: 'Cámara', ok: pax.length > 0 && pax.every(tieneCamara) },
-    { label: 'Voló', ok: r.volo },
+    { label: May(j.realizado), ok: r.volo },
   ]
 }
 
 const SECCION = 'text-[#1a4a85] text-xs font-bold uppercase tracking-wide mb-2'
 
 export default function DiaDeVuelo() {
+  const j = useJerga()
   const router = useRouter()
   const sb = useRef(createClient()).current
   const [reservas, setReservas] = useState<Reserva[]>([])
@@ -195,7 +197,7 @@ export default function DiaDeVuelo() {
   return (
     <main className="max-w-lg mx-auto pb-28 px-4 pt-4 space-y-3">
       {reservas.map(r => {
-        const etapas = pasos(r)
+        const etapas = pasos(r, j)
         const listas = etapas.filter(e => e.ok).length
         const completa = listas === etapas.length
         const fichas = r.fichas_riesgo
@@ -404,7 +406,7 @@ export default function DiaDeVuelo() {
                     disabled={ocupado === `volo-${r.id}`}
                     className={`flex-1 py-3 rounded-xl font-bold text-sm disabled:opacity-60 ${
                       r.volo ? 'bg-[#9b59b6] text-white' : 'bg-[#0d2b5c] text-white'}`}>
-                    {r.volo ? '🪂 Voló — desmarcar' : '🪂 Marcar como voló'}
+                    {r.volo ? `🪂 ${May(j.realizado)} — desmarcar` : `🪂 Marcar como ${j.realizado}`}
                   </button>
                   <button onClick={() => router.push(`/reserva/${r.id}`)}
                     className="px-4 py-3 rounded-xl bg-gray-100 text-[#2e6db4] font-bold text-xs">

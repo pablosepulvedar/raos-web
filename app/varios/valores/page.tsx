@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
+import { May, useJerga } from '@/lib/jerga'
 import { createClient } from '@/lib/supabase-browser'
 
 const supabase = createClient()
@@ -26,6 +27,7 @@ function Toggle({ value, onChange, label }: { value: boolean; onChange: (v: bool
 }
 
 export default function Valores() {
+  const j = useJerga()
   const [valores, setValores] = useState<Valor[]>([])
   const [servicio, setServicio] = useState('')
   const [monto, setMonto] = useState('')
@@ -98,8 +100,8 @@ export default function Valores() {
   const tipoLabel = (item: Valor) => {
     const partes: string[] = []
     if (item.descuento) partes.push('Descuento')
-    if (item.piloto) partes.push('Piloto')
-    if (item.pasajero) partes.push('Pasajero')
+    if (item.piloto) partes.push(May(j.operador))
+    if (item.pasajero) partes.push(May(j.cliente))
     return partes.join(' · ') || 'Sin tipo'
   }
 
@@ -185,7 +187,7 @@ export default function Valores() {
           </div>
 
           <div className="border border-[#b0cce8] rounded-lg px-3 mb-4 divide-y divide-[#e8f0f7]">
-            <Toggle value={piloto} onChange={setPiloto} label="Aplica a piloto" />
+            <Toggle value={piloto} onChange={setPiloto} label={`Aplica a ${j.operador}`} />
             <Toggle value={pasajero} onChange={setPasajero} label="Aplica a pasajero" />
             <Toggle value={descuento} onChange={setDescuento} label="Es descuento (resta del total)" />
           </div>

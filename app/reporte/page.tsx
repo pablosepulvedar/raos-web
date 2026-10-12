@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
+import { May, useJerga } from '@/lib/jerga'
 import { createClient } from '@/lib/supabase-browser'
 
 type ReservaDetalle = {
@@ -29,6 +30,7 @@ const sectionCls = "bg-white rounded-2xl p-5 shadow-sm"
 const titleCls   = "text-[#0d2b5c] font-bold text-sm uppercase tracking-wide mb-4"
 
 export default function Reporte() {
+  const j = useJerga()
   const sb    = useRef(createClient()).current
   const today = toStr(new Date())
 
@@ -244,7 +246,7 @@ export default function Reporte() {
             <div className="grid grid-cols-3 gap-3">
               {[
                 { label:'Cobrado',  value:totalCobrado, color:'#16a34a', bg:'#f0fff4', border:'#86efac' },
-                { label:'Pilotos',  value:totalPilotos, color:'#7e22ce', bg:'#faf5ff', border:'#d8b4fe' },
+                { label:May(j.operador_plural),  value:totalPilotos, color:'#7e22ce', bg:'#faf5ff', border:'#d8b4fe' },
                 { label:'Balance',  value:balance, color:balance>=0?'#2e6db4':'#dc2626', bg:'#f0f6ff', border:'#b0cce8' },
               ].map(({ label, value, color, bg, border }) => (
                 <div key={label} className="rounded-2xl p-3 text-center" style={{ background:bg, border:`1px solid ${border}` }}>
@@ -420,7 +422,7 @@ export default function Reporte() {
 
                 {/* Encabezado */}
                 <div className="grid grid-cols-5 gap-1 mb-2 px-1">
-                  {['Método','Cobrado','Pilotos','Otros','Neto'].map(h => (
+                  {['Método','Cobrado',May(j.operador_plural),'Otros','Neto'].map(h => (
                     <p key={h} className="text-[10px] font-bold text-gray-400 uppercase text-center">{h}</p>
                   ))}
                 </div>
@@ -469,9 +471,9 @@ export default function Reporte() {
 
             {/* ── Pilotos ── */}
             <div className={sectionCls}>
-              <p className={titleCls}>🪂 Pilotos del día</p>
+              <p className={titleCls}>🪂 {May(j.operador_plural)} del día</p>
               {pilotos.length === 0 ? (
-                <p className="text-gray-400 text-sm text-center py-4">Sin pilotos registrados este día</p>
+                <p className="text-gray-400 text-sm text-center py-4">Sin {j.operador_plural} registrados este día</p>
               ) : (
                 <div className="flex flex-col gap-3">
                   {pilotos.map(p => {
@@ -556,7 +558,7 @@ export default function Reporte() {
                 )}
                 {totalPagadoPilotos > 0 && (
                   <div className="flex justify-between">
-                    <span className="text-white/80 text-sm">Pagado a pilotos</span>
+                    <span className="text-white/80 text-sm">Pagado a {j.operador_plural}</span>
                     <span className="text-red-400 font-bold text-sm">− {fmtCLP(totalPagadoPilotos)}</span>
                   </div>
                 )}

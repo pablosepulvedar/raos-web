@@ -24,6 +24,19 @@ type Empresa = {
   ingresos_30d: number
   fichas_firmadas: number
   fichas_pendientes: number
+  rubro: string
+  rubro_nombre: string
+}
+type Rubro = {
+  codigo: string
+  nombre: string
+  actividad: string
+  actividad_plural: string
+  operador: string
+  operador_plural: string
+  cliente: string
+  cliente_plural: string
+  realizado: string
 }
 type Usuario = {
   id: string
@@ -52,6 +65,7 @@ export default function Admin() {
   const [creandoEmpresa, setCreandoEmpresa] = useState(false)
   const [msg, setMsg] = useState<{ ok: boolean; texto: string } | null>(null)
   const [cargando, setCargando] = useState(false)
+  const [rubros, setRubros] = useState<Rubro[]>([])
 
   const cargarEmpresas = async () => {
     const { data, error } = await supabase.rpc('sa_empresas')
@@ -67,7 +81,10 @@ export default function Admin() {
   useEffect(() => {
     supabase.rpc('es_superadmin').then(({ data }) => {
       setAutorizado(!!data)
-      if (data) cargarEmpresas()
+      if (data) {
+        cargarEmpresas()
+        supabase.from('rubros').select('*').order('orden').then(({ data: r }) => setRubros((r ?? []) as Rubro[]))
+      }
     })
   }, [])
 
@@ -156,11 +173,12 @@ export default function Admin() {
 
         {creandoEmpresa && (
           <NuevaEmpresa
+            rubros={rubros}
             cargando={cargando}
             onCrear={async (d) => {
               const ok = await ejecutar(async () => {
                 const { data: id, error } = await supabase.rpc('sa_guardar_empresa', {
-                  p_id: null, p_slug: d.slug, p_nombre: d.nombre, p_logo_url: d.logo_url, p_color: d.color, p_activa: true,
+                  p_id: null, p_slug: d.slug, p_nombre: d.nombre, p_logo_url: d.logo_url, p_color: d.color, p_activa: true, p_rubro: d.rubro,
                 })
                 if (error) return error.message.includes('duplicate') ? 'Ese slug ya existe' : error.message
                 if (d.email) {
@@ -205,12 +223,13 @@ export default function Admin() {
           <DetalleEmpresa
             key={sel.id}
             empresa={sel}
+            rubros={rubros}
             usuarios={usuarios}
             cargando={cargando}
             onGuardar={async (d) => {
               const ok = await ejecutar(async () => {
                 const { error } = await supabase.rpc('sa_guardar_empresa', {
-                  p_id: sel.id, p_slug: sel.slug, p_nombre: d.nombre, p_logo_url: d.logo_url, p_color: d.color, p_activa: d.activa,
+                  p_id: sel.id, p_slug: sel.slug, p_nombre: d.nombre, p_logo_url: d.logo_url, p_color: d.color, p_activa: d.activa, p_rubro: d.rubro,
                 })
                 if (error) return error.message
               }, 'Empresa actualizada')
@@ -247,10 +266,10 @@ function Logo({ empresa }: { empresa: Pick<Empresa, 'nombre' | 'logo_url' | 'col
   )
 }
 
-type DatosEmpresa = { slug: string; nombre: string; logo_url: string; color: string; adminNombre: string; email: string; password: string }
+type DatosEmpresa = { slug: string; nombre: string; logo_url: string; color: string; rubro: string; adminNombre: string; email: string; password: string }
 
-function NuevaEmpresa({ cargando, onCrear }: { cargando: boolean; onCrear: (d: DatosEmpresa) => void }) {
-  const [d, setD] = useState<DatosEmpresa>({ slug: '', nombre: '', logo_url: '', color: '#2e6db4', adminNombre: '', email: '', password: '' })
+function NuevaEmpresa({ rubros, cargando, onCrear }: { rubros: Rubro[]; cargando: boolean; onCrear: (d: DatosEmpresa) => void }) {
+  const [d, setD] = useState<DatosEmpresa>({ slug: '', nombre: '', logo_url: '', color: '#2e6db4', rubro: 'generico', adminNombre: '', email: '', password: '' })
   const set = (k: keyof DatosEmpresa) => (e: React.ChangeEvent<HTMLInputElement>) => setD({ ...d, [k]: e.target.value })
   const slugValido = /^[a-z0-9-]+$/.test(d.slug)
   const adminIncompleto = !!(d.email || d.password || d.adminNombre) && !(d.email && d.password.length >= 6 && d.adminNombre)
@@ -267,6 +286,8 @@ function NuevaEmpresa({ cargando, onCrear }: { cargando: boolean; onCrear: (d: D
       <input className={input} value={d.slug} onChange={(e) => setD({ ...d, slug: e.target.value.toLowerCase() })} placeholder="almaoutdoor" required />
       {d.slug && !slugValido && <p className="text-xs text-red-600 -mt-2 mb-3">Solo minúsculas, números y guiones</p>}
       {d.slug && slugValido && <p className="text-xs text-gray-500 -mt-2 mb-3">{urlEmpresa(d.slug)}</p>}
+      <label className={label}>Rubro</label>
+      <SelectorRubro rubros={rubros} valor={d.rubro} onChange={(rubro) => setD({ ...d, rubro })} />
       <label className={label}>URL del logo (opcional)</label>
       <input className={input} value={d.logo_url} onChange={set('logo_url')} placeholder="https://..." />
       <label className={label}>Color</label>
@@ -290,18 +311,19 @@ function NuevaEmpresa({ cargando, onCrear }: { cargando: boolean; onCrear: (d: D
   )
 }
 
-function DetalleEmpresa({ empresa, usuarios, cargando, onGuardar, onSoporte, onAdministrar, onCrearUsuario, onPassword, onBloquear }: {
+function DetalleEmpresa({ empresa, rubros, usuarios, cargando, onGuardar, onSoporte, onAdministrar, onCrearUsuario, onPassword, onBloquear }: {
   empresa: Empresa
+  rubros: Rubro[]
   usuarios: Usuario[]
   cargando: boolean
-  onGuardar: (d: { nombre: string; logo_url: string; color: string; activa: boolean }) => void
+  onGuardar: (d: { nombre: string; logo_url: string; color: string; activa: boolean; rubro: string }) => void
   onSoporte: () => void
   onAdministrar: () => void
   onCrearUsuario: (d: { nombre: string; email: string; password: string; roles: string[] }) => Promise<boolean>
   onPassword: (u: Usuario, password: string) => void
   onBloquear: (u: Usuario) => void
 }) {
-  const [d, setD] = useState({ nombre: empresa.nombre, logo_url: empresa.logo_url ?? '', color: empresa.color ?? '#2e6db4', activa: empresa.activa })
+  const [d, setD] = useState({ nombre: empresa.nombre, logo_url: empresa.logo_url ?? '', color: empresa.color ?? '#2e6db4', activa: empresa.activa, rubro: empresa.rubro })
   const [nuevo, setNuevo] = useState({ nombre: '', email: '', password: '', roles: ['Admin'] })
   const [mostrarNuevo, setMostrarNuevo] = useState(false)
   const [cambiando, setCambiando] = useState<Usuario | null>(null)
@@ -325,6 +347,8 @@ function DetalleEmpresa({ empresa, usuarios, cargando, onGuardar, onSoporte, onA
         <h3 className="text-[#1e5a96] font-bold mb-3">Datos</h3>
         <label className={label}>Nombre</label>
         <input className={input} value={d.nombre} onChange={(e) => setD({ ...d, nombre: e.target.value })} required />
+        <label className={label}>Rubro</label>
+        <SelectorRubro rubros={rubros} valor={d.rubro} onChange={(rubro) => setD({ ...d, rubro })} />
         <label className={label}>URL del logo</label>
         <input className={input} value={d.logo_url} onChange={(e) => setD({ ...d, logo_url: e.target.value })} placeholder="https://..." />
         <div className="flex items-center gap-6 mb-4">
@@ -567,5 +591,26 @@ function TokensApi({ empresa }: { empresa: Empresa }) {
         Ver documentación de la API ↗
       </a>
     </div>
+  )
+}
+
+
+// Rubro de la empresa: define la jerga de toda la app, asi que se muestra el previo
+function SelectorRubro({ rubros, valor, onChange }: { rubros: Rubro[]; valor: string; onChange: (codigo: string) => void }) {
+  const r = rubros.find((x) => x.codigo === valor)
+  const May = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
+
+  return (
+    <>
+      <select className={input} value={valor} onChange={(e) => onChange(e.target.value)}>
+        {rubros.map((x) => <option key={x.codigo} value={x.codigo}>{x.nombre}</option>)}
+      </select>
+      {r && (
+        <p className="text-xs text-gray-600 bg-white border border-[#b0cce8] rounded-lg p-3 -mt-1 mb-3">
+          Así hablará la app: <strong>Pagos a {r.operador_plural}</strong> · <strong>Nuevo {r.cliente}</strong> ·
+          <strong> Marcar como {r.realizado}</strong> · <strong>{May(r.actividad_plural)} del día</strong>
+        </p>
+      )}
+    </>
   )
 }

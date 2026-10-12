@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { May, useJerga } from '@/lib/jerga'
 import { createClient } from '@/lib/supabase-browser'
 import DetalleContent from '@/components/reserva/DetalleContent'
 import DiaDeVuelo from '@/components/reserva/DiaDeVuelo'
@@ -24,6 +25,7 @@ const addDays = (s: string, n: number) => { const d = new Date(s+'T12:00:00'); d
 const STEP = 2
 
 export default function Reservas() {
+  const j = useJerga()
   const router = useRouter()
   const today  = toStr(new Date())
   const sb     = useRef(createClient()).current
@@ -399,7 +401,7 @@ export default function Reservas() {
                               onClick={(e) => marcarVolo(r, e)}
                               disabled={marcandoVolo === r.id}
                               className="w-10 flex items-center justify-center border-l border-white/20 shrink-0 disabled:opacity-50 transition-all"
-                              title={r.volo ? 'Desmarcar vuelo' : 'Marcar como voló'}>
+                              title={r.volo ? `Desmarcar ${j.actividad}` : `Marcar como ${j.realizado}`}>
                               <span className="text-base">{marcandoVolo === r.id ? '⏳' : '🪂'}</span>
                             </button>
                           </div>

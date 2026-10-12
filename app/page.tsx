@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { May, useJerga } from '@/lib/jerga'
 import { createClient } from '@/lib/supabase-browser'
 
 const menuItems = [
@@ -87,10 +88,9 @@ const menuItems = [
   },
 ]
 
-const ROLES_RESTRINGIDOS = ['piloto', 'coordinador']
-
 export default function Home() {
   const router = useRouter()
+  const j = useJerga()
   const [userName, setUserName] = useState('Usuario')
   const [esAdmin, setEsAdmin] = useState(true)
   const [esSuper, setEsSuper] = useState(false)
@@ -107,7 +107,7 @@ export default function Home() {
 
         const { data: profile } = await supabase
           .from('perfiles')
-          .select('nombre, es_superadmin, perfil_roles(roles(nombre)), empresas(nombre, logo_url)')
+          .select('nombre, es_superadmin, perfil_roles(roles(nombre, restringido)), empresas(nombre, logo_url)')
           .eq('id', data.user.id)
           .single()
 
@@ -115,12 +115,12 @@ export default function Home() {
         setEmpresa((profile?.empresas as unknown as { nombre: string; logo_url: string | null }) ?? null)
         setUserName(profile?.nombre || data.user.email?.split('@')[0] || 'Usuario')
 
-        const roles: string[] = (profile?.perfil_roles ?? [])
-          .map((pr: any) => pr.roles?.nombre?.toLowerCase() ?? '')
-          .filter(Boolean)
+        // restringido lo marca la tabla roles: no depende de como se llame el rol
+        const restringidos: boolean[] = (profile?.perfil_roles ?? [])
+          .map((pr: any) => pr.roles?.restringido === true)
 
         const soloRolesRestringidos =
-          roles.length > 0 && roles.every(r => ROLES_RESTRINGIDOS.includes(r))
+          restringidos.length > 0 && restringidos.every(Boolean)
         setEsAdmin(!soloRolesRestringidos)
       } catch {
         // Sin acción
@@ -185,7 +185,13 @@ export default function Home() {
         </p>
 
         <div className="flex flex-col gap-3">
-          {menuItems.filter(item => !((item.href === '/usuarios' || (item as any).adminOnly) && !esAdmin) && !((item as any).superOnly && !esSuper)).map((item) => (
+          {menuItems.map((item) =>
+            item.href === '/pilotos'
+              ? { ...item, titulo: May(j.operador_plural), descripcion: `Ver y gestionar pagos de ${j.operador_plural}` }
+              : item.href === '/reporte'
+                ? { ...item, descripcion: `Reporte diario de ingresos, pagos y ${j.operador_plural}` }
+                : item
+          ).filter(item => !((item.href === '/usuarios' || (item as any).adminOnly) && !esAdmin) && !((item as any).superOnly && !esSuper)).map((item) => (
             <Link
               key={item.href}
               href={item.href}

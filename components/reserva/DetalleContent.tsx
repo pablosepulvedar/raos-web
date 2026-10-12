@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { May, useJerga } from '@/lib/jerga'
 import { createClient } from '@/lib/supabase-browser'
 
 type Horario = { id: number; horario: number }
@@ -38,6 +39,7 @@ function SwitchSiNo({ value, onChange, label }: { value: boolean; onChange: (v: 
 interface Props { id: string; onSave?: () => void; onDelete?: () => void }
 
 export default function DetalleContent({ id, onSave, onDelete }: Props) {
+  const j = useJerga()
   const sb = useRef(createClient()).current
 
   const [esAdmin, setEsAdmin]       = useState(false)
@@ -252,7 +254,7 @@ export default function DetalleContent({ id, onSave, onDelete }: Props) {
 
   const guardarPasajero = async () => {
     setPasError(null)
-    if (!pNombre.trim()) return setPasError('El nombre del pasajero es obligatorio')
+    if (!pNombre.trim()) return setPasError(`El nombre del ${j.cliente} es obligatorio`)
     const payload: Record<string,unknown> = {
       nombre:pNombre.trim(), edad:pEdad?parseInt(pEdad,10):null, peso:pPeso?parseInt(pPeso,10):null,
       sin_camara:pCamara==='sin_camara', camara_normal:pCamara==='camara_normal', camara_360:pCamara==='camara_360',
@@ -279,7 +281,7 @@ export default function DetalleContent({ id, onSave, onDelete }: Props) {
   }
 
   const eliminarPasajero = async (pasId: number) => {
-    if (!confirm('¿Seguro que deseas eliminar este pasajero?')) return
+    if (!confirm(`¿Seguro que deseas eliminar este ${j.cliente}?`)) return
     setDeletingPasId(pasId)
     await sb.from('reservas_personas').delete().eq('id', pasId)
     setDeletingPasId(null)
@@ -320,7 +322,7 @@ export default function DetalleContent({ id, onSave, onDelete }: Props) {
             <button
               onClick={toggleVolo}
               disabled={savingVolo}
-              title={volo ? 'Desmarcar vuelo' : 'Marcar como voló'}
+              title={volo ? `Desmarcar ${j.actividad}` : `Marcar como ${j.realizado}`}
               className="w-8 h-8 rounded-xl flex items-center justify-center transition-all disabled:opacity-50"
               style={{ background: volo ? 'rgba(155,89,182,0.2)' : 'rgba(46,109,180,0.1)' }}>
               <span className="text-base">{savingVolo ? '⏳' : '🪂'}</span>
@@ -621,7 +623,7 @@ export default function DetalleContent({ id, onSave, onDelete }: Props) {
         {/* Formulario pasajero */}
         {showPasForm && (
           <div className="rounded-2xl p-4 mb-4" style={{ background:'#f0f6ff', border:'1px solid #b0cce8' }}>
-            <p className="text-[#0d2b5c] font-bold text-sm mb-3">{editingPasId ? 'Editar pasajero' : 'Nuevo pasajero'}</p>
+            <p className="text-[#0d2b5c] font-bold text-sm mb-3">{editingPasId ? `Editar ${j.cliente}` : `Nuevo ${j.cliente}`}</p>
             {pasError && <div className="mb-3 p-3 bg-red-50 border border-red-300 text-red-700 rounded-xl text-sm">{pasError}</div>}
 
             <label className={labelCls}>Nombre *</label>
@@ -657,20 +659,20 @@ export default function DetalleContent({ id, onSave, onDelete }: Props) {
               ))}
             </div>
 
-            <label className={labelCls}>Piloto (opcional)</label>
+            <label className={labelCls}>{May(j.operador)} (opcional)</label>
             <div className="relative mb-3">
               <button type="button" onClick={() => setShowPilotoPk(!showPilotoPk)}
                 className="w-full rounded-xl p-3 text-sm bg-white text-left"
                 style={{ border:'1px solid #b0cce8', color: pPilotoNombre ? '#0d2b5c' : '#7aafd4' }}>
-                {pPilotoNombre || 'Seleccionar piloto...'}
+                {pPilotoNombre || `Seleccionar ${j.operador}...`}
               </button>
               {showPilotoPk && (
                 <div className="absolute z-10 w-full bg-white rounded-xl mt-1 shadow-xl overflow-hidden" style={{ border:'1px solid #b0cce8' }}>
                   <button type="button" onClick={() => { setPPilotoId(null); setPPilotoNombre(''); setShowPilotoPk(false) }}
                     className="w-full text-left px-4 py-3 text-sm text-gray-400 hover:bg-gray-50"
-                    style={{ borderBottom:'1px solid #e8f0fb' }}>Sin piloto</button>
+                    style={{ borderBottom:'1px solid #e8f0fb' }}>Sin {j.operador}</button>
                   {pilotos.length === 0
-                    ? <p className="p-3 text-gray-400 text-sm">No hay pilotos registrados</p>
+                    ? <p className="p-3 text-gray-400 text-sm">No hay {j.operador_plural} registrados</p>
                     : pilotos.map(pl => (
                       <button key={pl.id} type="button"
                         onClick={() => { setPPilotoId(pl.id); setPPilotoNombre(pl.nombre); setShowPilotoPk(false) }}
@@ -705,7 +707,7 @@ export default function DetalleContent({ id, onSave, onDelete }: Props) {
 
         {/* Lista pasajeros */}
         {pasajeros.length === 0
-          ? <div className="text-center py-8 text-gray-400 text-sm">No hay pasajeros registrados</div>
+          ? <div className="text-center py-8 text-gray-400 text-sm">No hay {j.cliente_plural} registrados</div>
           : <div className="flex flex-col gap-3">
               {pasajeros.map(p => {
                 const camaras = [p.sin_camara&&'Sin cámara', p.camara_normal&&'Normal', p.camara_360&&'360°'].filter(Boolean).join(', ')
@@ -721,7 +723,7 @@ export default function DetalleContent({ id, onSave, onDelete }: Props) {
                       </p>
                       {(p.edad||p.peso) && <p className="text-[#2e6db4] text-xs mt-0.5">{[p.edad&&`${p.edad} años`, p.peso&&`${p.peso} kg`].filter(Boolean).join(' · ')}</p>}
                       {camaras && <p className="text-gray-500 text-xs mt-0.5">{camaraEmoji} {camaras}</p>}
-                      <p className={`text-xs mt-0.5 ${pl?'text-[#1a4a85]':'text-gray-400'}`}>🪂 {pl?pl.nombre:'Sin piloto'}</p>
+                      <p className={`text-xs mt-0.5 ${pl?'text-[#1a4a85]':'text-gray-400'}`}>🪂 {pl?pl.nombre:`Sin ${j.operador}`}</p>
                     </div>
                     <div className="flex gap-2 shrink-0">
                       <button onClick={() => openEditPas(p)}
