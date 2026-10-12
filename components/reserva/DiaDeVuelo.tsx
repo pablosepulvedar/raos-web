@@ -259,6 +259,12 @@ export default function DiaDeVuelo() {
                               <span className={`text-sm flex-1 truncate ${f.aceptada_at ? 'text-[#2e9e52] font-semibold' : 'text-gray-600'}`}>
                                 {nombreDe(f, r, i)}
                               </span>
+                              {f.aceptada_at && (
+                                <button onClick={() => router.push(`/fichas/${f.id}`)}
+                                  className="text-xs font-semibold text-[#2e6db4] px-2 py-1 rounded-lg hover:bg-blue-50">
+                                  ver ficha
+                                </button>
+                              )}
                               <button onClick={() => verLog(f.id)}
                                 className="text-xs font-semibold text-gray-400 px-2 py-1 rounded-lg hover:bg-gray-100">
                                 registro
