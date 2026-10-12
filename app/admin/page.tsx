@@ -98,10 +98,11 @@ export default function Admin() {
     if (!res.ok) return ((await res.json()).error as string) || 'Error'
   }
 
-  const entrarSoporte = async (slug: string) => {
+  // destino '/' administra la empresa desde admin.<dominio>; el otro abre su subdominio
+  const entrarSoporte = async (slug: string, destino: 'aqui' | 'subdominio' = 'subdominio') => {
     const { error } = await supabase.rpc('cambiar_empresa', { p_slug: slug })
     if (error) return setMsg({ ok: false, texto: error.message })
-    window.location.href = urlEmpresa(slug)
+    window.location.href = destino === 'aqui' ? '/' : urlEmpresa(slug)
   }
 
   if (autorizado === null) return <div className="p-8 text-center text-gray-500">Cargando...</div>
@@ -215,6 +216,7 @@ export default function Admin() {
               if (ok) { await cargarEmpresas(); setSel({ ...sel, ...d }) }
             }}
             onSoporte={() => entrarSoporte(sel.slug)}
+            onAdministrar={() => entrarSoporte(sel.slug, 'aqui')}
             onCrearUsuario={async (d) => {
               const ok = await ejecutar(() => api('POST', { empresa_id: sel.id, ...d }), `Usuario ${d.email} creado`)
               if (ok) { cargarUsuarios(sel.id); cargarEmpresas() }
@@ -287,12 +289,13 @@ function NuevaEmpresa({ cargando, onCrear }: { cargando: boolean; onCrear: (d: D
   )
 }
 
-function DetalleEmpresa({ empresa, usuarios, cargando, onGuardar, onSoporte, onCrearUsuario, onPassword, onBloquear }: {
+function DetalleEmpresa({ empresa, usuarios, cargando, onGuardar, onSoporte, onAdministrar, onCrearUsuario, onPassword, onBloquear }: {
   empresa: Empresa
   usuarios: Usuario[]
   cargando: boolean
   onGuardar: (d: { nombre: string; logo_url: string; color: string; activa: boolean }) => void
   onSoporte: () => void
+  onAdministrar: () => void
   onCrearUsuario: (d: { nombre: string; email: string; password: string; roles: string[] }) => Promise<boolean>
   onPassword: (u: Usuario, password: string) => void
   onBloquear: (u: Usuario) => void
@@ -311,7 +314,8 @@ function DetalleEmpresa({ empresa, usuarios, cargando, onGuardar, onSoporte, onC
             {urlEmpresa(empresa.slug)}
           </a>
         </div>
-        <button onClick={onSoporte} className={btnSec}>Entrar como soporte →</button>
+        <button onClick={onAdministrar} className={btn}>Administrar esta empresa →</button>
+        <button onClick={onSoporte} className={btnSec}>Abrir en su subdominio ↗</button>
       </div>
 
       {/* Datos */}

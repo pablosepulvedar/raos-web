@@ -23,10 +23,6 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL(esAdmin ? '/admin' : '/', request.url))
   }
 
-  if (hasSession && esAdmin && path === '/') {
-    return NextResponse.redirect(new URL('/admin', request.url))
-  }
-
   return NextResponse.next()
 }
 

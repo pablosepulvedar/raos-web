@@ -94,6 +94,8 @@ export default function Home() {
   const [userName, setUserName] = useState('Usuario')
   const [esAdmin, setEsAdmin] = useState(true)
   const [esSuper, setEsSuper] = useState(false)
+  // en admin.<dominio> el superadmin opera sobre la empresa que eligio en el panel
+  const [enAdmin, setEnAdmin] = useState(false)
   const [empresa, setEmpresa] = useState<{ nombre: string; logo_url: string | null } | null>(null)
 
   useEffect(() => {
@@ -125,6 +127,7 @@ export default function Home() {
       }
     }
 
+    setEnAdmin(window.location.hostname.split('.')[0] === 'admin')
     fetchUser()
   }, [])
 
@@ -136,7 +139,16 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen" style={{ background: 'linear-gradient(160deg, #e8f2ff 0%, #d0e6ff 100%)' }}>
+    <div className="flex-1" style={{ background: 'linear-gradient(160deg, #e8f2ff 0%, #d0e6ff 100%)' }}>
+      {enAdmin && esSuper && (
+        <div className="bg-[#ffd700] text-[#0d2b5c] px-5 py-2 flex items-center gap-3 text-sm">
+          <span className="flex-1">
+            Administrando <b>{empresa?.nombre ?? '...'}</b>
+          </span>
+          <Link href="/admin" className="font-bold underline shrink-0">Panel de empresas</Link>
+        </div>
+      )}
+
       {/* Header */}
       <header style={{ background: 'linear-gradient(135deg, #0d2b5c 0%, #1a4a85 100%)' }} className="pt-10 pb-8 px-6 shadow-lg">
         <div className="max-w-lg mx-auto flex items-center gap-4">
