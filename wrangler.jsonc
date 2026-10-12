@@ -19,6 +19,11 @@
     "demo": {
       "name": "demo",
       "services": [{ "binding": "WORKER_SELF_REFERENCE", "service": "demo" }]
+    },
+    // No es una empresa: es el panel del superadmin sobre todas ellas.
+    "admin": {
+      "name": "admin",
+      "services": [{ "binding": "WORKER_SELF_REFERENCE", "service": "admin" }]
     }
   }
 }

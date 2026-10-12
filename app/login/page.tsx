@@ -26,6 +26,8 @@ export default function Login() {
   const [slug, setSlug] = useState('')
   const [verPrueba, setVerPrueba] = useState(false)
 
+  const esAdmin = slug === 'admin'
+
   useEffect(() => {
     setSlug(slugDelHost())
     createClient()
@@ -77,7 +79,7 @@ export default function Login() {
     }
     setLoading(false)
 
-    router.push('/')
+    router.push(esAdmin ? '/admin' : '/')
     router.refresh()
   }
 
@@ -91,15 +93,17 @@ export default function Login() {
             <img src={empresa.logo_url} alt={`Logo ${empresa.nombre}`} className="w-full h-full object-cover" />
           ) : (
             <div className="w-full h-full bg-white/10 flex items-center justify-center text-[#ffd700] text-6xl font-extrabold">
-              {empresa?.nombre?.[0] ?? ''}
+              {esAdmin ? '🛠️' : empresa?.nombre?.[0] ?? ''}
             </div>
           )}
         </div>
         <h1 className="text-[#ffd700] text-2xl font-extrabold mt-4 tracking-wide uppercase">
-          {empresa?.nombre ?? ''}
+          {esAdmin ? 'Administración' : empresa?.nombre ?? ''}
         </h1>
         <div className="relative flex items-center gap-2 mt-1">
-          <p className="text-[#a8c4e0] text-sm">Sistema de gestión de reservas</p>
+          <p className="text-[#a8c4e0] text-sm">
+            {esAdmin ? 'Panel de empresas' : 'Sistema de gestión de reservas'}
+          </p>
           {slug === 'demo' && (
             <button
               type="button"
@@ -187,7 +191,9 @@ export default function Login() {
         </button>
       </form>
 
-      {empresa && <p className="text-white/20 text-xs mt-8">© {empresa.nombre}</p>}
+      {(empresa || esAdmin) && (
+        <p className="text-white/20 text-xs mt-8">© {esAdmin ? 'Panel de empresas' : empresa?.nombre}</p>
+      )}
     </div>
   )
 }

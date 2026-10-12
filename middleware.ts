@@ -12,12 +12,19 @@ export function middleware(request: NextRequest) {
     (c) => c.name.startsWith('sb-') && c.name.endsWith('-auth-token')
   )
 
+  // admin.<dominio> no es una empresa: entra al panel del superadmin
+  const esAdmin = (request.headers.get('host') ?? '').split('.')[0] === 'admin'
+
   if (!hasSession && !isLoginPage) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
   if (hasSession && isLoginPage) {
-    return NextResponse.redirect(new URL('/', request.url))
+    return NextResponse.redirect(new URL(esAdmin ? '/admin' : '/', request.url))
+  }
+
+  if (hasSession && esAdmin && path === '/') {
+    return NextResponse.redirect(new URL('/admin', request.url))
   }
 
   return NextResponse.next()

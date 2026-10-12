@@ -18,6 +18,11 @@ type Empresa = {
   reservas: number
   reservas_30d: number
   ultimo_login: string | null
+  vuelos_30d: number
+  pasajeros_30d: number
+  ingresos_30d: number
+  fichas_firmadas: number
+  fichas_pendientes: number
 }
 type Usuario = {
   id: string
@@ -31,6 +36,7 @@ type Usuario = {
 const ROLES = ['Admin', 'Piloto', 'Coordinador']
 const urlEmpresa = (slug: string) => (process.env.NEXT_PUBLIC_TENANT_URL ?? '').replace('{slug}', slug)
 const fecha = (f: string | null) => (f ? new Date(f).toLocaleDateString('es-CL') : '—')
+const clp = (v: number) => `$${Number(v).toLocaleString('es-CL')}`
 
 const input = 'w-full border border-[#2e6db4] rounded-lg p-3 mb-3 text-sm bg-white'
 const label = 'block text-[#1e5a96] font-bold text-sm mb-1'
@@ -124,11 +130,13 @@ export default function Admin() {
         )}
 
         {/* Resumen */}
-        <div className="grid grid-cols-3 gap-3 mb-5">
+        <div className="grid grid-cols-3 md:grid-cols-5 gap-3 mb-5">
           {[
             ['Empresas activas', empresas.filter(e => e.activa).length],
             ['Usuarios', empresas.reduce((s, e) => s + Number(e.usuarios), 0)],
             ['Reservas 30 días', empresas.reduce((s, e) => s + Number(e.reservas_30d), 0)],
+            ['Pasajeros 30 días', empresas.reduce((s, e) => s + Number(e.pasajeros_30d), 0)],
+            ['Cobrado 30 días', clp(empresas.reduce((s, e) => s + Number(e.ingresos_30d), 0))],
           ].map(([t, v]) => (
             <div key={t} className="bg-white rounded-xl p-4 shadow-sm text-center">
               <p className="text-2xl font-extrabold text-[#0d2b5c]">{v}</p>
@@ -182,6 +190,9 @@ export default function Admin() {
               <div className="text-right text-xs text-gray-600 shrink-0">
                 <p>{e.usuarios} usuarios</p>
                 <p>{e.reservas} reservas ({e.reservas_30d} en 30 días)</p>
+                <p>{e.vuelos_30d} vuelos y {e.pasajeros_30d} pasajeros en 30 días</p>
+                <p>Cobrado en 30 días: {clp(e.ingresos_30d)}</p>
+                <p>Fichas: {e.fichas_firmadas} firmadas, {e.fichas_pendientes} pendientes</p>
                 <p>Último acceso: {fecha(e.ultimo_login)}</p>
               </div>
             </button>
