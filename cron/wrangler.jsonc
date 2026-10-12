@@ -1,0 +1,14 @@
+{
+  "$schema": "../node_modules/wrangler/config-schema.json",
+  "name": "raos-cron",
+  "main": "index.js",
+  "compatibility_date": "2026-10-01",
+  "triggers": {
+    // Todos los dias a las 12:00 UTC (09:00 en Chile)
+    "crons": ["0 12 * * *"]
+  },
+  "vars": {
+    "SUPABASE_URL": "https://naxdteshucafrelbuupc.supabase.co",
+    "SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5heGR0ZXNodWNhZnJlbGJ1dXBjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwMzY5ODAsImV4cCI6MjA5NDYxMjk4MH0.QiNn0mh7tyRe2zHYtk4XDrhudMEK41XF7sg2DlclkZ0"
+  }
+}
