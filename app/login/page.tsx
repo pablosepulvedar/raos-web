@@ -66,6 +66,14 @@ export default function Login() {
       .eq('id', sesion.user.id)
       .single()
     const suEmpresa = (perfil?.empresas as unknown as { slug: string } | null)?.slug
+
+    // admin.<dominio> es solo del superadmin
+    if (slug === 'admin' && !perfil?.es_superadmin) {
+      await supabase.auth.signOut()
+      setLoading(false)
+      setError('Esta sección es solo para el administrador del sistema')
+      return
+    }
     // Solo si el host es de una empresa (localhost u otro host: sin chequeo, RLS igual aísla)
     if (empresa && suEmpresa !== slug) {
       const cambio = perfil?.es_superadmin
