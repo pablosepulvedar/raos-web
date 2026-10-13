@@ -23,9 +23,11 @@ a { color: inherit }
 .contenedor { max-width: 1060px; margin: 0 auto; padding: 0 24px }
 
 /* marca */
-.marca { display: flex; align-items: center; gap: 11px; font-weight: 800; font-size: 22px; letter-spacing: -.7px }
+/* El wordmark es UNA palabra: reservaps. El gap del flex separaba "reserva" de
+   "ps" como si fueran dos items, por eso el espacio va solo en el logo. */
+.marca { display: flex; align-items: center; font-weight: 800; font-size: 22px; letter-spacing: -.7px }
 .marca span { color: var(--fluor) }
-.marca img { width: 36px; height: 36px }
+.marca img { width: 36px; height: 36px; margin-right: 11px }
 
 /* barra */
 header.barra {
