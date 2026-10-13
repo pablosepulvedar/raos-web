@@ -30,6 +30,7 @@ export default function Login() {
   const esAdmin = slug === 'admin'
   // Cada empresa tiñe su login con su color; el fondo es ese mismo color oscurecido
   const acento = esAdmin ? '#ffd700' : empresa?.color || '#ffd700'
+  const claro = esAdmin ? '#ffd700' : `color-mix(in srgb, ${empresa?.color ?? '#ffd700'} 55%, white)`
   const fondo = esAdmin || !empresa?.color
     ? '#0d2b5c'
     : `color-mix(in srgb, ${empresa.color} 28%, #06121b)`
@@ -103,7 +104,7 @@ export default function Login() {
       {/* Logo */}
       <div className="flex flex-col items-center mb-9">
         <div className="w-40 h-40 rounded-full border-4 overflow-hidden"
-          style={{ borderColor: acento, boxShadow: `0 0 30px ${acento}59` }}>
+          style={{ borderColor: claro, boxShadow: `0 0 30px ${acento}59` }}>
           {empresa?.logo_url ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={empresa.logo_url} alt={`Logo ${empresa.nombre}`} className="w-full h-full object-cover" />
@@ -113,7 +114,7 @@ export default function Login() {
             </div>
           )}
         </div>
-        <h1 className="text-2xl font-extrabold mt-4 tracking-wide uppercase" style={{ color: acento }}>
+        <h1 className="text-2xl font-extrabold mt-4 tracking-wide uppercase" style={{ color: claro }}>
           {esAdmin ? 'Administración' : empresa?.nombre ?? ''}
         </h1>
         <div className="relative flex items-center gap-2 mt-1">
@@ -125,14 +126,16 @@ export default function Login() {
               type="button"
               onClick={() => setVerPrueba((v) => !v)}
               aria-label="Usuarios de prueba"
-              className="w-5 h-5 shrink-0 rounded-full border border-[#ffd700] text-[#ffd700] text-xs font-bold leading-none hover:bg-[#ffd700] hover:text-[#0d2b5c] transition-colors"
+              style={{ borderColor: claro, color: claro }}
+              className="w-5 h-5 shrink-0 rounded-full border text-xs font-bold leading-none hover:opacity-80 transition-opacity"
             >
               ?
             </button>
           )}
           {verPrueba && (
-            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-3 w-72 z-10 rounded-xl border border-[#ffd700]/40 bg-[#0d2b5c] p-4 text-left shadow-xl">
-              <p className="text-[#ffd700] text-xs font-bold uppercase tracking-wider mb-2">Usuarios de prueba</p>
+            <div style={{ background: fondo, borderColor: `${claro}66` }}
+              className="absolute top-full left-1/2 -translate-x-1/2 mt-3 w-72 z-10 rounded-xl border p-4 text-left shadow-xl">
+              <p className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: claro }}>Usuarios de prueba</p>
               <p className="text-[#a8c4e0] text-xs mb-3">Toca uno para entrar con él. Contraseña: <span className="text-white font-mono">123456</span></p>
               {USUARIOS_PRUEBA.map((u) => (
                 <button
