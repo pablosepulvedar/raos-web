@@ -80,7 +80,7 @@ export default function FichaFirmada() {
       </div>
 
       <div className="overflow-x-auto print:overflow-visible">
-      <div className="max-w-[21cm] min-w-[20rem] mx-auto bg-white p-5 sm:p-8 shadow-sm print:shadow-none print:p-0">
+      <div className="max-w-[21cm] min-w-[40rem] mx-auto bg-white p-5 sm:p-8 shadow-sm print:shadow-none print:p-0">
         <div className="flex items-start justify-between border-b-2 border-black pb-2 mb-3">
           <div>
             <h1 className="text-base font-bold uppercase">Ficha de inscripción y aceptación del riesgo</h1>
