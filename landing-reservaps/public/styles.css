@@ -11,9 +11,13 @@
 }
 
 * { box-sizing: border-box }
+/* Nada puede ser mas ancho que la pantalla: si algo se pasa, el navegador del
+   telefono aleja todo el sitio para que quepa y se ve diminuto. */
+img, svg, pre, table { max-width: 100% }
 html { scroll-behavior: smooth }
 body {
   margin: 0;
+  overflow-x: hidden;
   font: 16px/1.65 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   color: var(--text);
   background: #fff;
@@ -72,7 +76,8 @@ section.claro { background: #f5f9f6 }
 .tarjeta .ico svg { width: 23px; height: 23px }
 
 /* jerga */
-.jerga { width: 100%; border-collapse: collapse; margin-top: 36px; font-size: 15px; background: #fff;
+.tabla-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; margin-top: 36px; border-radius: var(--radius) }
+.jerga { width: 100%; min-width: 560px; border-collapse: collapse; font-size: 15px; background: #fff;
          border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden }
 .jerga th, .jerga td { padding: 13px 16px; text-align: left; border-bottom: 1px solid var(--line) }
 .jerga thead th { background: var(--verde); color: #fff; font-size: 13px; text-transform: uppercase; letter-spacing: 1px }
@@ -81,6 +86,7 @@ section.claro { background: #f5f9f6 }
 
 /* codigo */
 pre { background: var(--verde); color: #d5f0df; border-radius: var(--radius); padding: 22px; overflow-x: auto;
+      max-width: 100%;
       font: 13.5px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; margin: 32px 0 0 }
 pre b { color: var(--fluor); font-weight: 600 }
 
@@ -98,7 +104,17 @@ footer { background: var(--verde-2); color: #8fc2a7; padding: 48px 0; font-size:
 footer .contenedor { display: flex; gap: 26px; flex-wrap: wrap; align-items: center; justify-content: space-between }
 footer a { color: #d4f2e0 }
 
-@media (max-width: 640px) {
+@media (max-width: 680px) {
   header.barra nav { display: none }
-  .demo { padding: 28px }
+  header.barra .contenedor { height: 60px }
+  .contenedor { padding: 0 18px }
+  section { padding: 54px 0 }
+  .hero { padding-top: 52px }
+  .hero p.bajada { font-size: 16.5px }
+  .sierra-hero { margin-top: 34px }
+  .demo { padding: 26px; gap: 22px }
+  .grilla { gap: 16px }
+  .tarjeta { padding: 20px }
+  pre { padding: 16px; font-size: 12px }
+  footer .contenedor { gap: 14px }
 }
