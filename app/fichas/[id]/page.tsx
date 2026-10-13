@@ -79,7 +79,8 @@ export default function FichaFirmada() {
         </button>
       </div>
 
-      <div className="max-w-[21cm] mx-auto bg-white p-8 shadow-sm print:shadow-none print:p-0">
+      <div className="overflow-x-auto print:overflow-visible">
+      <div className="max-w-[21cm] min-w-[20rem] mx-auto bg-white p-5 sm:p-8 shadow-sm print:shadow-none print:p-0">
         <div className="flex items-start justify-between border-b-2 border-black pb-2 mb-3">
           <div>
             <h1 className="text-base font-bold uppercase">Ficha de inscripción y aceptación del riesgo</h1>
@@ -133,7 +134,8 @@ export default function FichaFirmada() {
         <div className="grid grid-cols-1 gap-px">
           <Campo label="Previsión">{f.prevision}</Campo>
         </div>
-        <table className="w-full border-collapse text-sm mt-px">
+        <div className="overflow-x-auto print:overflow-visible">
+        <table className="w-full min-w-[30rem] border-collapse text-sm mt-px">
           <tbody>
             {SALUD_ITEMS.map(item => {
               const v = f.salud?.[item.key]
@@ -162,6 +164,7 @@ export default function FichaFirmada() {
             </tr>
           </tbody>
         </table>
+        </div>
 
         <Seccion n={5} titulo="Seguros, fotos y aceptación del riesgo" />
         <p className="text-[10.5px] leading-snug whitespace-pre-line text-black border border-gray-300 p-3">
@@ -207,6 +210,7 @@ export default function FichaFirmada() {
           Reserva de {f.reservas?.nombre} · ficha {f.id}
         </p>
       </div>
+    </div>
     </div>
   )
 }
