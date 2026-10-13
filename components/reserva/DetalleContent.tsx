@@ -74,6 +74,9 @@ export default function DetalleContent({ id, onSave, onDelete }: Props) {
   const [showPagoPk, setShowPagoPk] = useState(false)
   const [selectedPagoMetodoId, setSelectedPagoMetodoId] = useState<number|null>(null)
   const [pagoMonto, setPagoMonto] = useState('')
+  const [linkPago, setLinkPago] = useState<string | null>(null)
+  const [generandoLink, setGenerandoLink] = useState(false)
+  const [errLink, setErrLink] = useState<string | null>(null)
   const [addingPago, setAddingPago] = useState(false)
   const [deletingPagoId, setDeletingPagoId] = useState<number|null>(null)
   const [pagoError, setPagoError] = useState<string|null>(null)
@@ -306,6 +309,21 @@ export default function DetalleContent({ id, onSave, onDelete }: Props) {
   const totalPagado = reservaPagos.reduce((s, p) => s + p.monto, 0)
   const saldoRestante = totalNeto - abonoNum - totalPagado
 
+  // Link de pago de Mercado Pago por el saldo, para mandarlo por WhatsApp
+  const generarLinkPago = async () => {
+    setGenerandoLink(true)
+    setErrLink(null)
+    const res = await fetch('/api/pagos/link', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reserva_id: Number(id) }),
+    })
+    const d = await res.json()
+    setGenerandoLink(false)
+    if (!res.ok) return setErrLink(d.error)
+    setLinkPago(d.url)
+  }
+
   const selectedSrvLabel = selectedSrvId
     ? (() => { const v=valoresServicios.find(v=>v.id===selectedSrvId); return v?`${v.servicio} ${v.descuento?'-':''}${fmtCLP(v.monto)}`:'---' })()
     : 'Agregar servicio o descuento...'
@@ -517,6 +535,34 @@ export default function DetalleContent({ id, onSave, onDelete }: Props) {
           <label className="block text-xs font-bold uppercase tracking-wide mb-2" style={{ color:'#166534' }}>
             Pagos
           </label>
+
+          {saldoRestante > 0 && (
+            <div className="mb-3">
+              {linkPago ? (
+                <div className="flex flex-wrap gap-1.5">
+                  <button onClick={() => navigator.clipboard.writeText(linkPago)}
+                    className="text-xs font-semibold px-3 py-2 rounded-lg" style={{ background:'#16a34a', color:'#fff' }}>
+                    Copiar link de pago
+                  </button>
+                  <a href={`https://wa.me/?text=${encodeURIComponent(`Hola ${nombre}, aquí puedes pagar tu reserva: ${linkPago}`)}`}
+                    target="_blank" rel="noreferrer"
+                    className="text-xs font-semibold px-3 py-2 rounded-lg" style={{ background:'#25d366', color:'#fff' }}>
+                    Enviar por WhatsApp
+                  </a>
+                  <button onClick={() => setLinkPago(null)} className="text-xs px-3 py-2 rounded-lg" style={{ border:'1px solid #86efac', color:'#166534' }}>
+                    Listo
+                  </button>
+                </div>
+              ) : (
+                <button onClick={generarLinkPago} disabled={generandoLink}
+                  className="text-xs font-semibold px-3 py-2 rounded-lg disabled:opacity-60"
+                  style={{ border:'1px solid #16a34a', color:'#166534' }}>
+                  {generandoLink ? 'Generando...' : `🔗 Cobrar ${fmtCLP(saldoRestante)} en línea`}
+                </button>
+              )}
+              {errLink && <p className="text-xs text-red-700 mt-1.5">{errLink}</p>}
+            </div>
+          )}
 
           {/* Chips de pagos registrados */}
           <div className="flex flex-wrap gap-1.5 min-h-7 mb-3">

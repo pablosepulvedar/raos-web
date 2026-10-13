@@ -11,6 +11,9 @@ export function middleware(request: NextRequest) {
   // Su documentación es pública para que el desarrollador del cliente la lea sin cuenta.
   if (path.startsWith('/api/v1/') || path === '/docs/api') return NextResponse.next()
 
+  // Mercado Pago avisa los pagos sin sesión; la empresa sale del subdominio
+  if (path.startsWith('/api/pagos/webhook/')) return NextResponse.next()
+
   // La cookie de sesión de Supabase tiene el formato sb-<project-ref>-auth-token
   const hasSession = request.cookies.getAll().some(
     (c) => c.name.startsWith('sb-') && c.name.endsWith('-auth-token')
@@ -20,6 +23,10 @@ export function middleware(request: NextRequest) {
   const esAdmin = (request.headers.get('host') ?? '').split('.')[0] === 'admin'
 
   if (!hasSession && !isLoginPage) {
+    // A una llamada de API se le responde, no se le redirige: quien la hizo espera JSON
+    if (path.startsWith('/api/')) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+    }
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
