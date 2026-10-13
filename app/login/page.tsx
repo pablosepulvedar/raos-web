@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react'
 import { InputPassword } from '@/components/InputPassword'
 import { createClient } from '@/lib/supabase-browser'
 
-type Empresa = { nombre: string; logo_url: string | null }
+type Empresa = { nombre: string; logo_url: string | null; color: string | null }
 
 // Credenciales visibles del demo (las crea supabase/migrations/20261010120000_usuarios_demo.sql)
 const USUARIOS_PRUEBA = [
@@ -28,6 +28,11 @@ export default function Login() {
   const [verPrueba, setVerPrueba] = useState(false)
 
   const esAdmin = slug === 'admin'
+  // Cada empresa tiñe su login con su color; el fondo es ese mismo color oscurecido
+  const acento = esAdmin ? '#ffd700' : empresa?.color || '#ffd700'
+  const fondo = esAdmin || !empresa?.color
+    ? '#0d2b5c'
+    : `color-mix(in srgb, ${empresa.color} 28%, #06121b)`
 
   useEffect(() => {
     setSlug(slugDelHost())
@@ -93,20 +98,22 @@ export default function Login() {
   }
 
   return (
-    <div className="flex-1 bg-[#0d2b5c] flex flex-col items-center justify-center px-8 py-10">
+    <div className="flex-1 flex flex-col items-center justify-center px-8 py-10"
+      style={{ background: fondo }}>
       {/* Logo */}
       <div className="flex flex-col items-center mb-9">
-        <div className="w-40 h-40 rounded-full border-4 border-[#ffd700] overflow-hidden shadow-[0_0_30px_rgba(255,215,0,0.35)]">
+        <div className="w-40 h-40 rounded-full border-4 overflow-hidden"
+          style={{ borderColor: acento, boxShadow: `0 0 30px ${acento}59` }}>
           {empresa?.logo_url ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={empresa.logo_url} alt={`Logo ${empresa.nombre}`} className="w-full h-full object-cover" />
           ) : (
-            <div className="w-full h-full bg-white/10 flex items-center justify-center text-[#ffd700] text-6xl font-extrabold">
+            <div className="w-full h-full bg-white/10 flex items-center justify-center text-6xl font-extrabold" style={{ color: acento }}>
               {esAdmin ? '🛠️' : empresa?.nombre?.[0] ?? ''}
             </div>
           )}
         </div>
-        <h1 className="text-[#ffd700] text-2xl font-extrabold mt-4 tracking-wide uppercase">
+        <h1 className="text-2xl font-extrabold mt-4 tracking-wide uppercase" style={{ color: acento }}>
           {esAdmin ? 'Administración' : empresa?.nombre ?? ''}
         </h1>
         <div className="relative flex items-center gap-2 mt-1">
@@ -196,7 +203,8 @@ export default function Login() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-[#ffd700] text-[#0d2b5c] font-extrabold text-base py-4 rounded-xl hover:bg-yellow-400 transition-colors disabled:opacity-70"
+          className="w-full font-extrabold text-base py-4 rounded-xl transition-opacity hover:opacity-90 disabled:opacity-70"
+          style={{ background: acento, color: fondo }}
         >
           {loading ? 'Ingresando...' : 'Iniciar sesión'}
         </button>
