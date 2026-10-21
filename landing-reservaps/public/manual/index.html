@@ -443,6 +443,10 @@
     <tr><td><b>Panel de empresas</b></td><td>Solo lo ve el administrador del sistema</td><td>13</td></tr>
   </table>
 
+  <p>Bajo tu nombre, en la cabecera, hay un enlace a <b>Mi cuenta</b> (dice <b>Cambiar de empresa</b>
+  si trabajas en más de una). Ahí están tus empresas, las invitaciones que recibiste y el
+  interruptor para aparecer o no en el banco de guías. Está en el capítulo 8.</p>
+
   <p>Si a alguien le faltan tarjetas, no es un error: es su rol. <b>Usuarios</b> y <b>Cuadre del día</b>
   no aparecen para quien tiene solo roles restringidos, y <b>Panel de empresas</b> solo lo ve el
   administrador del sistema.</p>
@@ -827,6 +831,13 @@
   </video>
   <figcaption>Usuarios y roles</figcaption>
 </figure>
+<figure class="video-web">
+  <video controls preload="metadata" playsinline>
+    <source src="video/clip-cuenta.mp4" type="video/mp4">
+    Tu navegador no puede reproducir este video.
+  </video>
+  <figcaption>Un guia en varias empresas y el banco de guias</figcaption>
+</figure>
 
   <p>Acá se crea la gente que entra al sistema. Solo lo ve quien tenga un rol no restringido (normalmente Admin).</p>
 
@@ -844,23 +855,98 @@
   <h3>Crear un usuario</h3>
   <ol class="pasos">
     <li>Toca <b>+ Agregar</b>.</li>
+    <li>Si la persona <b>ya usa el sistema en otra empresa</b>, búscala primero en el banco de guías
+    (más abajo). Si no, sigue.</li>
     <li>Escribe <b>nombre</b> y <b>correo</b>. El correo es con lo que entra: debe ser real y único.</li>
     <li>Pon una <b>contraseña</b> (mínimo seis caracteres) y confírmala. Se la entregas a la persona para su primer ingreso.</li>
     <li>Elige sus <b>roles</b> de la lista. Puede tener más de uno.</li>
     <li>Guarda. El usuario ya puede entrar por el subdominio de la empresa.</li>
   </ol>
 
+  <div class="ojo">
+    <span class="etiqueta">Si el correo ya existía</span>
+    <p>Puede que esa persona ya tenga cuenta porque vuela para otra empresa. En ese caso el
+    sistema <b>no crea una cuenta nueva</b>: la agrega a la tuya con la contraseña que ya usaba.
+    La que escribiste se ignora, y el aviso te lo dice. Tampoco se le cambia el nombre: el suyo
+    es suyo, no de la empresa.</p>
+  </div>
+
   <h3>Mantención</h3>
   <ul>
     <li><b>Editar</b> cambia nombre, roles y contraseña.</li>
     <li><b>Activar / desactivar</b> deja al usuario sin acceso sin borrar su historial. Es lo recomendado cuando alguien deja de trabajar.</li>
-    <li><b>Eliminar</b> borra el perfil. Si la persona ya aparece en salidas pasadas, prefiere desactivarla.</li>
+    <li><b>Quitar de la empresa</b> le saca los roles acá. Si no trabaja en ninguna otra, su perfil se
+    borra; si trabaja en otra, sigue entrando ahí sin enterarse. Si la persona ya aparece en salidas
+    pasadas, prefiere desactivarla en vez de quitarla.</li>
   </ul>
 
   <div class="ojo">
     <span class="etiqueta">Cuidado con los roles</span>
     <p>Un usuario sin ningún rol ve el panel completo (el sistema solo restringe a quien tiene
     <i>únicamente</i> roles restringidos). Asigna siempre el rol que corresponde.</p>
+  </div>
+
+  <h3>Un guía que vuela para varias empresas</h3>
+
+  <p>Pasa seguido: el mismo guía trabaja para dos o tres operadores. No necesita una cuenta por
+  empresa. Entra siempre con <b>el mismo correo y la misma contraseña</b>, y cada empresa ve
+  solo lo suyo.</p>
+
+  <div class="dos">
+    <figure class="w72">
+      <img src="shots/31-mi-cuenta.png" alt="">
+      <figcaption><b>Mi cuenta:</b> sus invitaciones, dónde trabaja y el interruptor del banco.</figcaption>
+    </figure>
+    <figure class="w72">
+      <img src="shots/33-banco-guias.png" alt="">
+      <figcaption><b>Banco de guías:</b> buscar a alguien que ya usa el sistema.</figcaption>
+    </figure>
+  </div>
+
+  <p>Cada guía llega a esa pantalla desde el enlace <b>Mi cuenta</b> (o <b>Cambiar de empresa</b>,
+  si ya trabaja en varias) que está en la cabecera del menú principal, bajo su nombre. Ahí ve:</p>
+
+  <ul>
+    <li><b>Dónde trabaja</b>, ordenado por la empresa que le asignó un vuelo más recientemente.
+    Cada una abre en su propia dirección.</li>
+    <li><b>Las invitaciones</b> que recibió, para aceptarlas o rechazarlas.</li>
+    <li><b>Disponible para otras empresas</b>, el interruptor del banco de guías.</li>
+  </ul>
+
+  <h3>El banco de guías</h3>
+
+  <p>Un guía puede publicarse para que otras empresas lo encuentren y le ofrezcan trabajo. Viene
+  <b>apagado</b>: el que no lo enciende es invisible, y nadie puede encenderlo por él.</p>
+
+  <p>Del guía publicado, una empresa ve <b>su nombre y su rubro</b>. Nada más. Ni el correo, ni el
+  teléfono, ni para qué empresas vuela hoy. La búsqueda pide al menos tres letras del nombre, así
+  que tampoco sirve para listar a todo el mundo.</p>
+
+  <ol class="pasos">
+    <li>En <b>+ Agregar Usuario</b>, escribe el nombre en el buscador de arriba.</li>
+    <li>Elige los <b>roles</b> que le ofreces, abajo en el formulario.</li>
+    <li>Toca <b>Invitar</b>.</li>
+    <li>Espera. La invitación le aparece en <i>Mi cuenta</i>.</li>
+    <li>Cuando acepta, entra a tu equipo y ya puedes asignarle vuelos.</li>
+  </ol>
+
+  <figure class="w72">
+    <img src="shots/32-invitacion.png" alt="">
+    <figcaption><b>La invitación</b> como la ve el guía, con el nombre de la empresa y los roles que le ofrecen.</figcaption>
+  </figure>
+
+  <div class="ojo">
+    <span class="etiqueta">Invitar no es agregar</span>
+    <p>La invitación por sí sola no mete a nadie en tu equipo: hace falta que el guía la acepte.
+    Mientras no responda, no aparece en tus usuarios ni se le pueden asignar vuelos. Es a propósito:
+    nadie entra a trabajar a una empresa sin enterarse.</p>
+  </div>
+
+  <div class="ojo">
+    <span class="etiqueta">Qué ve cada uno</span>
+    <p>Las empresas de un guía están aisladas entre sí. Si vuela para dos, <b>ninguna de las dos
+    sabe de la otra</b>: no ven sus vuelos, ni sus pagos, ni siquiera que existe esa otra empresa.
+    Y el guía, por su parte, solo ve de cada empresa lo que su rol le permite.</p>
   </div>
 </section>
 

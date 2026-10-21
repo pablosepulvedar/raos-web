@@ -77,14 +77,6 @@ export default function Empresas() {
       </header>
 
       <main className="max-w-lg mx-auto px-5 py-8">
-        <p className="text-xs font-bold text-[#2e6db4] mb-2 tracking-wider uppercase">
-          Donde trabajas
-        </p>
-        <p className="text-sm text-gray-600 mb-5">
-          Primero la que te asignó un vuelo más recientemente. Entras con el mismo
-          correo y la misma contraseña en todas.
-        </p>
-
         {invitaciones.length > 0 && (
           <div className="mb-6">
             <p className="text-xs font-bold text-[#2e6db4] mb-2 tracking-wider uppercase">
@@ -114,6 +106,14 @@ export default function Empresas() {
             ))}
           </div>
         )}
+
+        <p className="text-xs font-bold text-[#2e6db4] mb-2 tracking-wider uppercase">
+          Donde trabajas
+        </p>
+        <p className="text-sm text-gray-600 mb-5">
+          Primero la que te asignó un vuelo más recientemente. Entras con el mismo
+          correo y la misma contraseña en todas.
+        </p>
 
         {empresas === null && <p className="text-gray-500">Cargando…</p>}
         {empresas?.length === 0 && (
