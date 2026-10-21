@@ -10,7 +10,7 @@ raos-web/              <- un solo repo en GitHub
 
 | | landing (esta carpeta) | intranet (raíz del repo) |
 |---|---|---|
-| URL hoy | raos-landing.pablo-sepulveda-retamal.workers.dev | raos.pablo-sepulveda-retamal.workers.dev |
+| URL hoy | raos-landing.pablo-sepulveda-retamal.workers.dev | raos.reservaps.cl |
 | Dominio futuro | `parapenteraos.cl` | un subdominio por empresa |
 | Stack | HTML + CSS, sin build | Next.js 16 + Supabase + OpenNext |
 | Worker | `raos-landing` | `raos-web` (envs `raos`, `demo`) |
@@ -67,7 +67,7 @@ Abrir `public/index.html` en el navegador, o `npx wrangler dev` desde esta carpe
 | **Fotos — autorización** | Son fotos reales (ver abajo), pero en 8 de las 10 sale un pasajero identificable. Confirmar que la autorización de uso de imagen esté cubierta. Si alguna no lo está, reemplazarla por otra del mismo set. |
 | **Testimonios** | Los 3 textos son de EJEMPLO. Reemplazar por reales, con autorización de cada pasajero. |
 | **Cifras** | "+18.000 Aventureros felices" y "4.9/5 · +450 reseñas" vienen del diseño del cliente: confirmar. |
-| **Intranet** | El botón apunta a `https://raos.pablo-sepulveda-retamal.workers.dev`. Cuando esté el dominio, al subdominio de RAOS. |
+| **Intranet** | El botón apunta a `https://raos.reservaps.cl`. Cuando esté el dominio, al subdominio de RAOS. |
 
 ## Fotos
 

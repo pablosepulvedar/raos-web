@@ -1,5 +1,9 @@
 {
   "name": "raos-landing",
   "compatibility_date": "2026-10-01",
-  "assets": { "directory": "./public" }
+  "assets": { "directory": "./public" },
+  // Mientras no exista parapenteraos.cl, esta URL es la unica forma de llegar:
+  // sin declararlo, wrangler la desactiva sola al desplegar y la landing queda
+  // sin direccion. Cuando se compre el dominio, agregar aca sus `routes`.
+  "workers_dev": true
 }

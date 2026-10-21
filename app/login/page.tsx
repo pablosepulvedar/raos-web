@@ -14,7 +14,7 @@ const USUARIOS_PRUEBA = [
   { email: 'demo3@demo.cl', rol: 'Piloto' },
 ]
 
-// raos.reservasps.dev / raos.<cuenta>.workers.dev / raos.localhost -> 'raos'
+// raos.reservaps.cl / raos.localhost -> 'raos'
 const slugDelHost = () => window.location.hostname.split('.')[0]
 
 export default function Login() {
