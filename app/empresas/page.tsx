@@ -72,11 +72,14 @@ export default function Empresas() {
     <div className="min-h-screen bg-[#f8f9fa]">
       <header className="bg-[#0d2b5c] px-5 py-5 flex items-center gap-4">
         <Link href="/" className="text-white text-lg font-semibold hover:opacity-80">← Volver</Link>
-        <h1 className="text-white text-xl font-bold flex-1 text-center">Mis empresas</h1>
+        <h1 className="text-white text-xl font-bold flex-1 text-center">Mi cuenta</h1>
         <div className="w-16" />
       </header>
 
       <main className="max-w-lg mx-auto px-5 py-8">
+        <p className="text-xs font-bold text-[#2e6db4] mb-2 tracking-wider uppercase">
+          Donde trabajas
+        </p>
         <p className="text-sm text-gray-600 mb-5">
           Primero la que te asignó un vuelo más recientemente. Entras con el mismo
           correo y la misma contraseña en todas.

@@ -180,11 +180,11 @@ export default function Home() {
             </p>
             <h1 className="text-white text-xl font-extrabold mt-0.5">Bienvenido</h1>
             <p className="text-[#7aafd4] text-sm">{userName}</p>
-            {variasEmpresas && (
-              <Link href="/empresas" className="text-[#ffd700] text-xs font-semibold hover:opacity-80">
-                Cambiar de empresa →
-              </Link>
-            )}
+            {/* Siempre visible: ahí vive el interruptor del banco de guías, y quien
+                trabaja en una sola empresa también tiene que poder llegar */}
+            <Link href="/empresas" className="text-[#ffd700] text-xs font-semibold hover:opacity-80">
+              {variasEmpresas ? 'Cambiar de empresa →' : 'Mi cuenta →'}
+            </Link>
           </div>
           <button
             onClick={signOut}
