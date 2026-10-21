@@ -1,7 +1,13 @@
 import { NextResponse, type NextRequest } from 'next/server'
+import { hostConocido } from '@/lib/hosts'
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname
+
+  // Un subdominio que no es de nadie no merece ejecutar la aplicación
+  if (!(await hostConocido(request.headers.get('host') ?? ''))) {
+    return new NextResponse('No existe', { status: 404 })
+  }
   const isLoginPage = path === '/login'
 
   // La ficha de riesgo la abre el pasajero sin sesión, con su token
