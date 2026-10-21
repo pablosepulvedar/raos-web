@@ -12,7 +12,9 @@
     "db:pull": "dotenv -e .env -- npx supabase db pull",
     "db:status": "dotenv -e .env -- npx supabase migration list",
     "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
-    "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy"
+    "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
+    "db:clone": "node scripts/clonar-produccion.mjs",
+    "db:reset": "npx supabase db reset"
   },
   "dependencies": {
     "@base-ui/react": "^1.5.0",
