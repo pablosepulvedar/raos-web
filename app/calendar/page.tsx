@@ -14,7 +14,9 @@ type Pasajero = {
 type EventoCalendario = {
   googleId: string; titulo: string; fecha: string
   horaStr: string|null; nombre: string; cantidad: number
-  abono: number|null; pasajeros: Pasajero[]
+  telefono: string|null; abono: number|null; pasajeros: Pasajero[]
+  // El título no calzó con la plantilla de la empresa: conviene mirarlo antes de importar
+  dudoso: boolean
 }
 
 const fmtCLP = (v: number) => `$${Number(v).toLocaleString('es-CL')}`
@@ -34,15 +36,14 @@ export default function CalendarPage() {
   const [importando, setImportando] = useState<string|null>(null)
   const [importados, setImportados] = useState<Set<string>>(new Set())
   const [msg, setMsg] = useState<{id:string; type:'ok'|'err'; text:string}|null>(null)
+  const [noConectado, setNoConectado] = useState(false)
 
   const buscar = async () => {
-    setLoading(true); setError(null); setEventos([])
+    setLoading(true); setError(null); setEventos([]); setNoConectado(false)
     const res = await fetch(`/api/calendar/events?fecha=${fecha}`)
-    if (res.status === 401) {
-      window.location.href = '/api/auth/google'
-      return
-    }
     const data = await res.json()
+    // 409: la empresa todavía no conectó su cuenta, o Google le quitó el permiso
+    if (data.error === 'no_conectado') { setNoConectado(true); setLoading(false); return }
     if (data.error) { setError(data.error); setLoading(false); return }
     setEventos(data.eventos)
 
@@ -102,7 +103,7 @@ export default function CalendarPage() {
           horario_id: horarioId,
           cantidad: ev.cantidad,
           abono: ev.abono,
-          telefono: null,
+          telefono: ev.telefono,
           google_event_id: ev.googleId,
         })
         .select('id').single()
@@ -165,6 +166,18 @@ export default function CalendarPage() {
           <div className="bg-red-50 border border-red-300 text-red-700 rounded-xl p-4 text-sm">{error}</div>
         )}
 
+        {noConectado && (
+          <div className="bg-white border border-[#d4e6f5] rounded-2xl p-5 text-sm">
+            <p className="text-[#0d2b5c] font-bold mb-1">Falta conectar tu calendario</p>
+            <p className="text-gray-600 mb-3">
+              Conecta tu cuenta de Google una sola vez y elige cómo están escritos tus eventos.
+            </p>
+            <Link href="/varios/calendar" className="inline-block bg-[#1e5a96] text-white font-semibold px-4 py-2.5 rounded-xl hover:bg-[#174a82]">
+              Ir a la configuración
+            </Link>
+          </div>
+        )}
+
         {/* Lista de eventos */}
         {eventos.length === 0 && !loading && (
           <p className="text-center text-gray-400 text-sm py-8">Selecciona una fecha y haz click en Buscar.</p>
@@ -181,8 +194,14 @@ export default function CalendarPage() {
                   <p className="text-[#0d2b5c] font-bold text-base">{ev.nombre}</p>
                   <p className="text-gray-500 text-xs mt-0.5">
                     {ev.horaStr && `⏰ ${ev.horaStr} · `}👥 {ev.cantidad} persona{ev.cantidad !== 1 ? 's' : ''}
+                    {ev.telefono && ` · 📱 ${ev.telefono}`}
                     {ev.abono && ` · 💰 Abono ${fmtCLP(ev.abono)}`}
                   </p>
+                  {ev.dudoso && (
+                    <p className="text-yellow-700 text-xs mt-1">
+                      ⚠️ El título no calza con tu formato: revisa el nombre antes de importar.
+                    </p>
+                  )}
                 </div>
                 <button
                   onClick={() => importar(ev)}
