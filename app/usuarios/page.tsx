@@ -305,7 +305,10 @@ export default function Usuarios() {
             />
             {candidatos?.length === 0 && (
               <p className="text-xs text-gray-500 mt-2">
-                Nadie con ese nombre está disponible. Créalo abajo.
+                Nadie con ese nombre está disponible en el banco. Si <b>sabes su correo</b>,
+                créalo abajo con ese correo: si ya tiene cuenta, se vincula sola y entra con
+                su contraseña de siempre. Si no, pídele que entre a <b>Mi cuenta</b> y marque
+                &ldquo;Disponible para otras empresas&rdquo;.
               </p>
             )}
             {candidatos?.map(c => (
