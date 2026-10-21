@@ -437,7 +437,7 @@
     <tr><td><b>Usuarios</b></td><td>Crear gente, asignar roles, activar o desactivar</td><td>8</td></tr>
     <tr><td><b>Reservas</b></td><td>La agenda y la pestaña del día de operación</td><td>4 y 5</td></tr>
     <tr><td><b>Guías</b></td><td>Lo que hizo cada guía y lo que se le debe</td><td>7</td></tr>
-    <tr><td><b>Varios</b></td><td>Horarios, valores, roles, métodos de pago y cobro en línea</td><td>9</td></tr>
+    <tr><td><b>Varios</b></td><td>Horarios, valores, roles, métodos de pago, cobro en línea, Google Calendar y quién hizo qué</td><td>9</td></tr>
     <tr><td><b>Importar Calendar</b></td><td>Traer reservas desde Google Calendar</td><td>11</td></tr>
     <tr><td><b>Cuadre del día</b></td><td>El resumen financiero de la jornada</td><td>10</td></tr>
     <tr><td><b>Panel de empresas</b></td><td>Solo lo ve el administrador del sistema</td><td>13</td></tr>
@@ -960,13 +960,20 @@
   </video>
   <figcaption>Varios: la configuracion de la empresa</figcaption>
 </figure>
+<figure class="video-web">
+  <video controls preload="metadata" playsinline>
+    <source src="video/clip-bitacora.mp4" type="video/mp4">
+    Tu navegador no puede reproducir este video.
+  </video>
+  <figcaption>Quien hizo que: el registro de cada cambio</figcaption>
+</figure>
 
   <p>Todo lo que el sistema usa como lista desplegable se configura acá. Vale la pena dejarlo listo
   el primer día: después casi no se toca.</p>
 
   <figure class="w72">
     <img src="shots/14-varios.png" alt="">
-    <figcaption><b>Varios.</b> Las cinco configuraciones.</figcaption>
+    <figcaption><b>Varios.</b> La configuración de la empresa.</figcaption>
   </figure>
 
   <h3>9.1 Horarios</h3>
@@ -1033,6 +1040,42 @@
     <p>El cobro en línea está implementado de punta a punta, pero <b>todavía no se ha probado con credenciales
     reales de Mercado Pago</b>. Antes de usarlo con clientes, haz una prueba con credenciales de prueba y
     verifica que el pago aparezca registrado en la reserva.</p>
+  </div>
+
+  <h3>9.6 Quién hizo qué</h3>
+
+  <p>El sistema anota solo cada cosa que se crea, se cambia o se borra, con el nombre de quién lo
+  hizo y a qué hora. Sirve para la pregunta incómoda de siempre: <i>¿quién le cambió la cantidad a
+  esta reserva?</i>, <i>¿quién registró este pago que no cuadra?</i></p>
+
+  <figure class="w72">
+    <img src="shots/34-bitacora.png" alt="">
+    <figcaption><b>Quién hizo qué.</b> Cada línea dice quién, qué y cuándo; al tocarla se abre
+    el detalle de lo que cambió.</figcaption>
+  </figure>
+
+  <p>Se filtra por persona y por fecha. Al tocar una línea de cambio se ve campo por campo
+  <b>el valor anterior y el nuevo</b>: en el ejemplo, el abono pasó de vacío a $30.000 y la
+  cantidad de 3 a 4 pasajeros.</p>
+
+  <p>Queda registro de las reservas, los pagos, los servicios, los pasajeros, los pagos a guías,
+  los gastos, las fichas y los <b>cambios de rol</b>. Esto último responde un caso que aparece
+  seguido: a un guía lo dejan de coordinador un par de semanas y después vuelve a su rol. Sus
+  permisos cambian de inmediato, pero queda anotado desde cuándo y hasta cuándo tuvo cada rol, y
+  todo lo que hizo en ese tiempo.</p>
+
+  <div class="ojo">
+    <span class="etiqueta">Quién puede verlo</span>
+    <p>Solo quien administra la empresa, normalmente el rol <b>Admin</b>. Un guía o un coordinador
+    no ven esta pantalla ni sus datos. Y lo que entra por la API de integración o por el aviso de
+    pago de Mercado Pago aparece como <b>El sistema</b>, porque ahí no hay una persona detrás.</p>
+  </div>
+
+  <div class="ojo">
+    <span class="etiqueta">No se puede editar ni apagar</span>
+    <p>El registro lo escribe la base de datos, no las pantallas, así que no hay forma de hacer un
+    cambio que no quede anotado. Nadie —tampoco el administrador— puede borrar una línea desde el
+    sistema.</p>
   </div>
 </section>
 
