@@ -1,14 +1,19 @@
 import { createServerClient } from '@supabase/ssr'
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
-import { cookies } from 'next/headers'
+import { cookies, headers } from 'next/headers'
+import { slugDelHost } from './empresa-host'
 
 export async function createClient() {
   const cookieStore = await cookies()
+  // La misma cabecera que manda el navegador, para que el servidor hable de la
+  // misma empresa que la pantalla
+  const empresa = slugDelHost((await headers()).get('host'))
 
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      ...(empresa ? { global: { headers: { 'x-empresa': empresa } } } : {}),
       cookies: {
         getAll() {
           return cookieStore.getAll()

@@ -21,7 +21,7 @@ begin
 end $$;
 
 do $$
-declare n int; ok boolean;
+declare n int; ok boolean; reserva_raos bigint; perfil_joel uuid;
 begin
   -- RAOS ve sus datos, no los de DEMO
   perform pg_temp.como('joel@raos.cl');
@@ -63,10 +63,16 @@ begin
   assert ok, 'cambiar_empresa deberia fallar sin superadmin';
   reset role;
 
-  -- DEMO no ve nada de RAOS
+  -- DEMO no ve nada de RAOS. Se compara contra una reserva concreta de RAOS y no
+  -- contra "cero reservas": con datos reales, DEMO tiene las suyas.
+  reset role;
+  select r.id into reserva_raos from public.reservas r
+    join public.empresas e on e.id = r.empresa_id where e.slug = 'raos' limit 1;
   perform pg_temp.como('test-demo@local');
+  select count(*) into n from public.reservas where id = reserva_raos;
+  assert n = 0, 'DEMO no deberia ver una reserva de RAOS';
   select count(*) into n from public.reservas;
-  assert n = 0, 'DEMO no deberia ver reservas de RAOS';
+  assert n > 0, 'DEMO deberia ver las suyas';
   select count(*) into n from public.valores;
   assert n > 0, 'DEMO deberia ver sus valores';
   reset role;
@@ -80,11 +86,11 @@ begin
   -- superadmin cambia de empresa y vuelve
   perform pg_temp.como('pablo.sepulveda.retamal@gmail.com');
   perform public.cambiar_empresa('demo');
-  select count(*) into n from public.reservas;
-  assert n = 0, 'superadmin en DEMO no deberia ver reservas de RAOS';
+  select count(*) into n from public.reservas where id = reserva_raos;
+  assert n = 0, 'superadmin en DEMO no deberia ver una reserva de RAOS';
   perform public.cambiar_empresa('raos');
-  select count(*) into n from public.reservas;
-  assert n > 0, 'superadmin de vuelta en RAOS';
+  select count(*) into n from public.reservas where id = reserva_raos;
+  assert n = 1, 'superadmin de vuelta en RAOS';
   reset role;
 
   -- panel: solo superadmin
@@ -126,11 +132,11 @@ begin
 
   -- Ahora si puede cambiarse, porque pertenece
   perform public.cambiar_empresa('demo');
-  select count(*) into n from public.reservas;
-  assert n = 0, 'Joel en DEMO no deberia ver reservas de RAOS';
+  select count(*) into n from public.reservas where id = reserva_raos;
+  assert n = 0, 'Joel en DEMO no deberia ver una reserva de RAOS';
   perform public.cambiar_empresa('raos');
-  select count(*) into n from public.reservas;
-  assert n > 0, 'Joel de vuelta en RAOS';
+  select count(*) into n from public.reservas where id = reserva_raos;
+  assert n = 1, 'Joel de vuelta en RAOS';
 
   -- Pero no a una donde no tiene roles
   ok := false;
@@ -142,12 +148,13 @@ begin
   reset role;
 
   -- Las dos empresas lo ven con nombre, ninguna ve la otra mitad
+  -- auth.users no se puede leer como `authenticated`: el id se busca antes
+  reset role;
+  select u.id into perfil_joel from auth.users u where u.email = 'joel@raos.cl';
   perform pg_temp.como('test-demo@local');
-  select count(*) into n from public.perfiles p join auth.users u on u.id = p.id
-    where u.email = 'joel@raos.cl';
+  select count(*) into n from public.perfiles p where p.id = perfil_joel;
   assert n = 1, 'DEMO deberia ver a su piloto prestado';
-  select count(*) into n from public.perfil_sesion
-    where perfil_id = (select id from auth.users where email = 'joel@raos.cl');
+  select count(*) into n from public.perfil_sesion where perfil_id = perfil_joel;
   assert n = 0, 'nadie deberia ver en que empresa anda otro';
   reset role;
 
