@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { InputPassword } from '@/components/InputPassword'
+import Cargando from '@/components/Cargando'
 
 type Config = { configurado: boolean; activo: boolean; public_key: string; token_termina_en: string | null }
 
@@ -68,6 +69,10 @@ export default function Pagos() {
       </header>
 
       <main className="max-w-lg mx-auto px-5 py-8">
+        {/* Hasta saber si ya está conectada, el formulario diría "Conectar" aunque
+            la empresa ya tenga su cuenta puesta */}
+        {cfg === null && <Cargando />}
+        {cfg !== null && <>
         <div className="bg-white border border-[#d4e6f5] rounded-xl p-5 mb-5">
           <p className="text-[#0d2b5c] font-bold mb-1">Mercado Pago</p>
           <p className="text-sm text-gray-600">
@@ -117,6 +122,7 @@ export default function Pagos() {
             )}
           </div>
         </form>
+        </>}
       </main>
     </div>
   )

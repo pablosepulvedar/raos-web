@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase-browser'
+import Cargando from '@/components/Cargando'
 
 type Invitacion = {
   id: number
@@ -115,7 +116,7 @@ export default function Empresas() {
           correo y la misma contraseña en todas.
         </p>
 
-        {empresas === null && <p className="text-gray-500">Cargando…</p>}
+        {empresas === null && <Cargando />}
         {empresas?.length === 0 && (
           <p className="text-gray-500">No perteneces a ninguna empresa todavía.</p>
         )}

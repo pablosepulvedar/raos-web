@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 import { May, useJerga } from '@/lib/jerga'
 import { createClient } from '@/lib/supabase-browser'
+import Cargando from '@/components/Cargando'
 
 type ReservaDetalle = {
   id: number; nombre: string; cantidad: number; abono: number | null
@@ -35,7 +36,8 @@ export default function Reporte() {
   const today = toStr(new Date())
 
   const [fecha, setFecha]   = useState(today)
-  const [loading, setLoading] = useState(false)
+  // Arranca encendido: si no, la primera pintura dice 'Sin reservas este día'
+  const [loading, setLoading] = useState(true)
 
   const [reservas, setReservas]               = useState<ReservaDetalle[]>([])
   const [pilotos, setPilotos]                 = useState<PilotoVuelo[]>([])
@@ -236,10 +238,7 @@ export default function Reporte() {
 
       <div className="max-w-lg mx-auto px-4 py-5 flex flex-col gap-4">
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-24 gap-3">
-            <div className="w-8 h-8 rounded-full border-[3px] border-[#2e6db4] border-t-transparent animate-spin" />
-            <p className="text-[#2e6db4] text-sm">Cargando...</p>
-          </div>
+          <Cargando />
         ) : (
           <>
             {/* ── Resumen rápido ── */}

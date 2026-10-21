@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { May, useJerga } from '@/lib/jerga'
 import { createClient } from '@/lib/supabase-browser'
+import Cargando from '@/components/Cargando'
 
 const menuItems = [
   {
@@ -99,6 +100,9 @@ export default function Home() {
   const [empresa, setEmpresa] = useState<{ nombre: string; logo_url: string | null } | null>(null)
   // Solo se ofrece cambiar de empresa a quien trabaja en más de una
   const [variasEmpresas, setVariasEmpresas] = useState(false)
+  // Las tarjetas dependen del rol: mostrarlas antes de saberlo hace que aparezcan
+  // y desaparezcan solas
+  const [cargando, setCargando] = useState(true)
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -136,6 +140,8 @@ export default function Home() {
         setEsAdmin(!soloRolesRestringidos)
       } catch {
         // Sin acción
+      } finally {
+        setCargando(false)
       }
     }
 
@@ -201,8 +207,10 @@ export default function Home() {
           Menú principal
         </p>
 
+        {cargando && <Cargando />}
+
         <div className="flex flex-col gap-3">
-          {menuItems.map((item) =>
+          {!cargando && menuItems.map((item) =>
             item.href === '/pilotos'
               ? { ...item, titulo: May(j.operador_plural), descripcion: `Ver y gestionar pagos de ${j.operador_plural}` }
               : item.href === '/reporte'

@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase-browser'
+import Cargando from '@/components/Cargando'
 
 const supabase = createClient()
 
@@ -37,6 +38,7 @@ export default function Usuarios() {
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
+  const [cargando, setCargando] = useState(true)
 
   useEffect(() => {
     fetchUsuarios()
@@ -63,6 +65,7 @@ export default function Usuarios() {
     const perfiles = (perfilesRes.data || []) as Usuario[]
     const merged = perfiles.map(p => ({ ...p, email: authEmails[p.id] || p.email || '' }))
     setUsuarios(merged)
+    setCargando(false)
   }
 
   const getRoleNames = (usuario: Usuario) =>
@@ -490,7 +493,9 @@ export default function Usuarios() {
             </div>
           ))}
 
-          {usuarios.length === 0 && (
+          {cargando && <Cargando />}
+
+          {!cargando && usuarios.length === 0 && (
             <div className="text-center py-12 text-gray-400">
               <p className="text-3xl mb-2">👥</p>
               <p className="text-sm">No hay usuarios registrados</p>

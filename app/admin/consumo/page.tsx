@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
+import Cargando from '@/components/Cargando'
 
 type Parte = { nombre: string; requests: number }
 type Cloudflare = {
@@ -78,7 +79,7 @@ export default function Consumo() {
       </header>
 
       <main className="max-w-3xl mx-auto px-5 py-8">
-        {cargando && <p className="text-gray-500">Consultando…</p>}
+        {cargando && <Cargando texto="Consultando…" />}
 
         {cf && !cf.ok && (
           <div className={caja}>

@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useCallback, useEffect, useState } from 'react'
 import { useJerga } from '@/lib/jerga'
+import Cargando from '@/components/Cargando'
 
 type Plantilla = { id: string; nombre: string; ejemplo: string; patron: string }
 type Calendario = { id: string; nombre: string; principal: boolean }
@@ -224,7 +225,7 @@ export default function CalendarConfig() {
               <div className="mt-4">
                 <p className="text-[#0d2b5c] font-bold text-sm mb-2">Así se leen tus eventos</p>
                 {errorPrevio && <p className="text-sm text-red-700">{errorPrevio}</p>}
-                {!errorPrevio && previo === null && <p className="text-sm text-gray-500">Leyendo tu calendario…</p>}
+                {!errorPrevio && previo === null && <Cargando texto="Leyendo tu calendario…" />}
                 {previo?.length === 0 && (
                   <p className="text-sm text-gray-500">No hay eventos en los próximos días para mostrar.</p>
                 )}

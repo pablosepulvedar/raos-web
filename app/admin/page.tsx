@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { InputPassword } from '@/components/InputPassword'
 import { createClient } from '@/lib/supabase-browser'
+import Cargando from '@/components/Cargando'
 
 const supabase = createClient()
 
@@ -65,10 +66,13 @@ export default function Admin() {
   const [creandoEmpresa, setCreandoEmpresa] = useState(false)
   const [msg, setMsg] = useState<{ ok: boolean; texto: string } | null>(null)
   const [cargando, setCargando] = useState(false)
+  // La primera carga: sin esto el panel aparece vacío y se llena de golpe
+  const [cargandoEmpresas, setCargandoEmpresas] = useState(true)
   const [rubros, setRubros] = useState<Rubro[]>([])
 
   const cargarEmpresas = async () => {
     const { data, error } = await supabase.rpc('sa_empresas')
+    setCargandoEmpresas(false)
     if (error) return setMsg({ ok: false, texto: error.message })
     setEmpresas(data as Empresa[])
   }
@@ -192,6 +196,7 @@ export default function Admin() {
         )}
 
         {/* Lista de empresas */}
+        {cargandoEmpresas && <Cargando />}
         <div className="space-y-3 mb-6">
           {empresas.map((e) => (
             <button
