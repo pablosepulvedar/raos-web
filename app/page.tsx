@@ -97,6 +97,8 @@ export default function Home() {
   // en admin.<dominio> el superadmin opera sobre la empresa que eligio en el panel
   const [enAdmin, setEnAdmin] = useState(false)
   const [empresa, setEmpresa] = useState<{ nombre: string; logo_url: string | null } | null>(null)
+  // Solo se ofrece cambiar de empresa a quien trabaja en más de una
+  const [variasEmpresas, setVariasEmpresas] = useState(false)
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -107,12 +109,22 @@ export default function Home() {
 
         const { data: profile } = await supabase
           .from('perfiles')
-          .select('nombre, es_superadmin, perfil_roles(roles(nombre, restringido)), empresas(nombre, logo_url)')
+          .select('nombre, es_superadmin, perfil_roles(roles(nombre, restringido))')
           .eq('id', data.user.id)
           .single()
 
+        // El perfil ya no cuelga de una empresa: la de turno la da el RLS, que
+        // deja ver una sola fila en `empresas`.
+        const { data: suEmpresa } = await supabase
+          .from('empresas')
+          .select('nombre, logo_url')
+          .maybeSingle()
+
         setEsSuper(!!profile?.es_superadmin)
-        setEmpresa((profile?.empresas as unknown as { nombre: string; logo_url: string | null }) ?? null)
+        setEmpresa(suEmpresa ?? null)
+
+        const { data: mias } = await supabase.rpc('mis_empresas')
+        setVariasEmpresas((mias?.length ?? 0) > 1)
         setUserName(profile?.nombre || data.user.email?.split('@')[0] || 'Usuario')
 
         // restringido lo marca la tabla roles: no depende de como se llame el rol
@@ -168,6 +180,11 @@ export default function Home() {
             </p>
             <h1 className="text-white text-xl font-extrabold mt-0.5">Bienvenido</h1>
             <p className="text-[#7aafd4] text-sm">{userName}</p>
+            {variasEmpresas && (
+              <Link href="/empresas" className="text-[#ffd700] text-xs font-semibold hover:opacity-80">
+                Cambiar de empresa →
+              </Link>
+            )}
           </div>
           <button
             onClick={signOut}

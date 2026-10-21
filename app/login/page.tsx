@@ -64,14 +64,12 @@ export default function Login() {
       return
     }
 
-    // El usuario debe pertenecer a la empresa del subdominio (superadmin se cambia a ella)
     const slug = slugDelHost()
     const { data: perfil } = await supabase
       .from('perfiles')
-      .select('es_superadmin, empresas(slug)')
+      .select('es_superadmin')
       .eq('id', sesion.user.id)
       .single()
-    const suEmpresa = (perfil?.empresas as unknown as { slug: string } | null)?.slug
 
     // admin.<dominio> es solo del superadmin
     if (slug === 'admin' && !perfil?.es_superadmin) {
@@ -80,12 +78,13 @@ export default function Login() {
       setError('Esta sección es solo para el administrador del sistema')
       return
     }
-    // Solo si el host es de una empresa (localhost u otro host: sin chequeo, RLS igual aísla)
-    if (empresa && suEmpresa !== slug) {
-      const cambio = perfil?.es_superadmin
-        ? await supabase.rpc('cambiar_empresa', { p_slug: slug })
-        : { error: true }
-      if (cambio.error) {
+
+    // El subdominio manda: entrar a esa empresa. cambiar_empresa falla si no
+    // pertenece, así que la comprobación de pertenencia es la misma llamada.
+    // (localhost u otro host sin empresa: sin chequeo, el RLS aísla igual)
+    if (empresa) {
+      const { error: sinAcceso } = await supabase.rpc('cambiar_empresa', { p_slug: slug })
+      if (sinAcceso) {
         await supabase.auth.signOut()
         setLoading(false)
         setError('Este usuario no pertenece a esta empresa')

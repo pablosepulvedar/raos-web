@@ -2,10 +2,16 @@
 -- Uso: docker exec -i supabase_db_raos-web psql -U postgres -v ON_ERROR_STOP=1 < supabase/tests/multiempresa_test.sql
 begin;
 
--- usuario de prueba en DEMO
+-- usuario de prueba en DEMO. Pertenecer a una empresa es tener roles en ella:
+-- perfiles ya no guarda empresa_id.
 insert into auth.users (id, email) values ('00000000-0000-0000-0000-00000000d3e0', 'test-demo@local');
-insert into public.perfiles (id, nombre, empresa_id)
-  values ('00000000-0000-0000-0000-00000000d3e0', 'Test Demo', (select id from public.empresas where slug = 'demo'));
+insert into public.perfiles (id, nombre) values ('00000000-0000-0000-0000-00000000d3e0', 'Test Demo');
+insert into public.perfil_roles (perfil_id, rol_id, empresa_id)
+  select '00000000-0000-0000-0000-00000000d3e0', r.id, e.id
+    from public.roles r join public.empresas e on e.id = r.empresa_id
+   where e.slug = 'demo' and r.nombre = 'Admin';
+insert into public.perfil_sesion (perfil_id, empresa_id)
+  values ('00000000-0000-0000-0000-00000000d3e0', (select id from public.empresas where slug = 'demo'));
 
 create function pg_temp.como(email text) returns void language plpgsql as $$
 begin
@@ -104,6 +110,45 @@ begin
   perform pg_temp.como('test-demo@local');
   select count(*) into n from public.valores;
   assert n = 0, 'empresa inactiva no deberia ver datos';
+  reset role;
+
+  -- ── Un usuario en dos empresas ──────────────────────────────────────────
+  update public.empresas set activa = true where slug = 'demo';
+  -- Joel, piloto de RAOS, pasa a volar tambien para DEMO
+  insert into public.perfil_roles (perfil_id, rol_id, empresa_id)
+    select (select id from auth.users where email = 'joel@raos.cl'), r.id, e.id
+      from public.roles r join public.empresas e on e.id = r.empresa_id
+     where e.slug = 'demo' and r.nombre = 'Piloto';
+
+  perform pg_temp.como('joel@raos.cl');
+  select count(*) into n from public.mis_empresas();
+  assert n = 2, 'Joel deberia ver sus dos empresas';
+
+  -- Ahora si puede cambiarse, porque pertenece
+  perform public.cambiar_empresa('demo');
+  select count(*) into n from public.reservas;
+  assert n = 0, 'Joel en DEMO no deberia ver reservas de RAOS';
+  perform public.cambiar_empresa('raos');
+  select count(*) into n from public.reservas;
+  assert n > 0, 'Joel de vuelta en RAOS';
+
+  -- Pero no a una donde no tiene roles
+  ok := false;
+  begin
+    perform public.cambiar_empresa('test-emp');
+  exception when others then ok := true;
+  end;
+  assert ok, 'no deberia entrar donde no pertenece';
+  reset role;
+
+  -- Las dos empresas lo ven con nombre, ninguna ve la otra mitad
+  perform pg_temp.como('test-demo@local');
+  select count(*) into n from public.perfiles p join auth.users u on u.id = p.id
+    where u.email = 'joel@raos.cl';
+  assert n = 1, 'DEMO deberia ver a su piloto prestado';
+  select count(*) into n from public.perfil_sesion
+    where perfil_id = (select id from auth.users where email = 'joel@raos.cl');
+  assert n = 0, 'nadie deberia ver en que empresa anda otro';
   reset role;
 
   raise notice 'multiempresa: OK';

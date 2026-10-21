@@ -153,12 +153,14 @@ export default function Usuarios() {
     await fetchUsuarios()
   }
 
+  // Quitarlo de esta empresa, no del sistema: puede estar trabajando en otra.
+  // Si no le queda ninguna, el perfil se borra (lo decide desvincular_perfil).
   const eliminarUsuario = async (usuario: Usuario) => {
-    if (!confirm(`¿Estás seguro de que deseas eliminar a ${usuario.nombre}?`)) return
+    if (!confirm(`¿Quitar a ${usuario.nombre} de esta empresa?`)) return
     setDeletingId(usuario.id)
     try {
-      await supabase.from('perfil_roles').delete().eq('perfil_id', usuario.id)
-      await supabase.from('perfiles').delete().eq('id', usuario.id)
+      const { error } = await supabase.rpc('desvincular_perfil', { p_user: usuario.id })
+      if (error) { setError(error.message); return }
       if (editingId === usuario.id) resetForm()
       await fetchUsuarios()
     } finally {
@@ -214,7 +216,9 @@ export default function Usuarios() {
       if (!res.ok) throw new Error(created.error || 'No se pudo crear el usuario')
 
       await syncPerfilRoles(created.id, selectedRoles.map((r) => r.id))
-      setSuccess('Usuario creado correctamente')
+      setSuccess(created.vinculado
+        ? 'Esa persona ya tenía cuenta: se agregó a esta empresa con su contraseña de siempre'
+        : 'Usuario creado correctamente')
       resetForm()
       await fetchUsuarios()
     } catch (err: unknown) {

@@ -4,6 +4,7 @@ export const MANUAL = 'https://reservaps.cl/manual/'
 
 // Se busca el prefijo más largo que calce, así /varios/calendar gana sobre /varios.
 const CAPITULOS: Array<[string, string]> = [
+  ['/empresas', 'cap-2'],
   ['/varios/calendar', 'cap-11'],
   ['/varios', 'cap-9'],
   ['/calendar', 'cap-11'],

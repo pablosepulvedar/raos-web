@@ -22,6 +22,8 @@ assert.equal(cap('/calendar'), 'cap-11')
 assert.equal(cap('/admin'), 'cap-13')
 assert.equal(cap('/admin/consumo'), 'cap-13')
 
+assert.equal(cap('/empresas'), 'cap-2')
+
 // Una ruta desconocida va al índice, no a un capítulo equivocado
 assert.equal(cap('/algo-nuevo'), '(indice)')
 
