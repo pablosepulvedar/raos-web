@@ -7,6 +7,7 @@ const menuItems = [
   { href: '/varios/metodos_pago', icon: '💳', label: 'Métodos de pago', desc: 'Formas de pago disponibles' },
   { href: '/varios/pagos', icon: '🔗', label: 'Cobro en línea', desc: 'Conecta Mercado Pago y manda links de pago' },
   { href: '/varios/calendar', icon: '📅', label: 'Google Calendar', desc: 'Conecta tu calendario y define cómo se leen tus eventos' },
+  { href: '/varios/bitacora', icon: '🧾', label: 'Quién hizo qué', desc: 'Quién creó, cambió o borró cada cosa' },
 ]
 
 export default function Varios() {

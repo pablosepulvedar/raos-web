@@ -6,6 +6,7 @@ export const MANUAL = 'https://reservaps.cl/manual/'
 const CAPITULOS: Array<[string, string]> = [
   ['/empresas', 'cap-2'],
   ['/varios/calendar', 'cap-11'],
+  ['/varios/bitacora', 'cap-9'],
   ['/varios', 'cap-9'],
   ['/calendar', 'cap-11'],
   ['/reservas', 'cap-4'],
