@@ -137,7 +137,7 @@ export default function Admin() {
       <header className="bg-[#0d2b5c] px-5 py-5 flex items-center gap-4">
         <Link href="/" className="text-white text-lg font-semibold hover:opacity-80">← Volver</Link>
         <h1 className="text-white text-xl font-bold flex-1 text-center">🛠️ Panel de empresas</h1>
-        <div className="w-16" />
+        <Link href="/admin/consumo" className="text-white text-sm font-semibold hover:opacity-80 w-16 text-right">📊 Consumo</Link>
       </header>
 
       <div className="max-w-3xl mx-auto px-5 py-5">
