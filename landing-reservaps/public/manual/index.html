@@ -170,6 +170,16 @@
     background: var(--fluor); color: #0b3326; border: 2px solid var(--fluor);
   }
   .btn-web.borde { background: transparent; color: #fff; border-color: #ffffff55; }
+  /* Los clips: solo en pantalla, el PDF se genera aparte desde manual.html */
+  .video-web { margin: 22px 0 28px; }
+  .video-web video {
+    width: 100%; display: block; border-radius: 12px; background: #04402e;
+    box-shadow: 0 6px 20px #0b332622;
+  }
+  .video-web figcaption {
+    font-family: "Segoe UI", Arial, sans-serif; font-size: 14px;
+    color: #4a5a53; margin-top: 8px; text-align: center;
+  }
   .barra-web {
     position: sticky; top: 0; z-index: 10; background: var(--verde);
     display: flex; align-items: center; justify-content: space-between; gap: 16px;
@@ -406,6 +416,13 @@
 <!-- ══════════════════ 3 ══════════════════ -->
 <section>
   <h2 id="cap-3"><span class="num">Capítulo 3</span>Menú principal</h2>
+<figure class="video-web">
+  <video controls preload="metadata" playsinline>
+    <source src="video/clip-menu.mp4" type="video/mp4">
+    Tu navegador no puede reproducir este video.
+  </video>
+  <figcaption>Recorrido por el menu principal</figcaption>
+</figure>
 
   <p>Es la pantalla que aparece al entrar. Arriba, el logo y el nombre de la empresa, tu nombre y el botón de salir.
   Abajo, una tarjeta por cada parte del sistema.</p>
@@ -441,6 +458,20 @@
 <!-- ══════════════════ 4 ══════════════════ -->
 <section>
   <h2 id="cap-4"><span class="num">Capítulo 4</span>Reservas</h2>
+<figure class="video-web">
+  <video controls preload="metadata" playsinline>
+    <source src="video/clip-reservas.mp4" type="video/mp4">
+    Tu navegador no puede reproducir este video.
+  </video>
+  <figcaption>Crear una reserva</figcaption>
+</figure>
+<figure class="video-web">
+  <video controls preload="metadata" playsinline>
+    <source src="video/clip-detalle.mp4" type="video/mp4">
+    Tu navegador no puede reproducir este video.
+  </video>
+  <figcaption>El detalle de la reserva: pagos, fichas y WhatsApp</figcaption>
+</figure>
 
   <p>Es el corazón del sistema. Tiene dos pestañas: <b>Agenda</b>, que es el listado por días,
   y <b>Hoy</b>, que es el paso a paso de la jornada (capítulo 5).</p>
@@ -564,6 +595,13 @@
 <!-- ══════════════════ 5 ══════════════════ -->
 <section>
   <h2 id="cap-5"><span class="num">Capítulo 5</span>El día de la operación</h2>
+<figure class="video-web">
+  <video controls preload="metadata" playsinline>
+    <source src="video/clip-hoy.mp4" type="video/mp4">
+    Tu navegador no puede reproducir este video.
+  </video>
+  <figcaption>La pestana Hoy, paso a paso del dia</figcaption>
+</figure>
 
   <p>La pestaña <b>Hoy</b> es la pantalla para usar en terreno. Muestra solo las salidas de hoy, ordenadas por hora,
   y para cada una los <b>cinco pasos</b> que hay que completar antes de cerrarla.</p>
@@ -635,6 +673,13 @@
 <!-- ══════════════════ 6 ══════════════════ -->
 <section>
   <h2 id="cap-6"><span class="num">Capítulo 6</span>Ficha de aceptación de riesgo</h2>
+<figure class="video-web">
+  <video controls preload="metadata" playsinline>
+    <source src="video/clip-ficha.mp4" type="video/mp4">
+    Tu navegador no puede reproducir este video.
+  </video>
+  <figcaption>La ficha de aceptacion de riesgo, del envio a la firma</figcaption>
+</figure>
 
   <p>Es la ficha de inscripción y aceptación del riesgo que antes se firmaba en papel. Ahora la llena el propio
   cliente desde su teléfono, con un link personal, y queda guardada con evidencia de quién la firmó, cuándo y desde dónde.</p>
@@ -721,6 +766,13 @@
 <!-- ══════════════════ 7 ══════════════════ -->
 <section>
   <h2 id="cap-7"><span class="num">Capítulo 7</span>Pagos a los guías</h2>
+<figure class="video-web">
+  <video controls preload="metadata" playsinline>
+    <source src="video/clip-guias.mp4" type="video/mp4">
+    Tu navegador no puede reproducir este video.
+  </video>
+  <figcaption>Pagos a los guias</figcaption>
+</figure>
 
   <p>La tarjeta <b>Guías</b> del menú responde dos preguntas por día: qué hizo cada guía y cuánto se le debe.</p>
 
@@ -768,6 +820,13 @@
 <!-- ══════════════════ 8 ══════════════════ -->
 <section>
   <h2 id="cap-8"><span class="num">Capítulo 8</span>Usuarios y roles</h2>
+<figure class="video-web">
+  <video controls preload="metadata" playsinline>
+    <source src="video/clip-usuarios.mp4" type="video/mp4">
+    Tu navegador no puede reproducir este video.
+  </video>
+  <figcaption>Usuarios y roles</figcaption>
+</figure>
 
   <p>Acá se crea la gente que entra al sistema. Solo lo ve quien tenga un rol no restringido (normalmente Admin).</p>
 
@@ -808,6 +867,13 @@
 <!-- ══════════════════ 9 ══════════════════ -->
 <section>
   <h2 id="cap-9"><span class="num">Capítulo 9</span>Varios: la configuración</h2>
+<figure class="video-web">
+  <video controls preload="metadata" playsinline>
+    <source src="video/clip-varios.mp4" type="video/mp4">
+    Tu navegador no puede reproducir este video.
+  </video>
+  <figcaption>Varios: la configuracion de la empresa</figcaption>
+</figure>
 
   <p>Todo lo que el sistema usa como lista desplegable se configura acá. Vale la pena dejarlo listo
   el primer día: después casi no se toca.</p>
@@ -887,6 +953,13 @@
 <!-- ══════════════════ 10 ══════════════════ -->
 <section>
   <h2 id="cap-10"><span class="num">Capítulo 10</span>Cuadre del día</h2>
+<figure class="video-web">
+  <video controls preload="metadata" playsinline>
+    <source src="video/clip-cuadre.mp4" type="video/mp4">
+    Tu navegador no puede reproducir este video.
+  </video>
+  <figcaption>Cuadre del dia</figcaption>
+</figure>
 
   <p>El resumen financiero de una jornada, pensado para cerrar la caja. Solo lo ve quien tenga rol no restringido.
   Arriba se cambia de día con las flechas o se vuelve a hoy con el botón <b>Hoy</b>.</p>
@@ -970,6 +1043,13 @@
 <!-- ══════════════════ 12 ══════════════════ -->
 <section>
   <h2 id="cap-12"><span class="num">Capítulo 12</span>API de integración</h2>
+<figure class="video-web">
+  <video controls preload="metadata" playsinline>
+    <source src="video/clip-api.mp4" type="video/mp4">
+    Tu navegador no puede reproducir este video.
+  </video>
+  <figcaption>La API de integracion</figcaption>
+</figure>
 
   <p>Permite que la página web de la empresa <b>cree la reserva sola</b> cuando un cliente compra y paga en línea:
   la reserva aparece en la agenda, con su pago registrado, y los links de ficha vuelven listos para mandárselos
