@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist } from "next/font/google";
 import "./globals.css";
 import DemoBanner from "@/components/DemoBanner";
+import PieManual from "@/components/PieManual";
 
 const geist = Geist({
   variable: "--font-geist-sans",
@@ -23,6 +24,7 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col bg-[#f0f4f8]">
         <DemoBanner />
         {children}
+        <PieManual />
       </body>
     </html>
   );
