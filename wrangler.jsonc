@@ -9,21 +9,12 @@
     "binding": "ASSETS"
   },
   "services": [{ "binding": "WORKER_SELF_REFERENCE", "service": "raos-web" }],
-  // Un worker por empresa mientras no haya dominio propio: <nombre>.<cuenta>.workers.dev
-  // ponytail: con dominio propio se reemplaza por un comodín *.dominio y un solo worker
-  "env": {
-    "raos": {
-      "name": "raos",
-      "services": [{ "binding": "WORKER_SELF_REFERENCE", "service": "raos" }]
-    },
-    "demo": {
-      "name": "demo",
-      "services": [{ "binding": "WORKER_SELF_REFERENCE", "service": "demo" }]
-    },
-    // No es una empresa: es el panel del superadmin sobre todas ellas.
-    "admin": {
-      "name": "admin",
-      "services": [{ "binding": "WORKER_SELF_REFERENCE", "service": "admin" }]
-    }
-  }
+  // Un solo worker para todas las empresas: el subdominio no cambia el código, la
+  // empresa sale de la sesión (mi_empresa_id). Una empresa nueva queda viva con solo
+  // crear su fila en `empresas`, sin deploy.
+  //   raos.reservaps.cl, demo.reservaps.cl, admin.reservaps.cl, <nueva>.reservaps.cl
+  // La raíz y www NO entran acá: las sirve el worker reservaps-landing.
+  "routes": [
+    { "pattern": "*.reservaps.cl/*", "zone_name": "reservaps.cl" }
+  ]
 }

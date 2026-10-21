@@ -23,6 +23,83 @@ Todo vive como **Environment secrets** en GitHub: Settings → Environments → 
 - `SUPABASE_DB_PASSWORD` — password de Postgres de producción (Supabase → Connect → Direct connection → Reset password si no se recuerda). Distinta de `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
 - `VERCEL_DEPLOY_HOOK_URL` — Vercel → Settings → Git → Deploy Hooks (branch `master`).
 
+## Dominio y workers
+
+`reservaps.cl` está registrado en **NIC Chile** (Cloudflare Registrar no vende `.cl`) y
+delegado a los nameservers de Cloudflare. En la zona hay dos registros `A` a `192.0.2.1`,
+los dos **proxied**: `@` y `*`. Esa IP es de documentación (RFC 5737) y no existe: el
+tráfico lo intercepta Cloudflare antes y lo entrega al worker que corresponda.
+
+| Host | Worker | Carpeta |
+|---|---|---|
+| `reservaps.cl`, `www.reservaps.cl` | `reservaps-landing` | `landing-reservaps/` |
+| `*.reservaps.cl` | `raos-web` (la app) | raíz |
+| `parapenteraos.cl` (pendiente de comprar) | `raos-landing` | `landing/` |
+
+La app es **un solo worker para todas las empresas**: el subdominio no cambia el código,
+la empresa sale de la sesión (`mi_empresa_id`). Una empresa nueva queda viva con solo
+crear su fila en `empresas`, sin deploy ni env nuevo. El patrón más específico gana, por
+eso la raíz y `www` quedan en la landing aunque exista el comodín.
+
+Todo se despliega desde `.github/workflows/workers.yml` con un push a `deploy-cloudflare`.
+Cloudflare Builds quedó de más: desconectarlo para no desplegar dos veces.
+
+## Panel de consumo (superadmin)
+
+`/admin/consumo` muestra cuánto gasta la infraestructura: requests por día contra el
+tramo gratis de Workers (100.000/día), desglose por worker y por subdominio, y el peso
+de la base contra los 500 MB de Supabase.
+
+Los datos salen de la GraphQL Analytics API de Cloudflare, no de los workers: abrir la
+página cuesta un request, no uno por cada visita medida. Nada se guarda en la base.
+
+Hace falta un token de Cloudflare de **solo lectura** (Mi perfil → API Tokens → Create
+Token → Custom) con `Account · Account Analytics · Read` y `Zone · Analytics · Read`:
+
+```bash
+npx wrangler secret put CLOUDFLARE_ANALYTICS_TOKEN
+# ACCOUNT_ID y ZONE_ID ya están cargados; se ven en el Overview de la zona
+```
+
+Dos límites de la API, por si algo sale raro: la zona no acepta rangos de más de 4
+semanas y 2 días (por eso la ventana es de 28 días), y los datos son muestreados, así
+que son estimaciones, no un contador exacto.
+
+Lo de "por empresa" cuenta visitas al subdominio, incluidos archivos estáticos; lo de
+"por sistema" cuenta invocaciones de worker, que es lo que se factura. Por eso los dos
+números no calzan, y está dicho en la pantalla.
+
+## Google Calendar (una sola app de Google para todas las empresas)
+
+La aplicación de Google es de Reservaps: ninguna empresa crea nada en Google Cloud,
+solo aprieta "Conectar" en Varios > Google Calendar y autoriza la lectura. Lo que se
+guarda por empresa es su `refresh_token`, en la tabla `calendar_conexiones`.
+
+Preparación, una sola vez:
+
+1. console.cloud.google.com → proyecto nuevo → APIs y servicios → habilitar **Google Calendar API**.
+2. Pantalla de consentimiento: externa, con el logo y el dominio de Reservaps.
+   Alcances: `calendar.readonly` y `email`.
+3. Credenciales → ID de cliente OAuth → Aplicación web. Como **URI de redirección
+   autorizado** va **una sola**: `https://auth.reservaps.cl/api/auth/google/callback`.
+   Google exige la URI exacta y no acepta comodines, así que la vuelta llega siempre
+   a ese host; qué empresa autorizó y a qué subdominio devolverla viajan firmados en
+   el `state` (`lib/oauth-estado.ts`). Una empresa nueva no necesita tocar nada acá.
+4. Secretos del worker (uno solo, ya no hay envs):
+
+```bash
+npx wrangler secret put GOOGLE_CLIENT_ID
+npx wrangler secret put GOOGLE_CLIENT_SECRET
+npx wrangler secret put GOOGLE_REDIRECT_URI   # https://auth.reservaps.cl/api/auth/google/callback
+```
+
+Sin esos secretos la pantalla avisa que la conexión no está habilitada y el resto de la
+app funciona igual.
+
+`calendar.readonly` es un alcance sensible para Google: mientras la app esté en modo de
+prueba solo pueden conectarse las cuentas agregadas como usuarios de prueba (hasta 100).
+Para abrirla a cualquiera hay que pasar la verificación de Google.
+
 ## Migraciones locales
 
 ```bash

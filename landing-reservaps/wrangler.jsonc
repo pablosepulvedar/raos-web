@@ -1,5 +1,11 @@
 {
   "name": "reservaps-landing",
   "compatibility_date": "2026-10-01",
-  "assets": { "directory": "./public" }
+  "assets": { "directory": "./public" },
+  // La web del producto y el manual. Gana sobre el comodín de la app por ser
+  // un patrón más específico.
+  "routes": [
+    { "pattern": "reservaps.cl/*", "zone_name": "reservaps.cl" },
+    { "pattern": "www.reservaps.cl/*", "zone_name": "reservaps.cl" }
+  ]
 }

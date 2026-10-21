@@ -11,6 +11,10 @@ export function middleware(request: NextRequest) {
   // Su documentación es pública para que el desarrollador del cliente la lea sin cuenta.
   if (path.startsWith('/api/v1/') || path === '/docs/api') return NextResponse.next()
 
+  // La vuelta de Google llega a un host fijo y sin cookie de sesión: la empresa
+  // viene en el state firmado (lib/google-calendar.ts)
+  if (path === '/api/auth/google/callback') return NextResponse.next()
+
   // Mercado Pago avisa los pagos sin sesión; la empresa sale del subdominio
   if (path.startsWith('/api/pagos/webhook/')) return NextResponse.next()
 

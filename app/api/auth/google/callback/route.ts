@@ -1,30 +1,42 @@
-import { google } from 'googleapis'
 import { NextRequest, NextResponse } from 'next/server'
+import { createAdminClient } from '@/lib/supabase-server'
+import { canjearCodigo, correoDeLaCuenta, listarCalendarios } from '@/lib/google-calendar'
+import { leerEstado } from '@/lib/oauth-estado'
 
-const oauth2Client = new google.auth.OAuth2(
-  process.env.GOOGLE_CLIENT_ID,
-  process.env.GOOGLE_CLIENT_SECRET,
-  process.env.GOOGLE_REDIRECT_URI
-)
-
+// Vuelta de Google. Llega al host fijo de GOOGLE_REDIRECT_URI, no al subdominio de
+// la empresa, así que acá no hay sesión: la empresa sale del state firmado y el
+// usuario se devuelve a su propio subdominio.
 export async function GET(req: NextRequest) {
+  const estado = await leerEstado(req.nextUrl.searchParams.get('state'))
+  // Sin state válido no se sabe a dónde devolver: se responde en el mismo host
+  const volver = (params: string) =>
+    NextResponse.redirect(new URL(`/varios/calendar${params}`, estado?.o ?? req.nextUrl.origin))
+
+  if (!estado) return volver('?error=state')
+  if (req.nextUrl.searchParams.get('error')) return volver('?error=cancelado')
   const code = req.nextUrl.searchParams.get('code')
-  if (!code) return NextResponse.redirect(new URL('/calendar', req.url))
+  if (!code) return volver('?error=sin_codigo')
 
-  const { tokens } = await oauth2Client.getToken(code)
+  try {
+    const tokens = await canjearCodigo(code)
+    if (!tokens.refresh_token) return volver('?error=sin_refresh')
 
-  const res = NextResponse.redirect(new URL('/calendar', req.url))
+    const correo = await correoDeLaCuenta(tokens.access_token)
+    const calendarios = await listarCalendarios(tokens.access_token)
+    const principal = calendarios.find(c => c.principal) ?? calendarios[0]
 
-  res.cookies.set('g_access_token', tokens.access_token ?? '', {
-    httpOnly: true, secure: process.env.NODE_ENV === 'production',
-    maxAge: 3600, path: '/'
-  })
-  if (tokens.refresh_token) {
-    res.cookies.set('g_refresh_token', tokens.refresh_token, {
-      httpOnly: true, secure: process.env.NODE_ENV === 'production',
-      maxAge: 60 * 60 * 24 * 30, path: '/'
+    const { error } = await createAdminClient().from('calendar_conexiones').upsert({
+      empresa_id: estado.e,
+      refresh_token: tokens.refresh_token,
+      cuenta_email: correo,
+      calendario_id: principal?.id ?? 'primary',
+      calendario_nombre: principal?.nombre ?? null,
+      actualizado_at: new Date().toISOString(),
     })
+    if (error) return volver('?error=guardar')
+  } catch {
+    return volver('?error=google')
   }
 
-  return res
+  return volver('?conectado=1')
 }

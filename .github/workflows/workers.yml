@@ -1,0 +1,68 @@
+name: Desplegar workers de mano
+
+# Despliega las landings y el cron segun que carpeta cambio.
+# La app (worker raos-web, comodin *.reservaps.cl) la despliega Cloudflare Builds
+# con `npx opennextjs-cloudflare deploy`: no agregarla aca o se despliega dos veces.
+
+on:
+  push:
+    branches: [deploy-cloudflare]
+  workflow_dispatch:
+
+env:
+  CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+  CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+jobs:
+  cambios:
+    runs-on: ubuntu-latest
+    outputs:
+      reservaps: ${{ steps.filtro.outputs.reservaps }}
+      landing: ${{ steps.filtro.outputs.landing }}
+      cron: ${{ steps.filtro.outputs.cron }}
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+
+      - id: filtro
+        run: |
+          base='${{ github.event.before }}'
+          # workflow_dispatch, rama nueva o push forzado: desplegar todo.
+          if [ -z "$base" ] || [ "$base" = "0000000000000000000000000000000000000000" ] \
+             || ! git cat-file -e "$base^{commit}" 2>/dev/null; then
+            tocado=$(git ls-files)
+          else
+            tocado=$(git diff --name-only "$base" ${{ github.sha }})
+          fi
+          echo "$tocado"
+          hay() { echo "$tocado" | grep -qE "$1"; }
+          hay '^landing-reservaps/' && echo "reservaps=true" >> $GITHUB_OUTPUT || true
+          hay '^landing/'           && echo "landing=true"   >> $GITHUB_OUTPUT || true
+          hay '^cron/'              && echo "cron=true"      >> $GITHUB_OUTPUT || true
+
+  reservaps-landing:
+    needs: cambios
+    if: needs.cambios.outputs.reservaps == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: npx wrangler@4 deploy
+        working-directory: landing-reservaps
+
+  raos-landing:
+    needs: cambios
+    if: needs.cambios.outputs.landing == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: npx wrangler@4 deploy
+        working-directory: landing
+
+  raos-cron:
+    needs: cambios
+    if: needs.cambios.outputs.cron == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: npx wrangler@4 deploy --config cron/wrangler.jsonc
+
