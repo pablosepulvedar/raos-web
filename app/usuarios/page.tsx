@@ -31,6 +31,9 @@ export default function Usuarios() {
   const [busqueda, setBusqueda] = useState('')
   const [candidatos, setCandidatos] = useState<Candidato[] | null>(null)
   const [invitando, setInvitando] = useState<string | null>(null)
+  // Si el correo ya tiene cuenta, no se crea nada: se vincula. Avisarlo antes de
+  // guardar evita que el administrador invente una contraseña que se va a ignorar.
+  const [correoExiste, setCorreoExiste] = useState(false)
   const [showRolePicker, setShowRolePicker] = useState(false)
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const formRef = useRef<HTMLDivElement>(null)
@@ -179,8 +182,9 @@ export default function Usuarios() {
   const guardarUsuario = async () => {
     setError(null)
     if (!nombre.trim()) return setError('Ingresa el nombre')
-    if (!editingId && (!email.trim() || !password.trim())) return setError('Completa email y contraseña')
-    if (!editingId || password.trim()) {
+    if (!editingId && !email.trim()) return setError('Ingresa el correo')
+    if (!editingId && !correoExiste && !password.trim()) return setError('Completa email y contraseña')
+    if ((!editingId && !correoExiste) || password.trim()) {
       if (!confirmPassword.trim()) return setError('Confirma la contraseña')
       if (password !== confirmPassword) return setError('Las contraseñas no coinciden')
     }
@@ -245,6 +249,16 @@ export default function Usuarios() {
     }, 350)
     return () => clearTimeout(t)
   }, [busqueda])
+
+  useEffect(() => {
+    if (editingId || !email.includes('@')) { setCorreoExiste(false); return }
+    const t = setTimeout(async () => {
+      const res = await fetch(`/api/admin/users/existe?email=${encodeURIComponent(email.trim())}`)
+      const d = await res.json().catch(() => ({ existe: false }))
+      setCorreoExiste(!!d.existe)
+    }, 500)
+    return () => clearTimeout(t)
+  }, [email, editingId])
 
   const invitar = async (c: Candidato) => {
     if (selectedRoles.length === 0) return setError('Elige los roles antes de invitar')
@@ -366,18 +380,29 @@ export default function Usuarios() {
               readOnly={!!editingId}
             />
 
-            <label className="block text-[#1e5a96] font-bold text-sm mb-1">
-              {editingId ? 'Nueva contraseña (opcional)' : 'Contraseña'}
-            </label>
-            <input
-              className="w-full border border-[#2e6db4] rounded-lg p-3 mb-3 text-sm bg-white"
-              placeholder={editingId ? 'Dejar vacío para no cambiar' : 'Contraseña'}
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
+            {correoExiste && (
+              <div className="mb-3 p-3 bg-[#e8f0f7] border border-[#b0cce8] rounded-lg text-sm text-[#0d2b5c]">
+                Esa persona <b>ya tiene cuenta</b>. Al guardar se suma a tu empresa y
+                entra con la contraseña que ya usa: no hace falta que le pongas una.
+              </div>
+            )}
 
-            {(!editingId || password.length > 0) && (
+            {!correoExiste && (
+              <>
+                <label className="block text-[#1e5a96] font-bold text-sm mb-1">
+                  {editingId ? 'Nueva contraseña (opcional)' : 'Contraseña'}
+                </label>
+                <input
+                  className="w-full border border-[#2e6db4] rounded-lg p-3 mb-3 text-sm bg-white"
+                  placeholder={editingId ? 'Dejar vacío para no cambiar' : 'Contraseña'}
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </>
+            )}
+
+            {!correoExiste && (!editingId || password.length > 0) && (
               <>
                 <label className="block text-[#1e5a96] font-bold text-sm mb-1">Confirmar contraseña</label>
                 <input
