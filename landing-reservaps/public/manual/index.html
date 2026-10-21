@@ -1,0 +1,1198 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Manual de Reservaps | Cómo se usa el sistema de reservas</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Manual completo de Reservaps: agenda y cupos, fichas de aceptación de riesgo firmadas, cobro en línea, pagos a los guías, cuadre del día y API de integración. Con capturas de pantalla.">
+<meta name="theme-color" content="#06513a">
+<link rel="icon" href="/img/favicon.svg" type="image/svg+xml">
+<meta property="og:type" content="article">
+<meta property="og:locale" content="es_CL">
+<meta property="og:title" content="Manual de Reservaps">
+<meta property="og:description" content="Cómo se usa el sistema de reservas, capítulo por capítulo y con capturas.">
+<style>
+  :root {
+    --verde: #06513a;
+    --verde-osc: #04402e;
+    --fluor: #c6ff3a;
+    --pasto: #24914c;
+    --tinta: #15241f;
+    --gris: #5b6b65;
+    --linea: #d8e3dd;
+    --papel: #ffffff;
+  }
+
+  @page { size: A4; margin: 18mm 16mm 20mm 16mm; }
+  @page :first { margin: 0; }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Georgia", "Cambria", serif;
+    font-size: 10.5pt;
+    line-height: 1.55;
+    color: var(--tinta);
+    background: var(--papel);
+  }
+
+  /* ── Portada ───────────────────────────────────── */
+  .portada {
+    height: 297mm; width: 210mm;
+    background: linear-gradient(170deg, var(--verde) 0%, var(--verde-osc) 100%);
+    color: #fff;
+    padding: 38mm 24mm;
+    page-break-after: always;
+    display: flex; flex-direction: column; justify-content: space-between;
+  }
+  .portada .logo { width: 30mm; height: 30mm; }
+  .portada h1 { font-size: 34pt; line-height: 1.1; margin: 10mm 0 0; font-weight: 700; }
+  .portada h1 em { font-style: normal; color: var(--fluor); }
+  .portada .bajada { font-size: 13pt; color: #bcd9cc; margin-top: 6mm; max-width: 120mm; }
+  .portada .pie { font-size: 10pt; color: #8fb8a5; }
+  .portada .pie b { color: #fff; font-weight: 600; }
+  .marca { font-family: "Segoe UI", Arial, sans-serif; letter-spacing: -0.5px; }
+
+  /* ── Texto ─────────────────────────────────────── */
+  h2 {
+    font-size: 17pt; color: var(--verde); margin: 0 0 4mm;
+    padding-bottom: 2mm; border-bottom: 2.5px solid var(--fluor);
+    page-break-after: avoid;
+  }
+  h2 .num { color: var(--pasto); font-size: 12pt; display: block; letter-spacing: 1px;
+            text-transform: uppercase; font-family: "Segoe UI", Arial, sans-serif; margin-bottom: 1mm; }
+  h3 { font-size: 12.5pt; color: var(--verde); margin: 7mm 0 2mm; page-break-after: avoid; }
+  h4 { font-size: 11pt; color: var(--pasto); margin: 5mm 0 1mm; page-break-after: avoid; }
+  p { margin: 0 0 3mm; text-align: justify; }
+  ul, ol { margin: 0 0 3mm; padding-left: 6mm; }
+  li { margin-bottom: 1.5mm; }
+  b, strong { color: #0b3326; }
+  code {
+    font-family: "Consolas", monospace; font-size: 9pt;
+    background: #eef5f1; border: 1px solid var(--linea); border-radius: 3px; padding: 0 1mm;
+  }
+  pre {
+    font-family: "Consolas", monospace; font-size: 8.5pt; line-height: 1.45;
+    background: #0b3326; color: #d7eadf; padding: 4mm; border-radius: 3mm;
+    overflow-wrap: break-word; white-space: pre-wrap; page-break-inside: avoid;
+  }
+  a { color: var(--pasto); text-decoration: none; }
+
+  section { page-break-before: always; }
+  section.seguida { page-break-before: auto; }
+
+  /* ── Índice ────────────────────────────────────── */
+  .indice ol { list-style: none; padding: 0; counter-reset: cap; }
+  .indice > ol > li {
+    counter-increment: cap; padding: 1.6mm 0; border-bottom: 1px dotted var(--linea);
+    font-size: 11pt;
+  }
+  .indice > ol > li::before {
+    content: counter(cap) ". "; color: var(--pasto); font-weight: bold;
+  }
+  .indice small { color: var(--gris); font-size: 9pt; display: block; padding-left: 6mm; }
+
+  /* ── Capturas ──────────────────────────────────── */
+  figure { margin: 4mm 0 5mm; page-break-inside: avoid; text-align: center; }
+  figure img {
+    max-width: 100%; border: 1px solid var(--linea); border-radius: 2mm;
+    box-shadow: 0 1mm 3mm rgba(6,81,58,0.12);
+  }
+  figure.w72 img { width: 72mm; }
+  figure.w92 img { width: 92mm; }
+  figure.w170 img { width: 170mm; }
+  figcaption {
+    font-size: 8.5pt; color: var(--gris); margin-top: 2mm;
+    font-family: "Segoe UI", Arial, sans-serif;
+  }
+  figcaption b { color: var(--verde); }
+  .dos { display: flex; gap: 5mm; align-items: flex-start; page-break-inside: avoid; }
+  .dos figure { flex: 1; margin-top: 0; }
+  .dos figure img { width: 100%; max-width: 78mm; }
+
+  /* ── Avisos y tablas ───────────────────────────── */
+  .nota, .ojo, .rubro {
+    padding: 3mm 4mm; border-radius: 2mm; margin: 3mm 0; font-size: 9.5pt;
+    page-break-inside: avoid;
+  }
+  .nota { background: #eef7f1; border-left: 3px solid var(--pasto); }
+  .ojo { background: #fff6e5; border-left: 3px solid #d79a00; }
+  .rubro { background: #f3f8ff; border-left: 3px solid #2e6db4; }
+  .nota p, .ojo p, .rubro p { margin: 0 0 1.5mm; text-align: left; }
+  .nota p:last-child, .ojo p:last-child, .rubro p:last-child { margin-bottom: 0; }
+  .etiqueta {
+    font-family: "Segoe UI", Arial, sans-serif; font-size: 8pt; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 1mm;
+  }
+  .nota .etiqueta { color: var(--pasto); }
+  .ojo .etiqueta { color: #a97400; }
+  .rubro .etiqueta { color: #2e6db4; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 9.5pt; margin: 3mm 0 5mm; page-break-inside: avoid; }
+  th, td { text-align: left; padding: 2mm 2.5mm; border-bottom: 1px solid var(--linea); vertical-align: top; }
+  th { background: #eef5f1; color: var(--verde); font-family: "Segoe UI", Arial, sans-serif; font-size: 8.5pt;
+       text-transform: uppercase; letter-spacing: 0.4px; }
+  td code { font-size: 8.5pt; }
+  tr { page-break-inside: avoid; }
+
+  .pasos { counter-reset: paso; list-style: none; padding: 0; }
+  .pasos li {
+    counter-increment: paso; position: relative; padding-left: 9mm; margin-bottom: 3mm;
+  }
+  .pasos li::before {
+    content: counter(paso); position: absolute; left: 0; top: 0.3mm;
+    width: 6mm; height: 6mm; border-radius: 50%; background: var(--verde); color: var(--fluor);
+    font-family: "Segoe UI", Arial, sans-serif; font-size: 8.5pt; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+  }
+</style>
+
+<style>
+@media screen {
+  body { background: #eef3f0; font-size: 17px; line-height: 1.7; }
+  .portada {
+    width: auto; height: auto; padding: 64px 24px 56px; display: block;
+    text-align: center; margin-bottom: 0;
+  }
+  .portada .logo { width: 72px; height: 72px; }
+  .portada h1 { font-size: 40px; margin: 18px 0 0; }
+  .portada h1 br { display: none; }
+  .portada .bajada { font-size: 19px; margin: 14px auto 0; max-width: 34em; }
+  .portada .pie { margin-top: 28px; font-size: 14px; }
+  .portada .pie p { margin: 2px 0; }
+  .acciones-web {
+    background: var(--verde-osc); margin: 0; padding: 0 24px 48px;
+    display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;
+  }
+  .btn-web {
+    display: inline-block; padding: 13px 22px; border-radius: 10px; font-weight: 700;
+    font-family: "Segoe UI", Arial, sans-serif; font-size: 15px;
+    background: var(--fluor); color: #0b3326; border: 2px solid var(--fluor);
+  }
+  .btn-web.borde { background: transparent; color: #fff; border-color: #ffffff55; }
+  .barra-web {
+    position: sticky; top: 0; z-index: 10; background: var(--verde);
+    display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    padding: 12px 24px; font-family: "Segoe UI", Arial, sans-serif;
+  }
+  .marca-web {
+    color: #fff; font-weight: 700; font-size: 19px; letter-spacing: -0.5px;
+    display: flex; align-items: center; gap: 9px;
+  }
+  .marca-web img { width: 28px; height: 28px; }
+  .marca-web span { color: var(--fluor); }
+  .barra-web nav { display: flex; gap: 18px; flex-wrap: wrap; font-size: 15px; }
+  .barra-web nav a { color: #cfe4d9; }
+  .barra-web nav a.activo, .barra-web nav a:hover { color: var(--fluor); }
+  section {
+    max-width: 780px; margin: 0 auto; padding: 36px 24px 0; background: var(--papel);
+  }
+  section:first-of-type { padding-top: 44px; }
+  section:last-of-type { padding-bottom: 64px; }
+  h2 { font-size: 27px; scroll-margin-top: 72px; margin-top: 8px; }
+  h2 .num { font-size: 14px; }
+  h3 { font-size: 20px; margin: 30px 0 8px; scroll-margin-top: 72px; }
+  h4 { font-size: 17px; margin: 22px 0 6px; }
+  p { margin: 0 0 14px; }
+  ul, ol { padding-left: 22px; margin-bottom: 14px; }
+  li { margin-bottom: 6px; }
+  .indice > ol > li { font-size: 17px; padding: 9px 0; }
+  .indice small { font-size: 14px; padding-left: 22px; }
+  .indice a { color: var(--verde); font-weight: 600; }
+  .indice a:hover { color: var(--pasto); text-decoration: underline; }
+  figure { margin: 22px 0 26px; }
+  figure img, figure.w72 img, figure.w92 img, figure.w170 img {
+    width: 100%; max-width: 100%; border-radius: 8px;
+    box-shadow: 0 4px 14px rgba(6,81,58,0.14);
+  }
+  figcaption { font-size: 14px; margin-top: 8px; }
+  .dos { flex-wrap: wrap; gap: 22px; }
+  .dos figure img { max-width: 100%; }
+  .nota, .ojo, .rubro { font-size: 15.5px; padding: 14px 16px; border-radius: 8px; margin: 18px 0; }
+  .etiqueta { font-size: 12px; margin-bottom: 4px; }
+  pre { font-size: 14px; padding: 16px; border-radius: 10px; }
+  code { font-size: 14px; padding: 1px 4px; }
+  table { font-size: 15px; margin: 14px 0 22px; display: block; overflow-x: auto; }
+  th, td { padding: 9px 10px; }
+  th { font-size: 12.5px; }
+  .pasos li { padding-left: 38px; margin-bottom: 14px; }
+  .pasos li::before { width: 25px; height: 25px; font-size: 13px; top: 2px; }
+  .pie-web {
+    background: var(--verde-osc); color: #8fb8a5; text-align: center;
+    padding: 28px 24px; font-family: "Segoe UI", Arial, sans-serif; font-size: 14px;
+  }
+  .pie-web a { color: var(--fluor); }
+}
+@media screen and (max-width: 640px) {
+  .portada h1 { font-size: 31px; }
+  .barra-web { padding: 10px 16px; }
+  .barra-web nav { gap: 12px; font-size: 14px; }
+  section { padding-left: 16px; padding-right: 16px; }
+}
+</style>
+</head>
+<body>
+<header class="barra-web">
+  <a class="marca-web" href="/"><img src="logo.svg" alt="">reserva<span>ps</span></a>
+  <nav>
+    <a href="/#que-hace">Qué hace</a>
+    <a href="/#api">API</a>
+    <a href="/#demo">Demo</a>
+    <a class="activo" href="/manual/">Manual</a>
+  </nav>
+</header>
+
+
+<!-- ══════════════════ PORTADA ══════════════════ -->
+<div class="portada">
+  <div>
+    <img class="logo" src="logo.svg" alt="">
+    <h1>Manual del<br>sistema de<br>reservas</h1>
+    <p class="bajada">Agenda, fichas de riesgo, cobros y cuadre del día para empresas de turismo activo.</p>
+  </div>
+  <div class="pie">
+    <p><b class="marca" style="font-size:13pt">reserva<span style="color:var(--fluor)">ps</span></b></p>
+    <p>Versión del manual: 18 de octubre de 2026 · Capturas tomadas de la versión de demostración.</p>
+  </div>
+</div>
+
+
+<div class="acciones-web">
+  <a class="btn-web" href="manual-reservaps.pdf">Descargar el manual en PDF</a>
+  <a class="btn-web borde" href="https://demo.pablo-sepulveda-retamal.workers.dev" target="_blank" rel="noopener">Abrir la demo</a>
+</div>
+<!-- ══════════════════ ÍNDICE ══════════════════ -->
+<section class="seguida indice">
+  <h2><span class="num">Contenido</span>Qué hay en este manual</h2>
+  <ol>
+    <li><a href="#cap-1">Qué es el sistema</a><small>Para qué sirve, una empresa por subdominio, rubros y vocabulario</small></li>
+    <li><a href="#cap-2">Entrar al sistema</a><small>Pantalla de acceso, roles y qué ve cada uno</small></li>
+    <li><a href="#cap-3">Menú principal</a><small>Las puertas de entrada a cada parte</small></li>
+    <li><a href="#cap-4">Reservas</a><small>Agenda, crear una reserva, detalle, servicios, pagos y pasajeros</small></li>
+    <li><a href="#cap-5">El día de la operación</a><small>La pestaña Hoy: los cinco pasos de cada salida</small></li>
+    <li><a href="#cap-6">Ficha de aceptación de riesgo</a><small>Link al cliente, firma, evidencia y registro</small></li>
+    <li><a href="#cap-7">Pagos a los guías</a><small>Servicios del día, deuda y pagos</small></li>
+    <li><a href="#cap-8">Usuarios y roles</a><small>Crear gente, asignar roles, bloquear</small></li>
+    <li><a href="#cap-9">Varios: la configuración</a><small>Horarios, valores, roles, métodos de pago y cobro en línea</small></li>
+    <li><a href="#cap-10">Cuadre del día</a><small>Ingresos, gastos, desglose por método y neto</small></li>
+    <li><a href="#cap-11">Importar desde Google Calendar</a><small>Traer reservas agendadas fuera del sistema</small></li>
+    <li><a href="#cap-12">API de integración</a><small>Que tu web cree la reserva al cobrar</small></li>
+    <li><a href="#cap-13">Panel de empresas</a><small>Solo para el administrador del sistema</small></li>
+    <li><a href="#cap-14">Preguntas frecuentes y límites conocidos</a><small>Lo que conviene saber antes de preguntar</small></li>
+  </ol>
+
+  <div class="nota">
+    <span class="etiqueta">Cómo leer las capturas</span>
+    <p>Las imágenes salen de la <b>versión de demostración</b>, que usa el rubro parapente: por eso dicen
+    “vuelo”, “piloto” y “pasajero”. En tu empresa esas palabras cambian solas según el rubro —
+    en rafting dirá “bajada”, “guía” y “tripulante”. El funcionamiento es el mismo.</p>
+  </div>
+</section>
+
+<!-- ══════════════════ 1 ══════════════════ -->
+<section>
+  <h2 id="cap-1"><span class="num">Capítulo 1</span>Qué es el sistema</h2>
+
+  <p>Es la intranet con la que una empresa de turismo activo lleva el día a día: qué sale hoy,
+  quién viene, quién ya pagó, quién firmó su ficha, qué le toca a cada guía y cuánto quedó en caja
+  al final de la jornada. Se abre desde el navegador del teléfono o del computador: no hay nada que instalar.</p>
+
+  <h3>Una empresa, un subdominio</h3>
+  <p>Cada empresa tiene su propia dirección: <code>tuempresa.&lt;dominio&gt;</code>. Al entrar por esa dirección
+  el sistema ya sabe de qué empresa se trata, pinta el acceso con su color y su logo, y a partir de ahí
+  <b>solo muestra los datos de esa empresa</b>. Dos empresas en el mismo sistema nunca se ven entre sí:
+  la separación está en la base de datos, no en la pantalla.</p>
+
+  <h3>El rubro cambia las palabras, no los botones</h3>
+  <p>El sistema se adapta al rubro de cada empresa. No cambia lo que hace: cambia cómo lo llama.
+  Esta es la tabla completa.</p>
+
+  <table>
+    <tr><th>Rubro</th><th>La actividad</th><th>Quien la guía</th><th>Quien participa</th><th>Cuando ya ocurrió</th></tr>
+    <tr><td>Parapente</td><td>vuelo</td><td>piloto</td><td>pasajero</td><td>voló</td></tr>
+    <tr><td>Rafting</td><td>bajada</td><td>guía</td><td>tripulante</td><td>bajó</td></tr>
+    <tr><td>Cabalgatas</td><td>cabalgata</td><td>arriero</td><td>jinete</td><td>salió</td></tr>
+    <tr><td>Trekking y montaña</td><td>salida</td><td>guía</td><td>caminante</td><td>salió</td></tr>
+    <tr><td>Buceo</td><td>inmersión</td><td>instructor</td><td>buzo</td><td>buceó</td></tr>
+    <tr><td>Navegación</td><td>zarpe</td><td>patrón</td><td>tripulante</td><td>zarpó</td></tr>
+    <tr><td>Tours y excursiones</td><td>tour</td><td>guía</td><td>pasajero</td><td>salió</td></tr>
+    <tr><td>Otra actividad</td><td>salida</td><td>guía</td><td>participante</td><td>salió</td></tr>
+  </table>
+
+  <p>El rubro lo elige el administrador del sistema al crear la empresa y se puede cambiar después
+  (capítulo 13). Al cambiarlo, las pantallas empiezan a hablar distinto de inmediato.</p>
+
+  <div class="rubro">
+    <span class="etiqueta">En este manual</span>
+    <p>Para no repetir ocho veces lo mismo, el texto usa las palabras neutras: <b>salida</b>, <b>guía</b>
+    y <b>cliente</b>. Donde la captura diga “vuelo”, “piloto” o “pasajero”, léelo con el vocabulario
+    de tu rubro.</p>
+  </div>
+
+  <h3>Qué resuelve, en una línea cada cosa</h3>
+  <ul>
+    <li><b>Agenda</b> — todas las salidas por día y hora, con sus clientes y su estado.</li>
+    <li><b>Ficha de aceptación de riesgo</b> — el papel que antes se firmaba en la base, ahora firmado desde el teléfono del cliente, con evidencia legal.</li>
+    <li><b>Cobros</b> — qué se pagó, con qué método, cuánto falta; y un link de pago en línea si está conectado.</li>
+    <li><b>Pagos a los guías</b> — qué le corresponde a cada uno por lo que hizo ese día y cuánto se le ha pagado.</li>
+    <li><b>Cuadre del día</b> — el resumen de la jornada: entró, salió, quedó.</li>
+    <li><b>API</b> — que tu página web cree la reserva sola cuando un cliente compra en línea.</li>
+  </ul>
+</section>
+
+<!-- ══════════════════ 2 ══════════════════ -->
+<section>
+  <h2 id="cap-2"><span class="num">Capítulo 2</span>Entrar al sistema</h2>
+
+  <p>El acceso está en la dirección de tu empresa. La pantalla lleva su logo y su color: si ves otro color,
+  estás en la empresa equivocada.</p>
+
+  <div class="dos">
+    <figure class="w72">
+      <img src="shots/01-login.png" alt="">
+      <figcaption><b>Acceso.</b> El logo y el color son los de la empresa.</figcaption>
+    </figure>
+    <figure class="w72">
+      <img src="shots/02-login-usuarios-prueba.png" alt="">
+      <figcaption><b>Solo en la demo:</b> el signo <code>?</code> muestra usuarios de prueba.</figcaption>
+    </figure>
+  </div>
+
+  <ol class="pasos">
+    <li>Escribe tu correo y tu contraseña. Las crea el administrador: no hay registro público.</li>
+    <li>Toca <b>Ingresar</b>. La sesión queda guardada en ese navegador; no hay que entrar de nuevo cada día.</li>
+    <li>Para salir, usa <b>Salir →</b> arriba a la derecha del menú principal.</li>
+  </ol>
+
+  <div class="ojo">
+    <span class="etiqueta">Si dice “Este usuario no pertenece a esta empresa”</span>
+    <p>Estás entrando por el subdominio de otra empresa. Revisa la dirección: debe ser la de la tuya.</p>
+  </div>
+
+  <h3>Los tres roles</h3>
+  <p>Cada usuario tiene uno o más roles. Al crear una empresa nacen tres, y son los que deciden qué se ve:</p>
+
+  <table>
+    <tr><th>Rol</th><th>Para quién</th><th>Qué ve</th></tr>
+    <tr>
+      <td><b>Admin</b></td>
+      <td>Dueño, administración</td>
+      <td>Todo: reservas, guías, usuarios, configuración y cuadre del día.</td>
+    </tr>
+    <tr>
+      <td><b>Coordinador</b></td>
+      <td>Quien opera la agenda</td>
+      <td>Reservas, guías, configuración. <b>No</b> ve Usuarios ni Cuadre del día.</td>
+    </tr>
+    <tr>
+      <td><b>Guía</b> <span style="color:#5b6b65">(piloto, arriero, instructor…)</span></td>
+      <td>Quien hace la salida</td>
+      <td>Lo mismo que el coordinador. Entra a ver su día y sus pagos.</td>
+    </tr>
+  </table>
+
+  <p>Coordinador y guía son <b>roles restringidos</b>: el sistema los marca como tales al crearse la empresa,
+  así que la restricción no depende de cómo se llame el rol en cada rubro. Un usuario que tenga <i>solo</i>
+  roles restringidos no ve Usuarios ni Cuadre del día; basta que tenga además un rol no restringido
+  para ver el panel completo.</p>
+
+  <div class="nota">
+    <span class="etiqueta">Crear más roles</span>
+    <p>Puedes agregar los roles que quieras en <b>Varios → Roles</b> (capítulo 9). Los roles que crees ahí
+    nacen sin restricción, es decir, ven el panel completo.</p>
+  </div>
+</section>
+
+<!-- ══════════════════ 3 ══════════════════ -->
+<section>
+  <h2 id="cap-3"><span class="num">Capítulo 3</span>Menú principal</h2>
+
+  <p>Es la pantalla que aparece al entrar. Arriba, el logo y el nombre de la empresa, tu nombre y el botón de salir.
+  Abajo, una tarjeta por cada parte del sistema.</p>
+
+  <figure class="w92">
+    <img src="shots/03-menu.png" alt="">
+    <figcaption><b>Menú principal</b> visto por un usuario con rol Admin.</figcaption>
+  </figure>
+
+  <table>
+    <tr><th>Tarjeta</th><th>Qué hay dentro</th><th>Capítulo</th></tr>
+    <tr><td><b>Usuarios</b></td><td>Crear gente, asignar roles, activar o desactivar</td><td>8</td></tr>
+    <tr><td><b>Reservas</b></td><td>La agenda y la pestaña del día de operación</td><td>4 y 5</td></tr>
+    <tr><td><b>Guías</b></td><td>Lo que hizo cada guía y lo que se le debe</td><td>7</td></tr>
+    <tr><td><b>Varios</b></td><td>Horarios, valores, roles, métodos de pago y cobro en línea</td><td>9</td></tr>
+    <tr><td><b>Importar Calendar</b></td><td>Traer reservas desde Google Calendar</td><td>11</td></tr>
+    <tr><td><b>Cuadre del día</b></td><td>El resumen financiero de la jornada</td><td>10</td></tr>
+    <tr><td><b>Panel de empresas</b></td><td>Solo lo ve el administrador del sistema</td><td>13</td></tr>
+  </table>
+
+  <p>Si a alguien le faltan tarjetas, no es un error: es su rol. <b>Usuarios</b> y <b>Cuadre del día</b>
+  no aparecen para quien tiene solo roles restringidos, y <b>Panel de empresas</b> solo lo ve el
+  administrador del sistema.</p>
+
+  <div class="ojo">
+    <span class="etiqueta">La franja amarilla de la demo</span>
+    <p>En la versión de demostración hay un aviso arriba: <i>“Versión de demostración: se borra cada 5 días”</i>.
+    En una empresa real no existe. Lo que se carga en la demo se borra solo a los cinco días, a las 07:00,
+    incluidos reservas, pagos, fichas y gastos; los catálogos y los usuarios de prueba se quedan.</p>
+  </div>
+</section>
+
+<!-- ══════════════════ 4 ══════════════════ -->
+<section>
+  <h2 id="cap-4"><span class="num">Capítulo 4</span>Reservas</h2>
+
+  <p>Es el corazón del sistema. Tiene dos pestañas: <b>Agenda</b>, que es el listado por días,
+  y <b>Hoy</b>, que es el paso a paso de la jornada (capítulo 5).</p>
+
+  <h3>4.1 La agenda</h3>
+
+  <div class="dos">
+    <figure class="w72">
+      <img src="shots/04-reservas-agenda.png" alt="">
+      <figcaption><b>Agenda.</b> Un bloque por día con sus salidas.</figcaption>
+    </figure>
+    <figure class="w72">
+      <img src="shots/05-reservas-calendario.png" alt="">
+      <figcaption><b>Calendario.</b> El punto marca los días con reservas.</figcaption>
+    </figure>
+  </div>
+
+  <p>La agenda abre en el día de hoy y muestra dos días antes y dos después. Con
+  <b>↑ Ver días anteriores</b> y <b>Ver días futuros ↓</b> se agregan días a la lista, de dos en dos.
+  Para saltar a una fecha lejana, abre el calendario con el ícono de arriba a la derecha y toca el día:
+  los días con reservas llevan un punto debajo.</p>
+
+  <h4>Cómo leer una tarjeta</h4>
+  <ul>
+    <li><b>Nombre × cantidad</b> y la hora, a la izquierda.</li>
+    <li>En la columna del medio, los clientes de esa reserva, con 🥳 si es cumpleañero y 📷 o 📽️ según la cámara.</li>
+    <li>A la derecha, el botón para marcar que la salida <b>ya ocurrió</b>. Pide confirmación y cambia el color de la tarjeta.</li>
+    <li>El color dice el estado: <b>azul</b>, pendiente; <b>morado</b>, ya pasó o está marcada como realizada.</li>
+  </ul>
+  <p>Tocando la tarjeta se abre el detalle: en el teléfono como pantalla completa, en el computador como ventana.</p>
+
+  <h3>4.2 Crear una reserva</h3>
+
+  <figure class="w72">
+    <img src="shots/06-reservas-nueva.png" alt="">
+    <figcaption><b>Nueva reserva.</b> Se abre con el botón <b>+</b> amarillo.</figcaption>
+  </figure>
+
+  <ol class="pasos">
+    <li><b>Fecha</b> — viene cargada con el día de hoy; cámbiala si corresponde.</li>
+    <li><b>Nombre</b> y <b>Teléfono</b> de quien reserva. El teléfono admite solo números y es el que se usa para mandar los links por WhatsApp.</li>
+    <li><b>Personas</b> — cuántas vienen. Este número es el que después genera los links de ficha.</li>
+    <li><b>Horario</b> — se elige de la lista de horarios de la empresa (se configuran en Varios → Horarios).</li>
+    <li><b>Servicios</b> — opcional al crear, se pueden agregar después. Tocando varias veces el mismo servicio se suma cantidad.</li>
+    <li><b>Crear Reserva</b>.</li>
+  </ol>
+
+  <div class="nota">
+    <span class="etiqueta">Los nombres de los clientes no se piden aquí</span>
+    <p>Basta el nombre de quien reserva y cuántos vienen. Los datos de cada cliente llegan solos cuando
+    cada uno firma su ficha, o se cargan a mano en el detalle.</p>
+  </div>
+
+  <h3>4.3 El detalle de la reserva</h3>
+
+  <figure class="w92">
+    <img src="shots/07-reserva-detalle-p1.png" alt="">
+    <figcaption><b>Detalle, arriba:</b> datos de la reserva, servicios y resumen financiero.</figcaption>
+  </figure>
+
+  <figure class="w92">
+    <img src="shots/07-reserva-detalle-p2.png" alt="">
+    <figcaption><b>Detalle, abajo:</b> los pagos registrados, el botón de editar y el de eliminar.</figcaption>
+  </figure>
+
+  <p>El detalle abre <b>en solo lectura</b>: para cambiar algo hay que tocar <b>Editar</b> abajo, modificar
+  y <b>Guardar cambios</b>. Es a propósito, para que nadie cambie una reserva sin querer mientras la consulta.</p>
+
+  <h4>Servicios y descuentos</h4>
+  <p>Cada servicio agregado suma al total. Los valores marcados como <b>descuento</b> (en rojo) restan.
+  Se agregan en modo edición, uno por unidad: dos salidas iguales son dos veces el mismo servicio.</p>
+
+  <h4>El resumen financiero</h4>
+  <p>Es el cuadro azul con la cuenta completa, en este orden:</p>
+  <table>
+    <tr><th>Línea</th><th>Qué es</th></tr>
+    <tr><td>Total servicios</td><td>La suma de todo lo que no es descuento.</td></tr>
+    <tr><td>Descuentos</td><td>Lo que restan los valores marcados como descuento.</td></tr>
+    <tr><td>Abono</td><td>Lo que el cliente pagó antes, por fuera del sistema (se escribe a mano en el campo <b>Abono</b>).</td></tr>
+    <tr><td>Pagos registrados</td><td>La suma de los pagos cargados con método de pago.</td></tr>
+    <tr><td><b>Saldo restante</b></td><td>Lo que todavía falta. En verde cuando llega a cero o menos.</td></tr>
+  </table>
+
+  <h4>Registrar un pago</h4>
+  <p>En el cuadro verde: se elige el <b>método de pago</b>, se escribe el monto y se toca <b>+ Agregar</b>.
+  Cada pago queda como una etiqueta verde que se puede borrar con su <b>×</b>. Se pueden registrar varios
+  pagos parciales y de distintos métodos sobre la misma reserva.</p>
+
+  <h4>Cobrar en línea</h4>
+  <p>Si la empresa conectó Mercado Pago (capítulo 9), aparece el botón <b>🔗 Cobrar $… en línea</b>, que genera
+  un link de pago <b>por el saldo exacto</b>. Desde ahí se copia o se manda por WhatsApp. Cuando el cliente paga,
+  el pago se registra solo en la reserva.</p>
+
+  <h4>Eliminar</h4>
+  <p>Abajo del todo, <b>🗑️ Eliminar reserva</b> borra la reserva y todo lo que cuelga de ella: pagos, servicios,
+  clientes y fichas. Pide confirmación y no se puede deshacer. Solo lo ve el administrador.</p>
+
+  <h3>4.4 Los clientes de la reserva</h3>
+
+  <figure class="w92">
+    <img src="shots/08-reserva-pasajeros-p2.png" alt="">
+    <figcaption><b>Clientes de la reserva.</b> Cada uno con su edad, peso, cámara y guía asignado.</figcaption>
+  </figure>
+
+  <p>Más abajo en el detalle está la lista de clientes. Con <b>+ Agregar</b> se carga uno a mano:</p>
+  <ul>
+    <li><b>Nombre</b> — lo único obligatorio.</li>
+    <li><b>Edad</b> y <b>Peso</b> — el peso importa para decidir el equipo y el guía.</li>
+    <li><b>Cámara</b> — Sin cámara, Normal o 360°. Es lo que después se marca en el día de la operación.</li>
+    <li><b>Guía</b> — se elige de la lista de usuarios con rol de guía. Esta asignación es la que alimenta los pagos a guías (capítulo 7).</li>
+    <li><b>¿Es cumpleañero?</b> — al activarlo queda marcado con 🥳 en la agenda. Deja seleccionada la cámara 360° por defecto.</li>
+  </ul>
+
+  <div class="nota">
+    <span class="etiqueta">La cantidad se ajusta sola</span>
+    <p>Si agregas más clientes de los que decía la reserva, el sistema sube el número de personas.
+    Nunca lo baja solo: si alguien se cae de la salida, corrígelo a mano.</p>
+  </div>
+</section>
+
+<!-- ══════════════════ 5 ══════════════════ -->
+<section>
+  <h2 id="cap-5"><span class="num">Capítulo 5</span>El día de la operación</h2>
+
+  <p>La pestaña <b>Hoy</b> es la pantalla para usar en terreno. Muestra solo las salidas de hoy, ordenadas por hora,
+  y para cada una los <b>cinco pasos</b> que hay que completar antes de cerrarla.</p>
+
+  <div class="dos">
+    <figure class="w72">
+      <img src="shots/09-hoy-lista.png" alt="">
+      <figcaption><b>Hoy.</b> Cada tarjeta con su avance (2/5, 3/5…).</figcaption>
+    </figure>
+    <figure class="w72">
+      <img src="shots/11-hoy-fichas-pendientes.png" alt="">
+      <figcaption><b>Fichas pendientes</b>, listas para mandar por WhatsApp.</figcaption>
+    </figure>
+  </div>
+
+  <table>
+    <tr><th>Paso</th><th>Se marca verde cuando…</th></tr>
+    <tr><td><b>Links</b></td><td>…se generaron los links de ficha de la reserva.</td></tr>
+    <tr><td><b>Fichas</b></td><td>…todas las fichas están firmadas.</td></tr>
+    <tr><td><b>Pago</b></td><td>…el saldo llega a cero (hay servicios cargados y está todo cobrado).</td></tr>
+    <tr><td><b>Cámara</b></td><td>…todos los clientes tienen su opción de cámara elegida.</td></tr>
+    <tr><td><b>Salió / Voló</b></td><td>…se marcó que la salida ya ocurrió.</td></tr>
+  </table>
+
+  <p>Con los cinco listos la tarjeta se pone verde y dice <b>✓ Todo listo</b>. La pantalla se refresca sola cada
+  quince segundos, así que cuando un cliente firma desde su teléfono, el estado cambia sin que haya que recargar.</p>
+
+  <figure class="w92">
+    <img src="shots/10-hoy-expandida-p1.png" alt="">
+    <figcaption><b>Salida abierta, arriba:</b> los cinco pasos y el estado de cada ficha.</figcaption>
+  </figure>
+
+  <figure class="w92">
+    <img src="shots/10-hoy-expandida-p2.png" alt="">
+    <figcaption><b>Salida abierta, abajo:</b> cobro del saldo, cámara de cada cliente y cierre.</figcaption>
+  </figure>
+
+  <h3>Qué hacer en cada bloque</h3>
+
+  <h4>Fichas</h4>
+  <ol class="pasos">
+    <li>Si todavía no existen, el botón amarillo <b>Generar N links</b> crea una ficha por persona.</li>
+    <li><b>Enviar por WhatsApp</b> abre el chat con el teléfono de la reserva y un mensaje con un link por cliente, numerado.</li>
+    <li><b>Copiar link</b> copia el de una sola persona; <b>copiar todos</b>, los que falten.</li>
+    <li>Cuando alguien firma, su línea pasa a ✅ con la hora y la IP desde donde firmó.</li>
+    <li><b>ver ficha</b> abre la ficha firmada completa; <b>registro</b> muestra todos los intentos, incluidos los fallidos.</li>
+  </ol>
+
+  <h4>Pago</h4>
+  <p>Muestra <b>total, pagado y lo que falta</b>. Para cobrar: se toca el método, se escribe el monto
+  (viene propuesto el saldo) y se confirma con <b>Cobrar</b>. Si la reserva no tiene servicios cargados,
+  avisa que hay que agregarlos en el detalle.</p>
+
+  <h4>Cámara</h4>
+  <p>Una fila por cliente con tres botones: <b>Sin cámara</b>, <b>Normal</b> y <b>360°</b>. Es excluyente.
+  Los clientes aparecen acá cuando firman su ficha o cuando se cargan a mano en el detalle.</p>
+
+  <h4>Cierre</h4>
+  <p><b>Marcar como salió</b> cierra la salida (y vuelve a abrirla si se tocó por error). <b>Detalle</b>
+  lleva a la reserva completa, por si falta cargar un servicio o corregir un dato.</p>
+
+  <div class="ojo">
+    <span class="etiqueta">Orden recomendado del día</span>
+    <p>Generar links → mandarlos por WhatsApp apenas confirmen → revisar que firmen antes de llegar →
+    cobrar el saldo en la base → marcar cámaras → marcar la salida como realizada.</p>
+  </div>
+</section>
+
+<!-- ══════════════════ 6 ══════════════════ -->
+<section>
+  <h2 id="cap-6"><span class="num">Capítulo 6</span>Ficha de aceptación de riesgo</h2>
+
+  <p>Es la ficha de inscripción y aceptación del riesgo que antes se firmaba en papel. Ahora la llena el propio
+  cliente desde su teléfono, con un link personal, y queda guardada con evidencia de quién la firmó, cuándo y desde dónde.</p>
+
+  <div class="dos">
+    <figure class="w72">
+      <img src="shots/25-ficha-publica.png" alt="">
+      <figcaption><b>Lo que ve el cliente</b> al abrir su link.</figcaption>
+    </figure>
+    <figure class="w72">
+      <img src="shots/24-ficha-firmada-p1.png" alt="">
+      <figcaption><b>La ficha firmada</b>, como la ve la empresa.</figcaption>
+    </figure>
+  </div>
+
+  <h3>Cómo funciona el link</h3>
+  <p>Cada ficha tiene su propia dirección, con un código único y el nombre de la persona al final para
+  reconocerla al compartirla:</p>
+  <pre>https://tuempresa.&lt;dominio&gt;/ficha/86dd4f.../juan-perez</pre>
+  <p>El link <b>se abre sin cuenta ni contraseña</b>: el cliente no es usuario del sistema. Es personal:
+  cada persona de la reserva tiene el suyo y firma por sí misma.</p>
+
+  <h3>Qué se le pide al cliente</h3>
+  <figure class="w92">
+    <img src="shots/26-ficha-publica-completa-p1.png" alt="">
+    <figcaption><b>Ficha, arriba:</b> datos personales, urgencia, experiencia y salud.</figcaption>
+  </figure>
+
+  <figure class="w92">
+    <img src="shots/26-ficha-publica-completa-p2.png" alt="">
+    <figcaption><b>Ficha, abajo:</b> el texto legal y la casilla de aceptación.</figcaption>
+  </figure>
+
+  <ol>
+    <li><b>Datos personales</b> — nombre, RUT o pasaporte, edad, nacionalidad y número de gift card si la tiene.</li>
+    <li><b>Contacto en caso de urgencia</b> — nombre, teléfono y parentesco.</li>
+    <li><b>Declaración de experiencia</b> — si ha hecho la actividad antes.</li>
+    <li><b>Declaración de salud</b> — previsión (Fonasa, Isapre, otra) y sí/no en alergias, medicamentos
+        contraindicados, enfermedades, operaciones o lesiones recientes, embarazo y consumo de alcohol o drogas.
+        También si autoriza el uso de sus fotos y videos, y cómo conoció a la empresa.</li>
+    <li><b>Seguros, fotos y aceptación del riesgo</b> — el texto legal completo y la casilla
+        <i>“Declaro haber leído y acepto los riesgos de la actividad”</i>, que es obligatoria.</li>
+  </ol>
+
+  <p>La ficha está en <b>español e inglés</b>: el cliente cambia con los botones ES / EN de arriba.
+  Si la edad es menor de 18, aparecen además los campos del <b>tutor</b>, que son obligatorios.</p>
+
+  <h3>Qué queda guardado</h3>
+  <figure class="w92">
+    <img src="shots/24-ficha-firmada-p2.png" alt="">
+    <figcaption><b>Ficha firmada, abajo:</b> declaración de salud y la evidencia de la firma.</figcaption>
+  </figure>
+  <p>Al confirmar, el servidor guarda —además de las respuestas— la evidencia de la firma:</p>
+  <ul>
+    <li><b>Fecha y hora</b> exactas.</li>
+    <li><b>IP</b> desde donde se firmó y <b>navegador</b> usado.</li>
+    <li><b>Versión del texto</b> y <b>huella (hash)</b> del texto exacto que se mostró, para poder probar
+        después qué fue lo que esa persona aceptó.</li>
+    <li><b>Idioma</b> en que lo leyó.</li>
+  </ul>
+  <p>Además se registra <b>cada intento</b>, firmado o fallido, con su motivo. Eso es lo que muestra
+  el botón <b>registro</b> en la pestaña Hoy.</p>
+
+  <div class="ojo">
+    <span class="etiqueta">Lo legal, en corto</span>
+    <p>La ficha cumple con el deber de informar el riesgo del D.S. 19, artículo 34, y la casilla marcada
+    equivale a firma según la Ley 19.799 de firma electrónica — por eso se guarda la evidencia.
+    <b>Las fichas se conservan dos años</b>, como exige el reglamento: no las borres antes, y recuerda que
+    eliminar una reserva elimina también sus fichas.</p>
+  </div>
+
+  <h3>Dónde se crean</h3>
+  <p>Los links se generan desde la pestaña <b>Hoy</b> (botón <i>Generar N links</i>). Si las reservas llegan
+  por la API desde tu página web, los links vienen de vuelta en la respuesta y se mandan directamente al
+  cliente al momento de la compra (capítulo 12).</p>
+
+  <div class="nota">
+    <span class="etiqueta">Firmar crea al cliente</span>
+    <p>Cuando alguien firma, el sistema crea o completa a esa persona en la reserva con el nombre y la edad
+    que escribió. Por eso no hace falta cargar los nombres a mano cuando las fichas se mandan a tiempo.</p>
+  </div>
+</section>
+
+<!-- ══════════════════ 7 ══════════════════ -->
+<section>
+  <h2 id="cap-7"><span class="num">Capítulo 7</span>Pagos a los guías</h2>
+
+  <p>La tarjeta <b>Guías</b> del menú responde dos preguntas por día: qué hizo cada guía y cuánto se le debe.</p>
+
+  <div class="dos">
+    <figure class="w72">
+      <img src="shots/12-guias.png" alt="">
+      <figcaption><b>Por día.</b> Cada guía con sus salidas y su saldo.</figcaption>
+    </figure>
+    <figure class="w72">
+      <img src="shots/13-guias-detalle-p2.png" alt="">
+      <figcaption><b>Abierto:</b> los servicios del día del guía.</figcaption>
+    </figure>
+  </div>
+
+  <h3>Quién aparece acá</h3>
+  <p>Un guía aparece en un día porque <b>está asignado a algún cliente de ese día</b> (se asigna en el detalle de
+  la reserva, capítulo 4.4). El número al lado de su nombre es la cantidad de clientes que llevó.</p>
+
+  <h3>Cargar lo que se le debe</h3>
+  <ol class="pasos">
+    <li>Toca al guía para abrir su detalle.</li>
+    <li>En <b>Servicios del guía</b>, agrega lo que corresponde: aparecen los valores marcados como
+        “aplica al guía” en Varios → Valores, con su monto unitario.</li>
+    <li>Ajusta la cantidad con <b>−</b> y <b>+</b>. El sistema <b>no deja pasar del número de salidas</b> que hizo
+        ese día: si llegó al tope, avisa <i>“Límite alcanzado”</i>.</li>
+    <li><b>Guardar servicios</b>. Eso fija la deuda del día.</li>
+    <li>En <b>Pago al guía</b>, elige el método, escribe el monto y <b>+ Agregar</b>. Cada pago queda como etiqueta verde y se puede borrar.</li>
+  </ol>
+
+  <figure class="w92">
+    <img src="shots/13-guias-detalle-p3.png" alt="">
+    <figcaption><b>Pago al guía.</b> Se elige método y monto; cada pago queda como etiqueta verde.</figcaption>
+  </figure>
+
+  <div class="nota">
+    <span class="etiqueta">La cuenta</span>
+    <p><b>Deuda</b> = suma de los servicios del guía (valor × cantidad). <b>Pagado</b> = suma de los pagos de ese día.
+    La diferencia es lo que queda debiéndose, y es lo que aparece en el cuadre del día.</p>
+  </div>
+
+  <p>Igual que en la agenda, se navega por días: el calendario de arriba marca con un punto los días
+  que tuvieron guías asignados.</p>
+</section>
+
+<!-- ══════════════════ 8 ══════════════════ -->
+<section>
+  <h2 id="cap-8"><span class="num">Capítulo 8</span>Usuarios y roles</h2>
+
+  <p>Acá se crea la gente que entra al sistema. Solo lo ve quien tenga un rol no restringido (normalmente Admin).</p>
+
+  <div class="dos">
+    <figure class="w72">
+      <img src="shots/20-usuarios.png" alt="">
+      <figcaption><b>Lista de usuarios</b> con sus roles.</figcaption>
+    </figure>
+    <figure class="w72">
+      <img src="shots/21-usuarios-form-p1.png" alt="">
+      <figcaption><b>Nuevo usuario:</b> datos, contraseña y roles.</figcaption>
+    </figure>
+  </div>
+
+  <h3>Crear un usuario</h3>
+  <ol class="pasos">
+    <li>Toca <b>+ Agregar</b>.</li>
+    <li>Escribe <b>nombre</b> y <b>correo</b>. El correo es con lo que entra: debe ser real y único.</li>
+    <li>Pon una <b>contraseña</b> (mínimo seis caracteres) y confírmala. Se la entregas a la persona para su primer ingreso.</li>
+    <li>Elige sus <b>roles</b> de la lista. Puede tener más de uno.</li>
+    <li>Guarda. El usuario ya puede entrar por el subdominio de la empresa.</li>
+  </ol>
+
+  <h3>Mantención</h3>
+  <ul>
+    <li><b>Editar</b> cambia nombre, roles y contraseña.</li>
+    <li><b>Activar / desactivar</b> deja al usuario sin acceso sin borrar su historial. Es lo recomendado cuando alguien deja de trabajar.</li>
+    <li><b>Eliminar</b> borra el perfil. Si la persona ya aparece en salidas pasadas, prefiere desactivarla.</li>
+  </ul>
+
+  <div class="ojo">
+    <span class="etiqueta">Cuidado con los roles</span>
+    <p>Un usuario sin ningún rol ve el panel completo (el sistema solo restringe a quien tiene
+    <i>únicamente</i> roles restringidos). Asigna siempre el rol que corresponde.</p>
+  </div>
+</section>
+
+<!-- ══════════════════ 9 ══════════════════ -->
+<section>
+  <h2 id="cap-9"><span class="num">Capítulo 9</span>Varios: la configuración</h2>
+
+  <p>Todo lo que el sistema usa como lista desplegable se configura acá. Vale la pena dejarlo listo
+  el primer día: después casi no se toca.</p>
+
+  <figure class="w72">
+    <img src="shots/14-varios.png" alt="">
+    <figcaption><b>Varios.</b> Las cinco configuraciones.</figcaption>
+  </figure>
+
+  <h3>9.1 Horarios</h3>
+  <div class="dos">
+    <figure class="w72">
+      <img src="shots/15-horarios-p1.png" alt="">
+      <figcaption>Las horas en que la empresa opera.</figcaption>
+    </figure>
+    <figure class="w72">
+      <img src="shots/16-valores-p1.png" alt="">
+      <figcaption>Los servicios con su precio y su tipo.</figcaption>
+    </figure>
+  </div>
+  <p>Son las horas de salida que aparecen al crear una reserva. Se agregan eligiendo hora y minutos,
+  se editan tocándolos y se borran con su botón. Si un horario ya está usado por reservas, conviene no borrarlo.</p>
+
+  <h3>9.2 Valores</h3>
+  <p>Es la lista de precios. Cada valor tiene nombre, monto y tres interruptores que definen para qué sirve:</p>
+  <table>
+    <tr><th>Interruptor</th><th>Qué significa</th></tr>
+    <tr><td><b>Aplica a guía</b></td><td>Es lo que se le paga al guía por salida. Aparece en la pantalla de Guías.</td></tr>
+    <tr><td><b>Aplica a pasajero</b></td><td>Es lo que se le cobra al cliente. Aparece en el detalle de la reserva.</td></tr>
+    <tr><td><b>Es descuento</b></td><td>En vez de sumar, resta del total. Se muestra en rojo.</td></tr>
+  </table>
+  <p>Un mismo nombre puede existir dos veces con montos distintos: uno para el cliente y otro para el guía.
+  Es lo normal, por ejemplo, con la salida estándar.</p>
+
+  <h3>9.3 Roles</h3>
+  <figure class="w72">
+    <img src="shots/17-roles.png" alt="">
+    <figcaption><b>Roles.</b> Los tres que nacen con la empresa, más los que agregues.</figcaption>
+  </figure>
+  <p>Se agregan, se renombran y se borran. Un rol asignado a alguien no se puede borrar: primero hay que
+  quitárselo a esos usuarios.</p>
+
+  <h3>9.4 Métodos de pago</h3>
+  <figure class="w72">
+    <img src="shots/18-metodos-pago.png" alt="">
+    <figcaption><b>Métodos de pago.</b> Solo los activos aparecen al cobrar.</figcaption>
+  </figure>
+  <p>Efectivo, transferencia, débito, crédito, o los que uses. Se pueden desactivar sin borrarlos: dejan de
+  ofrecerse al cobrar, pero los pagos antiguos conservan su método. Son también las columnas del desglose
+  del cuadre del día.</p>
+
+  <h3>9.5 Cobro en línea</h3>
+  <figure class="w92">
+    <img src="shots/19-cobro-en-linea-p1.png" alt="">
+    <figcaption><b>Cobro en línea.</b> Conexión con la cuenta de Mercado Pago de la empresa.</figcaption>
+  </figure>
+
+  <ol class="pasos">
+    <li>Entra a tu cuenta de Mercado Pago y copia tus credenciales: la <b>public key</b> y el <b>access token</b>.</li>
+    <li>Pégalas acá y guarda. El sistema <b>valida el token contra Mercado Pago</b> antes de aceptarlo y responde
+        con el nombre de la cuenta a la que quedó conectado.</li>
+    <li>Con eso activo, el detalle de cada reserva muestra el botón para cobrar el saldo en línea.</li>
+    <li><b>Desconectar</b> borra las credenciales guardadas.</li>
+  </ol>
+
+  <p>El dinero llega directo a la cuenta de la empresa: el sistema solo genera el link y registra el pago cuando
+  Mercado Pago avisa que se pagó. Ese aviso es automático y no duplica pagos aunque llegue dos veces.</p>
+
+  <div class="ojo">
+    <span class="etiqueta">Estado de esta función</span>
+    <p>El cobro en línea está implementado de punta a punta, pero <b>todavía no se ha probado con credenciales
+    reales de Mercado Pago</b>. Antes de usarlo con clientes, haz una prueba con credenciales de prueba y
+    verifica que el pago aparezca registrado en la reserva.</p>
+  </div>
+</section>
+
+<!-- ══════════════════ 10 ══════════════════ -->
+<section>
+  <h2 id="cap-10"><span class="num">Capítulo 10</span>Cuadre del día</h2>
+
+  <p>El resumen financiero de una jornada, pensado para cerrar la caja. Solo lo ve quien tenga rol no restringido.
+  Arriba se cambia de día con las flechas o se vuelve a hoy con el botón <b>Hoy</b>.</p>
+
+  <figure class="w92">
+    <img src="shots/22-cuadre-del-dia-p1.png" alt="">
+    <figcaption><b>Cuadre, arriba:</b> las tres cifras del día y las reservas una por una.</figcaption>
+  </figure>
+
+  <figure class="w92">
+    <img src="shots/22-cuadre-del-dia-p2.png" alt="">
+    <figcaption><b>Cuadre, al medio:</b> otros ingresos y gastos, y el desglose por método de pago.</figcaption>
+  </figure>
+
+  <figure class="w92">
+    <img src="shots/22-cuadre-del-dia-p3.png" alt="">
+    <figcaption><b>Cuadre, abajo:</b> los guías del día y el balance final.</figcaption>
+  </figure>
+
+  <h3>Los bloques, en orden</h3>
+  <ol>
+    <li><b>Las tres cifras de arriba</b> — cobrado, pagado a guías y balance del día.</li>
+    <li><b>Reservas del día</b> — cada una con su total, sus servicios, sus pagos y si quedó pagada o debiendo.</li>
+    <li><b>Otros ingresos y gastos</b> — lo que no pasa por una reserva: bencina, almuerzo, venta de poleras.
+        Se elige <b>+ Ingreso</b> o <b>− Gasto</b>, descripción, método de pago y monto.</li>
+    <li><b>Desglose por método de pago</b> — una fila por método con lo cobrado, lo pagado a guías, otros gastos
+        y el neto. Abajo, el total y el <b>saldo pendiente de clientes</b>.</li>
+    <li><b>Guías del día</b> — cuántas salidas hizo cada uno, cuánto se devengó y cuánto se le pagó.</li>
+    <li><b>Balance del día</b> — la cuenta final.</li>
+  </ol>
+
+  <h3>Cómo se calcula el neto</h3>
+  <pre>Neto del día
+  = total cobrado
+  + otros ingresos
+  − pagado a guías
+  − otros gastos
+  − provisión de fin de mes</pre>
+
+  <p>El <b>saldo pendiente de clientes</b> se muestra aparte, en gris: es plata que aún no entra, así que no
+  suma al neto.</p>
+
+  <div class="ojo">
+    <span class="etiqueta">La provisión de fin de mes</span>
+    <p>Es una reserva de dinero por cada salida realizada, para los pagos que se hacen a fin de mes.
+    Hoy está fija en <b>$15.000 por salida</b> dentro del sistema: no se configura desde la pantalla.
+    Si tu empresa usa otro valor, hay que cambiarlo en el código.</p>
+  </div>
+</section>
+
+<!-- ══════════════════ 11 ══════════════════ -->
+<section>
+  <h2 id="cap-11"><span class="num">Capítulo 11</span>Importar desde Google Calendar</h2>
+
+  <p>Sirve para empresas que todavía agendan en Google Calendar: trae los eventos de un día y los convierte
+  en reservas, sin volver a escribirlas.</p>
+
+  <figure class="w92">
+    <img src="shots/23-importar-calendar.png" alt="">
+    <figcaption><b>Importar Calendar.</b> Se elige la fecha y se busca.</figcaption>
+  </figure>
+
+  <ol class="pasos">
+    <li>Elige la <b>fecha</b> a importar y toca <b>Buscar</b>.</li>
+    <li>El sistema lista los eventos de ese día y marca los que ya fueron importados antes.</li>
+    <li>Revisa lo que detectó: nombre, hora, cantidad y los clientes que venían en la descripción del evento.</li>
+    <li>Importa. Cada evento se convierte en una reserva con su horario correspondiente.</li>
+  </ol>
+
+  <p>Un evento ya importado no se duplica: el sistema recuerda cuál evento de Calendar generó cuál reserva.</p>
+
+  <div class="ojo">
+    <span class="etiqueta">Estado de esta función</span>
+    <p>La importación necesita que la empresa tenga configuradas sus credenciales de Google
+    (<code>GOOGLE_CLIENT_ID</code>, <code>GOOGLE_CLIENT_SECRET</code> y <code>GOOGLE_REDIRECT_URI</code>).
+    <b>Hoy no están configuradas</b>, así que la pantalla existe pero no trae eventos hasta que se conecten.
+    No afecta al resto del sistema.</p>
+  </div>
+</section>
+
+<!-- ══════════════════ 12 ══════════════════ -->
+<section>
+  <h2 id="cap-12"><span class="num">Capítulo 12</span>API de integración</h2>
+
+  <p>Permite que la página web de la empresa <b>cree la reserva sola</b> cuando un cliente compra y paga en línea:
+  la reserva aparece en la agenda, con su pago registrado, y los links de ficha vuelven listos para mandárselos
+  al cliente en el mismo correo de confirmación.</p>
+
+  <figure class="w170">
+    <img src="shots/27-docs-api-p1.png" alt="">
+    <figcaption><b>Documentación pública</b> en <code>/docs/api</code>: se abre sin cuenta, para que la lea quien programe la web.</figcaption>
+  </figure>
+
+  <h3>El token</h3>
+  <p>Cada empresa tiene su propio token, que entrega el administrador del sistema desde el panel de empresas.
+  Va en la cabecera de cada llamada:</p>
+  <pre>Authorization: Bearer rsv_1a2b3c...</pre>
+  <p>La empresa sale del token: no se manda en el cuerpo y un token nunca puede tocar datos de otra empresa.
+  El token <b>se muestra una sola vez</b> al crearlo. Si se pierde o se filtra, se revoca y se genera otro.</p>
+
+  <div class="ojo">
+    <span class="etiqueta">Dónde va el token</span>
+    <p>En el <b>servidor</b> de tu web, nunca en el JavaScript del navegador ni en el repositorio de código:
+    quien lo tenga puede crear reservas a tu nombre. La API no habilita CORS justamente para eso.</p>
+  </div>
+
+  <h3>Crear una reserva</h3>
+  <pre>POST /api/v1/reservas
+
+{
+  "nombre": "Juan Pérez",
+  "telefono": "56912345678",
+  "fecha": "2026-11-05",
+  "hora": "12:00",
+  "cantidad": 2,
+  "servicios": [9, 9],
+  "pago": { "monto": 40000, "metodo": "Transferencia" },
+  "personas": [
+    { "nombre": "Juan Pérez", "edad": 34, "peso": 78 },
+    { "nombre": "Ana Soto" }
+  ],
+  "referencia": "orden-4821"
+}</pre>
+
+  <table>
+    <tr><th>Campo</th><th>Obligatorio</th><th>Qué es</th></tr>
+    <tr><td><code>nombre</code></td><td>Sí</td><td>Quien reserva.</td></tr>
+    <tr><td><code>telefono</code></td><td>Sí</td><td>Solo dígitos; se limpian espacios, + y guiones.</td></tr>
+    <tr><td><code>fecha</code></td><td>Sí</td><td>Día de la salida, <code>YYYY-MM-DD</code>.</td></tr>
+    <tr><td><code>hora</code></td><td>Sí</td><td>Uno de los horarios de la empresa, <code>HH:MM</code>. Alternativa: <code>horario_id</code>.</td></tr>
+    <tr><td><code>cantidad</code></td><td>Sí</td><td>Cuántas personas.</td></tr>
+    <tr><td><code>servicios</code></td><td>No</td><td>Un id por unidad: dos salidas iguales son <code>[9, 9]</code>.</td></tr>
+    <tr><td><code>pago</code></td><td>No</td><td><code>monto</code> y <code>metodo</code> con el nombre exacto de un método de la empresa.</td></tr>
+    <tr><td><code>personas</code></td><td>No</td><td>Nombre, edad y peso de cada cliente.</td></tr>
+    <tr><td><code>referencia</code></td><td>No</td><td>Tu número de orden. Repetirla no duplica la reserva.</td></tr>
+  </table>
+
+  <p>La respuesta trae el id de la reserva y <b>un link de ficha por persona</b>, listo para mandar:</p>
+  <pre>{
+  "id": 65,
+  "creada": true,
+  "fichas": [
+    { "nombre": "Juan Pérez", "url": "https://tuempresa.../ficha/86dd.../juan-perez" },
+    { "nombre": "Ana Soto",   "url": "https://tuempresa.../ficha/4687.../ana-soto" }
+  ]
+}</pre>
+
+  <h3>Consultar el catálogo</h3>
+  <p><code>GET /api/v1/catalogo</code> devuelve los horarios, servicios y métodos de pago de la empresa,
+  para armar el formulario de la web con datos siempre al día.</p>
+
+  <h3>Errores</h3>
+  <table>
+    <tr><th>Código</th><th>Qué pasó</th></tr>
+    <tr><td><b>401</b></td><td>Token ausente, revocado o inválido.</td></tr>
+    <tr><td><b>400</b></td><td>Falta un dato, o el horario / servicio / método no existe en esa empresa. El mensaje dice cuáles sí existen.</td></tr>
+    <tr><td><b>500</b></td><td>Error del sistema. Se puede reintentar con la misma <code>referencia</code>: no se duplica nada.</td></tr>
+  </table>
+
+  <p>La documentación completa, siempre actualizada, está en <code>/docs/api</code> de la dirección de la empresa.</p>
+</section>
+
+<!-- ══════════════════ 13 ══════════════════ -->
+<section>
+  <h2 id="cap-13"><span class="num">Capítulo 13</span>Panel de empresas</h2>
+
+  <p>Es la pantalla del <b>administrador del sistema</b> (quien provee el servicio), no de las empresas clientes.
+  Vive en su propia dirección —<code>admin.&lt;dominio&gt;</code>— y solo entra ahí ese usuario:
+  cualquier otro recibe un rechazo aunque tenga cuenta válida.</p>
+
+  <figure class="w170">
+    <img src="shots/29-panel-empresas-p1.png" alt="">
+    <figcaption><b>Panel de empresas:</b> resumen general y una tarjeta por empresa.</figcaption>
+  </figure>
+
+  <h3>Lo que muestra de cada empresa</h3>
+  <ul>
+    <li>Usuarios y reservas totales, y reservas de los últimos 30 días.</li>
+    <li>Salidas y clientes de los últimos 30 días, y cuánto se cobró en ese período.</li>
+    <li>Fichas firmadas y pendientes.</li>
+    <li>Último acceso de cualquiera de sus usuarios — sirve para ver quién está usando el sistema y quién no.</li>
+  </ul>
+
+  <h3>Crear una empresa</h3>
+  <ol class="pasos">
+    <li><b>+ Nueva empresa</b>.</li>
+    <li><b>Nombre</b> y <b>slug</b>: el slug es el subdominio (minúsculas, números y guiones).</li>
+    <li><b>Rubro</b>: al elegirlo se muestra un previo de cómo hablará la app (“Pagos a pilotos”, “Nuevo pasajero”…).</li>
+    <li><b>Logo</b> (una URL de imagen) y <b>color</b>, que es con lo que se pinta su pantalla de acceso.</li>
+    <li>Opcionalmente, el <b>primer usuario administrador</b>: nombre, correo y contraseña. Queda con rol Admin.</li>
+  </ol>
+  <p>Al crearse la empresa nacen sus tres roles: <b>Admin</b>, el del guía según el rubro, y <b>Coordinador</b>;
+  los dos últimos, restringidos.</p>
+
+  <figure class="w170">
+    <img src="shots/30-panel-empresa-detalle-p2.png" alt="">
+    <figcaption><b>Detalle de una empresa:</b> KPI, botones de soporte y datos editables.</figcaption>
+  </figure>
+
+  <figure class="w170">
+    <img src="shots/30-panel-empresa-detalle-p3.png" alt="">
+    <figcaption><b>Más abajo:</b> usuarios de la empresa y tokens de la API.</figcaption>
+  </figure>
+
+  <h3>Administrar una empresa sin salir del panel</h3>
+  <p>Dos botones:</p>
+  <ul>
+    <li><b>Administrar esta empresa →</b> deja la sesión apuntando a esa empresa y abre la aplicación normal
+        desde el mismo panel. Es la forma de dar soporte sin pedirle la contraseña a nadie.</li>
+    <li><b>Abrir en su subdominio ↗</b> hace lo mismo pero en la dirección propia de la empresa.</li>
+  </ul>
+  <p>Mientras se está administrando una empresa, una franja amarilla lo recuerda arriba de la pantalla,
+  con un link para volver al panel.</p>
+
+  <h3>Usuarios y tokens</h3>
+  <ul>
+    <li><b>+ Usuario</b> crea gente dentro de esa empresa, con sus roles.</li>
+    <li><b>Contraseña</b> fija una nueva contraseña a un usuario (mínimo seis caracteres): es lo que se usa
+        cuando alguien pierde la suya.</li>
+    <li><b>Bloquear</b> le quita el acceso sin borrar nada, y se revierte igual de rápido.</li>
+    <li><b>API de reservas</b>: se crea un token con un nombre descriptivo (“web wordpress”), <b>se copia en ese
+        momento</b> —después no se vuelve a mostrar— y se puede revocar cuando se quiera.</li>
+  </ul>
+
+  <div class="nota">
+    <span class="etiqueta">Editar una empresa</span>
+    <p>Desde el mismo detalle se cambian nombre, rubro, logo, color y si está <b>activa</b>. Desactivarla es
+    la forma de suspender a un cliente sin borrar su información.</p>
+  </div>
+</section>
+
+<!-- ══════════════════ 14 ══════════════════ -->
+<section>
+  <h2 id="cap-14"><span class="num">Capítulo 14</span>Preguntas frecuentes y límites conocidos</h2>
+
+  <h3>Preguntas frecuentes</h3>
+
+  <h4>Me faltan tarjetas en el menú.</h4>
+  <p>Es el rol. Usuarios y Cuadre del día no se muestran a quien tiene solo roles restringidos
+  (coordinador y guía). Pídele a un administrador que revise tus roles.</p>
+
+  <h4>El cliente dice que su link de ficha no funciona.</h4>
+  <p>Revisa que sea el link completo y que la ficha no haya sido eliminada junto con la reserva. Si el link
+  se perdió, en la pestaña Hoy se puede copiar de nuevo o reenviarlo por WhatsApp.</p>
+
+  <h4>Firmó la ficha pero no aparece como firmada.</h4>
+  <p>La pantalla se refresca sola cada quince segundos. Si igual no aparece, abre <b>registro</b> en esa ficha:
+  ahí quedan los intentos fallidos con su motivo.</p>
+
+  <h4>¿Puedo cobrar en dos partes?</h4>
+  <p>Sí. Se registran tantos pagos como haga falta, con métodos distintos, y el saldo se va ajustando solo.</p>
+
+  <h4>¿Y si el cliente pagó antes por transferencia?</h4>
+  <p>Dos opciones: registrarlo como pago con método Transferencia, o escribirlo en el campo <b>Abono</b> del
+  detalle. Ambas restan del saldo; el pago con método además aparece en el desglose del cuadre del día.</p>
+
+  <h4>Me equivoqué y marqué una salida como realizada.</h4>
+  <p>Se desmarca con el mismo botón, tanto en la agenda como en la pestaña Hoy.</p>
+
+  <h4>¿Se puede usar desde el computador?</h4>
+  <p>Sí. Las pantallas están pensadas para el teléfono, pero funcionan igual en el computador; el detalle de
+  reserva se abre como ventana en vez de pantalla completa.</p>
+
+  <h3>Límites conocidos, hoy</h3>
+  <table>
+    <tr><th>Tema</th><th>Situación</th></tr>
+    <tr>
+      <td>Cobro en línea</td>
+      <td>Implementado, pero sin una vuelta completa probada con credenciales reales de Mercado Pago.</td>
+    </tr>
+    <tr>
+      <td>Importar Calendar</td>
+      <td>Faltan las credenciales de Google. La pantalla existe y no trae eventos hasta configurarlas.</td>
+    </tr>
+    <tr>
+      <td>Provisión de fin de mes</td>
+      <td>Fija en $15.000 por salida dentro del código; no se configura desde la aplicación.</td>
+    </tr>
+    <tr>
+      <td>Marcar restringido un rol nuevo</td>
+      <td>Los roles creados desde Varios nacen sin restricción; marcarlos como restringidos hoy requiere
+          tocar la base de datos.</td>
+    </tr>
+    <tr>
+      <td>Eliminar una reserva</td>
+      <td>Borra también sus fichas firmadas. Como las fichas deben conservarse dos años, elimina solo
+          reservas que nunca ocurrieron.</td>
+    </tr>
+  </table>
+
+  <div class="nota">
+    <span class="etiqueta">Versión de demostración</span>
+    <p>La demo sirve para probar y para enseñarle el sistema a alguien: se puede cargar lo que sea, porque
+    todo lo que tenga más de cinco días se borra solo cada mañana. Las capturas de este manual se tomaron ahí.</p>
+  </div>
+
+  <p style="margin-top:10mm; color:#5b6b65; font-size:9.5pt; text-align:center">
+    Manual del sistema de reservas <b class="marca">reserva<span style="color:#24914c">ps</span></b> ·
+    18 de octubre de 2026
+  </p>
+</section>
+
+
+<footer class="pie-web">
+  <p>Manual del sistema de reservas <b>reservaps</b> · <a href="/">la web de Reservaps</a> ·
+     <a href="manual-reservaps.pdf">versión en PDF</a></p>
+</footer>
+</body>
+</html>

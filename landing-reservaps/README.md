@@ -8,6 +8,12 @@ HTML y CSS planos, sin build: `public/` se sirve tal cual.
 - Dominio pendiente: **reservaps.dev** (verificado libre el 2026-10-13).
   Mientras no exista, los enlaces a la demo apuntan a los workers.
 
+## El manual
+
+`public/manual/` **es generado**, no se edita a mano: sale de
+`D:/Trabajo/manual-reservaps/fuente` con `node web.js` (ahi esta la fuente del
+manual y del PDF). Tras cambiar el manual, correr ese script y desplegar de nuevo.
+
 ## Por confirmar
 - Correo de contacto: hoy `hola@reservaps.dev` (no existe hasta comprar el dominio;
   se resuelve gratis con Email Routing de Cloudflare).
