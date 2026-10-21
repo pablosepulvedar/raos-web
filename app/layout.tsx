@@ -12,6 +12,9 @@ const geist = Geist({
 export const metadata: Metadata = {
   title: "Sistema de Reservas",
   description: "Sistema de gestión de reservas y vuelos",
+  // app/icon.svg es el de Reservaps, igual en todos los subdominios. El logo de
+  // cada empresa es otra cosa: va dentro de la pantalla, no en la pestaña.
+  icons: { icon: "/icon.svg" },
 };
 
 export default function RootLayout({
