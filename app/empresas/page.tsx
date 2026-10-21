@@ -4,6 +4,14 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase-browser'
 
+type Invitacion = {
+  id: number
+  empresa: string
+  logo_url: string | null
+  color: string | null
+  roles: string
+}
+
 type Empresa = {
   id: string
   slug: string
@@ -32,10 +40,33 @@ const cuando = (fecha: string | null) => {
 
 export default function Empresas() {
   const [empresas, setEmpresas] = useState<Empresa[] | null>(null)
+  const [invitaciones, setInvitaciones] = useState<Invitacion[]>([])
+  const [publicado, setPublicado] = useState(false)
+  const [respondiendo, setRespondiendo] = useState<number | null>(null)
 
-  useEffect(() => {
-    supabase.rpc('mis_empresas').then(({ data }) => setEmpresas((data as Empresa[]) ?? []))
-  }, [])
+  const cargar = async () => {
+    const [mias, invs, pub] = await Promise.all([
+      supabase.rpc('mis_empresas'),
+      supabase.rpc('mis_invitaciones'),
+      supabase.rpc('estoy_publicado'),
+    ])
+    setEmpresas((mias.data as Empresa[]) ?? [])
+    setInvitaciones((invs.data as Invitacion[]) ?? [])
+    setPublicado(!!pub.data)
+  }
+  useEffect(() => { cargar() }, [])
+
+  const responder = async (id: number, acepta: boolean) => {
+    setRespondiendo(id)
+    await supabase.rpc('responder_invitacion', { p_id: id, p_acepta: acepta })
+    await cargar()
+    setRespondiendo(null)
+  }
+
+  const publicarme = async (valor: boolean) => {
+    setPublicado(valor)
+    await supabase.rpc('publicarme', { p_disponible: valor })
+  }
 
   return (
     <div className="min-h-screen bg-[#f8f9fa]">
@@ -50,6 +81,36 @@ export default function Empresas() {
           Primero la que te asignó un vuelo más recientemente. Entras con el mismo
           correo y la misma contraseña en todas.
         </p>
+
+        {invitaciones.length > 0 && (
+          <div className="mb-6">
+            <p className="text-xs font-bold text-[#2e6db4] mb-2 tracking-wider uppercase">
+              Te invitaron a trabajar
+            </p>
+            {invitaciones.map(i => (
+              <div key={i.id} className="bg-[#fff8e1] border border-[#ffd700] rounded-xl p-4 mb-3">
+                <p className="font-bold text-[#0d2b5c]">{i.empresa}</p>
+                <p className="text-xs text-gray-600 mb-3">Te ofrecen entrar como {i.roles}</p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => responder(i.id, true)}
+                    disabled={respondiendo === i.id}
+                    className="bg-[#1e5a96] text-white text-sm font-semibold px-4 py-2 rounded-lg disabled:opacity-60"
+                  >
+                    Aceptar
+                  </button>
+                  <button
+                    onClick={() => responder(i.id, false)}
+                    disabled={respondiendo === i.id}
+                    className="border border-gray-400 text-gray-700 text-sm font-semibold px-4 py-2 rounded-lg disabled:opacity-60"
+                  >
+                    Rechazar
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
 
         {empresas === null && <p className="text-gray-500">Cargando…</p>}
         {empresas?.length === 0 && (
@@ -107,6 +168,27 @@ export default function Empresas() {
             Cada empresa ve solo lo que pasa en ella. Ninguna sabe para quién más vuelas.
           </p>
         )}
+
+        <div className="mt-8 bg-white border border-[#d4e6f5] rounded-xl p-5">
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              className="mt-1"
+              checked={publicado}
+              onChange={e => publicarme(e.target.checked)}
+            />
+            <span>
+              <span className="block font-bold text-[#0d2b5c]">
+                Disponible para otras empresas
+              </span>
+              <span className="block text-sm text-gray-600 mt-1">
+                Otras empresas pueden encontrarte por tu nombre y ofrecerte trabajo. Solo ven
+                tu nombre y tu rubro: nunca tu correo ni tu teléfono, ni para quién vuelas hoy.
+                Nadie te agrega sin que aceptes, y puedes desmarcarlo cuando quieras.
+              </span>
+            </span>
+          </label>
+        </div>
       </main>
     </div>
   )

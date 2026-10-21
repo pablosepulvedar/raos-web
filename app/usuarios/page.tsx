@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase-browser'
 const supabase = createClient()
 
 type Rol = { id: number; nombre: string }
+type Candidato = { id: string; nombre: string; rubros: string | null; ya_esta: boolean; invitado: boolean }
 type Usuario = {
   id: string
   nombre: string
@@ -25,6 +26,10 @@ export default function Usuarios() {
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [selectedRoles, setSelectedRoles] = useState<Rol[]>([])
+  // Banco de guías: buscar a alguien que ya usa el sistema en otra empresa
+  const [busqueda, setBusqueda] = useState('')
+  const [candidatos, setCandidatos] = useState<Candidato[] | null>(null)
+  const [invitando, setInvitando] = useState<string | null>(null)
   const [showRolePicker, setShowRolePicker] = useState(false)
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const formRef = useRef<HTMLDivElement>(null)
@@ -228,6 +233,28 @@ export default function Usuarios() {
     }
   }
 
+  // Se busca por nombre y hacen falta 3 letras: la función no devuelve nada con menos
+  useEffect(() => {
+    if (busqueda.trim().length < 3) { setCandidatos(null); return }
+    const t = setTimeout(async () => {
+      const { data } = await supabase.rpc('buscar_guias', { p_texto: busqueda.trim() })
+      setCandidatos((data as Candidato[]) ?? [])
+    }, 350)
+    return () => clearTimeout(t)
+  }, [busqueda])
+
+  const invitar = async (c: Candidato) => {
+    if (selectedRoles.length === 0) return setError('Elige los roles antes de invitar')
+    setInvitando(c.id)
+    const { error } = await supabase.rpc('invitar_guia', {
+      p_perfil: c.id, p_roles: selectedRoles.map(r => r.nombre),
+    })
+    setInvitando(null)
+    if (error) return setError(error.message)
+    setSuccess(`Invitación enviada a ${c.nombre}. Entra a tu empresa cuando la acepte.`)
+    setCandidatos(cs => (cs ?? []).map(x => x.id === c.id ? { ...x, invitado: true } : x))
+  }
+
   const passwordMatchColor =
     confirmPassword.length === 0 ? 'border-[#2e6db4]' : password === confirmPassword ? 'border-green-500' : 'border-red-500'
 
@@ -258,6 +285,49 @@ export default function Usuarios() {
         >
           {showForm ? 'Cancelar' : '+ Agregar Usuario'}
         </button>
+
+        {/* Banco de guías: solo aparece mientras se crea a alguien nuevo */}
+        {showForm && !editingId && (
+          <div className="bg-white border border-[#d4e6f5] rounded-xl p-4 mb-4">
+            <p className="font-bold text-[#1e5a96] text-sm mb-1">¿Ya usa el sistema?</p>
+            <p className="text-xs text-gray-600 mb-3">
+              Busca por nombre a un guía que trabaje en otra empresa y se publicó como
+              disponible. Si aceptas invitarlo, entra con su cuenta de siempre.
+            </p>
+            <input
+              className="w-full border border-[#b0cce8] rounded-lg p-2.5 text-sm"
+              placeholder="Nombre del guía (al menos 3 letras)"
+              value={busqueda}
+              onChange={e => setBusqueda(e.target.value)}
+            />
+            {candidatos?.length === 0 && (
+              <p className="text-xs text-gray-500 mt-2">
+                Nadie con ese nombre está disponible. Créalo abajo.
+              </p>
+            )}
+            {candidatos?.map(c => (
+              <div key={c.id} className="flex items-center gap-3 border-t border-[#eef3f7] pt-3 mt-3">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-[#0d2b5c] truncate">{c.nombre}</p>
+                  <p className="text-xs text-gray-500">{c.rubros ?? 'Sin rubro'}</p>
+                </div>
+                {c.ya_esta ? (
+                  <span className="text-xs text-gray-500">Ya está aquí</span>
+                ) : c.invitado ? (
+                  <span className="text-xs text-green-700 font-semibold">Invitado</span>
+                ) : (
+                  <button
+                    onClick={() => invitar(c)}
+                    disabled={invitando === c.id}
+                    className="text-sm font-semibold text-[#1e5a96] border border-[#1e5a96] rounded-lg px-3 py-1.5 disabled:opacity-60"
+                  >
+                    Invitar
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Formulario */}
         {showForm && (
