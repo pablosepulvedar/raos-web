@@ -27,6 +27,16 @@
   --radius: 14px;
 }
 
+/* La portada en tres tamaños. En pantallas verticales (celular, tablet
+   parada) un recorte horizontal se escalaria por la altura y quedaria
+   ampliado unas 3 veces; el vertical sale directo del 4K del dron, con
+   la vela a la derecha del titulo. */
+@media (orientation: portrait) and (max-width: 1100px) { :root { --foto-hero: url("img/hero-vertical.jpg"); } }
+@media (min-width: 1921px), (min-width: 1280px) and (min-resolution: 1.5dppx) { :root { --foto-hero: url("img/hero-2560.jpg"); } }
+/* Tablet horizontal: la foto sobra a los lados; se corre para que la vela
+   no quede detras del titulo */
+@media (orientation: landscape) and (max-width: 1300px) { .hero.photo-hero { background-position: 15% 55%; } }
+
 .photo-hero      { background-image: linear-gradient(90deg, rgba(11,26,51,.85), rgba(11,26,51,.35) 60%, rgba(11,26,51,.2)), var(--foto-hero); }
 .photo-clasico   { background-image: var(--foto-clasico); }
 .photo-termico   { background-image: var(--foto-termico); }
@@ -51,6 +61,18 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 .skip { position: absolute; left: -999px; top: 8px; z-index: 100; background: var(--yellow); color: var(--navy); padding: 8px 14px; border-radius: 8px; }
 .skip:focus { left: 8px; }
 .container { width: 100%; max-width: 1200px; margin: 0 auto; padding: 0 16px; }
+/* Pantallas grandes: casi todo esta en rem, asi que basta con subir la base
+   para que crezca en proporcion en vez de quedar una columna chica al centro */
+@media (min-width: 1800px) {
+  html { font-size: 17.5px; }
+  .container { max-width: 1400px; }
+  .hero.photo-hero { min-height: min(100svh, 980px); }
+}
+@media (min-width: 2400px) {
+  html { font-size: 20px; }
+  .container { max-width: 1640px; }
+  .hero.photo-hero { min-height: min(100svh, 1150px); }
+}
 .center { text-align: center; }
 .ic { width: 1.15em; height: 1.15em; flex: none; }
 .ic-lg { width: 1.8em; height: 1.8em; }
@@ -264,13 +286,15 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 .foot-brand { display: flex; gap: 14px; align-items: center; }
 .foot-brand img { border-radius: 50%; }
 .foot-name { font-family: "Barlow Condensed", sans-serif; font-style: italic; font-weight: 800; font-size: 1.4rem; color: #fff; text-transform: uppercase; }
-.foot-links { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 24px; }
+.foot-links { display: grid; grid-template-columns: 1fr 1fr; gap: 0 24px; }
+/* 44px de alto: el minimo comodo para el dedo */
+.foot-links a, .contact a { display: inline-flex; align-items: center; min-height: 44px; }
 .footer a { text-decoration: none; }
 .footer a:hover { color: var(--yellow); }
 .social { display: flex; gap: 10px; }
 .social a { width: 40px; height: 40px; border-radius: 50%; background: var(--navy-2); display: flex; align-items: center; justify-content: center; line-height: 0; color: #fff; }
 .social .ic { display: block; width: 19px; height: 19px; }
-.contact { display: grid; gap: 8px; }
+.contact { display: grid; gap: 0; }
 .contact a { display: flex; align-items: center; gap: .5em; }
 .copy { margin-top: 32px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,.1); font-size: .78rem; }
 @media (min-width: 900px) { .footer-grid { grid-template-columns: 1.4fr 1fr 1fr 1fr; } }
