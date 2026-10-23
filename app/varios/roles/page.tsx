@@ -3,12 +3,25 @@
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase-browser'
+import { May, useJerga } from '@/lib/jerga'
 
 const supabase = createClient()
 
-type Rol = { id: number; nombre: string; created_at: string }
+type Rol = { id: number; nombre: string; created_at: string; restringido: boolean; permisos: string[] }
+
+// Las secciones del menú principal. "reservas" además lo aplica el RLS: sin él,
+// solo ve sus propios vuelos ya hechos, en la pantalla de pilotos.
+const SECCIONES = ['reservas', 'pilotos', 'varios', 'calendar', 'reporte'] as const
 
 export default function Roles() {
+  const j = useJerga()
+  const etiqueta: Record<string, string> = {
+    reservas: 'Reservas',
+    pilotos: May(j.operador_plural),
+    varios: 'Varios',
+    calendar: 'Importar Calendar',
+    reporte: 'Cuadre del día',
+  }
   const [roles, setRoles] = useState<Rol[]>([])
   const [nombre, setNombre] = useState('')
   const [loading, setLoading] = useState(false)
@@ -38,7 +51,8 @@ export default function Roles() {
         if (error) throw error
         setSuccess('Rol actualizado correctamente')
       } else {
-        const { error } = await supabase.from('roles').insert({ nombre: nombre.trim() })
+        // Los roles nuevos nacen con permisos editables; Admin de base hay uno solo
+        const { error } = await supabase.from('roles').insert({ nombre: nombre.trim(), restringido: true })
         if (error) throw error
         setSuccess('Rol agregado correctamente')
       }
@@ -48,6 +62,19 @@ export default function Roles() {
       setError(err instanceof Error ? err.message : 'No se pudo guardar el rol')
     } finally {
       setSaving(false)
+    }
+  }
+
+  const togglePermiso = async (rol: Rol, seccion: string) => {
+    setError(null)
+    const permisos = rol.permisos.includes(seccion)
+      ? rol.permisos.filter(p => p !== seccion)
+      : [...rol.permisos, seccion]
+    setRoles(rs => rs.map(r => r.id === rol.id ? { ...r, permisos } : r))
+    const { error } = await supabase.from('roles').update({ permisos }).eq('id', rol.id)
+    if (error) {
+      setError(error.message.includes('no autorizado') ? 'Solo un administrador puede cambiar permisos' : 'No se pudo guardar el permiso')
+      await fetchRoles()
     }
   }
 
@@ -93,26 +120,44 @@ export default function Roles() {
           ) : (
             <div className="flex flex-col gap-2">
               {roles.map((item) => (
-                <div key={item.id} className="bg-white border border-[#d4e6f5] rounded-xl p-4 flex items-center justify-between">
-                  <div>
-                    <p className="text-[#0d2b5c] font-bold text-base">{item.nombre}</p>
-                    <p className="text-gray-400 text-xs mt-1">
-                      Creado: {item.created_at ? new Date(item.created_at).toLocaleString('es-CL') : '---'}
-                    </p>
+                <div key={item.id} className="bg-white border border-[#d4e6f5] rounded-xl p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-[#0d2b5c] font-bold text-base">{item.nombre}</p>
+                      <p className="text-gray-400 text-xs mt-1">
+                        {item.restringido ? 'Ve solo lo marcado' : 'Rol de base: ve todo, no se edita'}
+                      </p>
+                    </div>
+                    {item.restringido && (
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => { setNombre(item.nombre); setEditingId(item.id); setError(null) }}
+                          className="px-3 py-1.5 bg-[#2e6db4] text-white text-sm font-bold rounded-lg hover:bg-[#255d9a]"
+                        >
+                          Editar
+                        </button>
+                        <button
+                          onClick={() => deleteRol(item)}
+                          className="px-3 py-1.5 bg-[#d9534f] text-white text-sm font-bold rounded-lg hover:bg-[#c9302c]"
+                        >
+                          Borrar
+                        </button>
+                      </div>
+                    )}
                   </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => { setNombre(item.nombre); setEditingId(item.id); setError(null) }}
-                      className="px-3 py-1.5 bg-[#2e6db4] text-white text-sm font-bold rounded-lg hover:bg-[#255d9a]"
-                    >
-                      Editar
-                    </button>
-                    <button
-                      onClick={() => deleteRol(item)}
-                      className="px-3 py-1.5 bg-[#d9534f] text-white text-sm font-bold rounded-lg hover:bg-[#c9302c]"
-                    >
-                      Borrar
-                    </button>
+                  <div className="grid grid-cols-2 gap-x-3 gap-y-1 mt-3 pt-3 border-t border-[#eef4fb]">
+                    {SECCIONES.map(sec => (
+                      <label key={sec} className={`flex items-center gap-2 text-sm py-1 ${item.restringido ? 'cursor-pointer text-[#0d2b5c]' : 'text-gray-400'}`}>
+                        <input
+                          type="checkbox"
+                          className="w-4 h-4 accent-[#2e6db4]"
+                          checked={!item.restringido || item.permisos.includes(sec)}
+                          disabled={!item.restringido}
+                          onChange={() => togglePermiso(item, sec)}
+                        />
+                        Ve {etiqueta[sec]}
+                      </label>
+                    ))}
                   </div>
                 </div>
               ))}

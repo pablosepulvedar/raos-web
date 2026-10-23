@@ -21,6 +21,7 @@ const menuItems = [
   },
   {
     href: '/reservas',
+    permiso: 'reservas',
     emoji: '📅',
     titulo: 'Reservas',
     descripcion: 'Ver y gestionar reservas',
@@ -32,6 +33,7 @@ const menuItems = [
   },
   {
     href: '/pilotos',
+    permiso: 'pilotos',
     emoji: '🪂',
     titulo: 'Pilotos',
     descripcion: 'Ver y gestionar pagos de pilotos',
@@ -43,6 +45,7 @@ const menuItems = [
   },
   {
     href: '/varios',
+    permiso: 'varios',
     emoji: '⚙️',
     titulo: 'Varios',
     descripcion: 'Horarios, valores y roles',
@@ -54,6 +57,7 @@ const menuItems = [
   },
   {
     href: '/calendar',
+    permiso: 'calendar',
     emoji: '🗓️',
     titulo: 'Importar Calendar',
     descripcion: 'Importar reservas desde Google Calendar',
@@ -65,6 +69,7 @@ const menuItems = [
   },
   {
     href: '/reporte',
+    permiso: 'reporte',
     emoji: '📊',
     titulo: 'Cuadre del día',
     descripcion: 'Reporte diario de ingresos, pagos y pilotos',
@@ -73,7 +78,6 @@ const menuItems = [
     texto: '#fff',
     subtexto: '#fde68a',
     sombra: 'rgba(180,83,9,0.35)',
-    adminOnly: true,
   },
   {
     href: '/admin',
@@ -94,10 +98,12 @@ export default function Home() {
   const j = useJerga()
   const [userName, setUserName] = useState('Usuario')
   const [esAdmin, setEsAdmin] = useState(true)
+  // Secciones que sus roles le dejan ver (Varios > Roles). El admin las ve todas.
+  const [permisos, setPermisos] = useState<Set<string>>(new Set())
   const [esSuper, setEsSuper] = useState(false)
   // en admin.<dominio> el superadmin opera sobre la empresa que eligio en el panel
   const [enAdmin, setEnAdmin] = useState(false)
-  const [empresa, setEmpresa] = useState<{ nombre: string; logo_url: string | null; pilotos_ven_reservas: boolean } | null>(null)
+  const [empresa, setEmpresa] = useState<{ nombre: string; logo_url: string | null } | null>(null)
   // Solo se ofrece cambiar de empresa a quien trabaja en más de una
   const [variasEmpresas, setVariasEmpresas] = useState(false)
   // Las tarjetas dependen del rol: mostrarlas antes de saberlo hace que aparezcan
@@ -113,7 +119,7 @@ export default function Home() {
 
         const { data: profile } = await supabase
           .from('perfiles')
-          .select('nombre, es_superadmin, perfil_roles(roles(nombre, restringido))')
+          .select('nombre, es_superadmin, perfil_roles(roles(nombre, restringido, permisos))')
           .eq('id', data.user.id)
           .single()
 
@@ -121,7 +127,7 @@ export default function Home() {
         // deja ver una sola fila en `empresas`.
         const { data: suEmpresa } = await supabase
           .from('empresas')
-          .select('nombre, logo_url, pilotos_ven_reservas')
+          .select('nombre, logo_url')
           .maybeSingle()
 
         setEsSuper(!!profile?.es_superadmin)
@@ -138,6 +144,7 @@ export default function Home() {
         const soloRolesRestringidos =
           restringidos.length > 0 && restringidos.every(Boolean)
         setEsAdmin(!soloRolesRestringidos)
+        setPermisos(new Set((profile?.perfil_roles ?? []).flatMap((pr: any) => pr.roles?.permisos ?? [])))
       } catch {
         // Sin acción
       } finally {
@@ -216,9 +223,7 @@ export default function Home() {
               : item.href === '/reporte'
                 ? { ...item, descripcion: `Reporte diario de ingresos, pagos y ${j.operador_plural}` }
                 : item
-          ).filter(item => !((item.href === '/usuarios' || (item as any).adminOnly) && !esAdmin)
-            // la empresa puede apagarle las reservas al piloto (Varios > Permisos); igual lo tapa el RLS
-            && !(item.href === '/reservas' && !esAdmin && empresa?.pilotos_ven_reservas === false) && !((item as any).superOnly && !esSuper)).map((item) => (
+          ).filter(item => (esAdmin || ((item as any).permiso && permisos.has((item as any).permiso))) && !((item as any).superOnly && !esSuper)).map((item) => (
             <Link
               key={item.href}
               href={item.href}
