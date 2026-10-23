@@ -97,7 +97,7 @@ export default function Home() {
   const [esSuper, setEsSuper] = useState(false)
   // en admin.<dominio> el superadmin opera sobre la empresa que eligio en el panel
   const [enAdmin, setEnAdmin] = useState(false)
-  const [empresa, setEmpresa] = useState<{ nombre: string; logo_url: string | null } | null>(null)
+  const [empresa, setEmpresa] = useState<{ nombre: string; logo_url: string | null; pilotos_ven_reservas: boolean } | null>(null)
   // Solo se ofrece cambiar de empresa a quien trabaja en más de una
   const [variasEmpresas, setVariasEmpresas] = useState(false)
   // Las tarjetas dependen del rol: mostrarlas antes de saberlo hace que aparezcan
@@ -121,7 +121,7 @@ export default function Home() {
         // deja ver una sola fila en `empresas`.
         const { data: suEmpresa } = await supabase
           .from('empresas')
-          .select('nombre, logo_url')
+          .select('nombre, logo_url, pilotos_ven_reservas')
           .maybeSingle()
 
         setEsSuper(!!profile?.es_superadmin)
@@ -216,7 +216,9 @@ export default function Home() {
               : item.href === '/reporte'
                 ? { ...item, descripcion: `Reporte diario de ingresos, pagos y ${j.operador_plural}` }
                 : item
-          ).filter(item => !((item.href === '/usuarios' || (item as any).adminOnly) && !esAdmin) && !((item as any).superOnly && !esSuper)).map((item) => (
+          ).filter(item => !((item.href === '/usuarios' || (item as any).adminOnly) && !esAdmin)
+            // la empresa puede apagarle las reservas al piloto (Varios > Permisos); igual lo tapa el RLS
+            && !(item.href === '/reservas' && !esAdmin && empresa?.pilotos_ven_reservas === false) && !((item as any).superOnly && !esSuper)).map((item) => (
             <Link
               key={item.href}
               href={item.href}
