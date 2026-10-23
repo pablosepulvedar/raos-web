@@ -380,7 +380,8 @@
   </div>
 
   <h3>Los tres roles</h3>
-  <p>Cada usuario tiene uno o más roles. Al crear una empresa nacen tres, y son los que deciden qué se ve:</p>
+  <p>Cada usuario tiene uno o más roles. Al crear una empresa nacen tres, y son los que deciden qué se ve.
+  Esto es lo que ve cada uno de partida; el administrador lo puede cambiar rol por rol (capítulo 9.3):</p>
 
   <table>
     <tr><th>Rol</th><th>Para quién</th><th>Qué ve</th></tr>
@@ -401,15 +402,15 @@
     </tr>
   </table>
 
-  <p>Coordinador y guía son <b>roles restringidos</b>: el sistema los marca como tales al crearse la empresa,
-  así que la restricción no depende de cómo se llame el rol en cada rubro. Un usuario que tenga <i>solo</i>
-  roles restringidos no ve Usuarios ni Cuadre del día; basta que tenga además un rol no restringido
-  para ver el panel completo.</p>
+  <p>Coordinador y guía son <b>roles restringidos</b>: ven solo las secciones que tengan marcadas en
+  <b>Varios → Roles</b>. Admin es el <b>rol de base</b>: ve todo y no se puede restringir. Si una persona
+  tiene varios roles, ve la suma de lo que permite cada uno; basta que tenga Admin para ver el panel completo.</p>
 
   <div class="nota">
     <span class="etiqueta">Crear más roles</span>
-    <p>Puedes agregar los roles que quieras en <b>Varios → Roles</b> (capítulo 9). Los roles que crees ahí
-    nacen sin restricción, es decir, ven el panel completo.</p>
+    <p>Puedes agregar los roles que quieras en <b>Varios → Roles</b> (capítulo 9.3), por ejemplo
+    “Recepción”. Nacen restringidos, con las mismas secciones que el coordinador, y ahí mismo
+    marcas o desmarcas lo que ven.</p>
   </div>
 </section>
 
@@ -447,9 +448,9 @@
   si trabajas en más de una). Ahí están tus empresas, las invitaciones que recibiste y el
   interruptor para aparecer o no en el banco de guías. Está en el capítulo 8.</p>
 
-  <p>Si a alguien le faltan tarjetas, no es un error: es su rol. <b>Usuarios</b> y <b>Cuadre del día</b>
-  no aparecen para quien tiene solo roles restringidos, y <b>Panel de empresas</b> solo lo ve el
-  administrador del sistema.</p>
+  <p>Si a alguien le faltan tarjetas, no es un error: es su rol. Cada rol ve las secciones que tenga
+  marcadas en <b>Varios → Roles</b>; <b>Usuarios</b> lo ve solo el Admin, y <b>Panel de empresas</b>
+  solo el administrador del sistema.</p>
 
   <div class="ojo">
     <span class="etiqueta">La franja amarilla de la demo</span>
@@ -1004,10 +1005,31 @@
   <h3>9.3 Roles</h3>
   <figure class="w72">
     <img src="shots/17-roles.png" alt="">
-    <figcaption><b>Roles.</b> Los tres que nacen con la empresa, más los que agregues.</figcaption>
+    <figcaption><b>Roles.</b> Cada rol con las secciones que ve. Admin viene marcado entero y no se edita.</figcaption>
   </figure>
-  <p>Se agregan, se renombran y se borran. Un rol asignado a alguien no se puede borrar: primero hay que
-  quitárselo a esos usuarios.</p>
+  <p>Debajo de cada rol están las secciones del menú que puede ver: <b>Reservas</b>, <b>Guías</b>
+  (o pilotos, según tu rubro), <b>Varios</b>, <b>Importar Calendar</b> y <b>Cuadre del día</b>.
+  Marcas o desmarcas y queda guardado al instante; quien tenga ese rol lo nota la próxima vez que abra el menú.</p>
+  <ul>
+    <li><b>Admin</b> es el rol de base: aparece todo marcado y en gris, sin Editar ni Borrar. Así nadie
+    se queda afuera de su propia empresa.</li>
+    <li>Los demás roles se agregan, se renombran, se borran y se configuran. Los nuevos nacen con
+    Reservas, Guías, Varios e Importar Calendar marcados.</li>
+    <li><b>Usuarios</b> no aparece en la lista: crear y quitar gente es siempre del Admin.</li>
+    <li>Un rol asignado a alguien no se puede borrar: primero hay que quitárselo a esos usuarios.</li>
+    <li>Solo un Admin cambia permisos. Si otro lo intenta, el sistema responde
+    <i>“Solo un administrador puede cambiar permisos”</i>.</li>
+  </ul>
+
+  <div class="nota">
+    <span class="etiqueta">Quitar “Ve Reservas” a los guías</span>
+    <p>Es el caso más común: que los guías no vean la agenda de la empresa. Al desmarcarlo, el guía deja
+    de ver la tarjeta Reservas y ve <b>solo sus propias salidas, desde el día en que ocurren</b>, en la
+    pantalla de Guías, con lo que se le debe y lo que se le pagó. No ve las salidas futuras, las de los
+    otros guías, los pagos de los clientes ni las fichas, ni aunque escriba la dirección a mano: el
+    bloqueo está en la base de datos, no solo en el menú.</p>
+  </div>
+  <p>Las otras secciones solo se esconden del menú.</p>
 
   <h3>9.4 Métodos de pago</h3>
   <figure class="w72">
@@ -1090,7 +1112,7 @@
   <figcaption>Cuadre del dia</figcaption>
 </figure>
 
-  <p>El resumen financiero de una jornada, pensado para cerrar la caja. Solo lo ve quien tenga rol no restringido.
+  <p>El resumen financiero de una jornada, pensado para cerrar la caja. Lo ve el Admin y los roles que lo tengan marcado en Varios → Roles.
   Arriba se cambia de día con las flechas o se vuelve a hoy con el botón <b>Hoy</b>.</p>
 
   <figure class="w92">
@@ -1341,8 +1363,8 @@
   <h3>Preguntas frecuentes</h3>
 
   <h4>Me faltan tarjetas en el menú.</h4>
-  <p>Es el rol. Usuarios y Cuadre del día no se muestran a quien tiene solo roles restringidos
-  (coordinador y guía). Pídele a un administrador que revise tus roles.</p>
+  <p>Es el rol. Cada rol ve las secciones que el administrador le marcó en Varios → Roles, y Usuarios
+  lo ve solo el Admin. Pídele a un administrador que revise tus roles y sus permisos.</p>
 
   <h4>El cliente dice que su link de ficha no funciona.</h4>
   <p>Revisa que sea el link completo y que la ficha no haya sido eliminada junto con la reserva. Si el link
