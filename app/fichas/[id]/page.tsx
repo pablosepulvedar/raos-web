@@ -17,6 +17,8 @@ type Ficha = {
   ip: string | null; user_agent: string | null
   reservas: { nombre: string; fecha: string; horarios: { horario: number } | null } | null
   empresas: { nombre: string; registro_sernatur: string | null } | null
+  // el piloto asignado al pasajero de esta ficha
+  reservas_personas: { perfiles: { nombre: string } | null } | null
 }
 
 const fmtH = (v?: number | null) => {
@@ -36,7 +38,7 @@ function Campo({ label, children }: { label: string; children: React.ReactNode }
   )
 }
 
-function Seccion({ n, titulo }: { n: number; titulo: string }) {
+function Seccion({ n, titulo }: { n: number | string; titulo: string }) {
   return (
     <h2 className="text-[11px] font-bold uppercase tracking-wide text-black mt-4 mb-1">
       {n}. {titulo}
@@ -53,7 +55,7 @@ export default function FichaFirmada() {
 
   useEffect(() => {
     sb.from('fichas_riesgo')
-      .select('*, reservas(nombre, fecha, horarios(horario)), empresas(nombre, registro_sernatur)')
+      .select('*, reservas(nombre, fecha, horarios(horario)), empresas(nombre, registro_sernatur), reservas_personas(perfiles(nombre))')
       .eq('id', id)
       .maybeSingle()
       .then(({ data }) => (data ? setF(data as unknown as Ficha) : setNoHay(true)))
@@ -64,6 +66,7 @@ export default function FichaFirmada() {
 
   const idioma: Idioma = f.idioma === 'en' ? 'en' : 'es'
   const empresa = f.empresas?.nombre ?? ''
+  const esMenor = f.edad != null && f.edad < 18
 
   return (
     <div className="flex-1 bg-gray-100 py-6 print:bg-white print:py-0">
@@ -92,19 +95,30 @@ export default function FichaFirmada() {
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-px">
+        <div className="grid grid-cols-4 gap-px">
           <Campo label="Fecha del vuelo">{f.reservas?.fecha}</Campo>
           <Campo label="Hora">{fmtH(f.reservas?.horarios?.horario)}</Campo>
+          <Campo label="Guía a cargo">{f.reservas_personas?.perfiles?.nombre}</Campo>
           <Campo label="N° Gift Card">{f.gift_card}</Campo>
         </div>
 
-        <Seccion n={1} titulo="Datos personales" />
+        <Seccion n={1} titulo={esMenor ? 'Datos personales — participante menor de edad' : 'Datos personales'} />
         <div className="grid grid-cols-4 gap-px">
           <Campo label="Nombre y apellido">{f.nombre}</Campo>
           <Campo label="RUT o pasaporte">{f.documento}</Campo>
           <Campo label="Edad">{f.edad}</Campo>
           <Campo label="Nacionalidad">{f.nacionalidad}</Campo>
         </div>
+
+        {f.tutor_nombre && (
+          <>
+            <Seccion n="1.1" titulo="Padre, madre o tutor (completa y acepta por el menor)" />
+            <div className="grid grid-cols-2 gap-px">
+              <Campo label="Nombre">{f.tutor_nombre}</Campo>
+              <Campo label="RUT o pasaporte">{f.tutor_documento}</Campo>
+            </div>
+          </>
+        )}
 
         <Seccion n={2} titulo="Contacto en caso de urgencia" />
         <div className="grid grid-cols-3 gap-px">
@@ -113,15 +127,6 @@ export default function FichaFirmada() {
           <Campo label="Parentesco">{f.emergencia_parentesco}</Campo>
         </div>
 
-        {f.tutor_nombre && (
-          <>
-            <Seccion n={2} titulo="Adulto responsable (participante menor de edad)" />
-            <div className="grid grid-cols-2 gap-px">
-              <Campo label="Nombre">{f.tutor_nombre}</Campo>
-              <Campo label="RUT o pasaporte">{f.tutor_documento}</Campo>
-            </div>
-          </>
-        )}
 
         <Seccion n={3} titulo="Declaración de experiencia" />
         <div className="grid grid-cols-1 gap-px">
@@ -186,7 +191,10 @@ export default function FichaFirmada() {
           {f.aceptada_at ? (
             <div className="text-[11px] leading-relaxed text-black">
               <p>
-                <b>{f.nombre}</b> marcó la declaración de aceptación de riesgo el{' '}
+                {f.tutor_nombre
+                  ? <><b>{f.tutor_nombre}</b> ({f.tutor_documento || 'sin documento'}), como padre, madre o tutor de{' '}
+                      <b>{f.nombre}</b>, marcó la declaración de aceptación de riesgo el </>
+                  : <><b>{f.nombre}</b> marcó la declaración de aceptación de riesgo el </>}
                 <b>{fmtFecha(f.aceptada_at)}</b>.
               </p>
               <p className="text-gray-600">

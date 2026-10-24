@@ -138,6 +138,19 @@ export default function Reservas() {
     fetchDots(calY, calM)
   }, [fetchDays, fetchDots, calY, calM])
 
+  // ── Pestañas ───────────────────────────────────────────
+  // Se recuerda la última pestaña en este navegador. Hoy se recarga sola al
+  // montarse; la agenda guarda sus datos en este componente, así que se pide de
+  // nuevo al volver (si no, lo marcado en Hoy aparece viejo hasta recargar).
+  useEffect(() => {
+    try { if (localStorage.getItem('reservas-tab') === 'hoy') setTab('hoy') } catch {}
+  }, [])
+  const cambiarTab = (k: 'agenda'|'hoy') => {
+    setTab(k)
+    try { localStorage.setItem('reservas-tab', k) } catch {}
+    if (k === 'agenda') refreshWindow()
+  }
+
   // ── Initial load ───────────────────────────────────────
   useEffect(() => {
     const load = async () => {
@@ -268,7 +281,7 @@ export default function Reservas() {
       {/* ── Pestañas ── */}
       <div className="max-w-lg mx-auto w-full flex gap-1 px-4 pt-3">
         {([['agenda','Agenda'],['hoy','Hoy']] as const).map(([k, label]) => (
-          <button key={k} onClick={() => setTab(k)}
+          <button key={k} onClick={() => cambiarTab(k)}
             className={`flex-1 py-2 rounded-xl text-sm font-bold transition-colors ${
               tab === k ? 'bg-[#2e6db4] text-white' : 'bg-[rgba(46,109,180,0.12)] text-[#2e6db4]'}`}>
             {label}
@@ -354,7 +367,7 @@ export default function Reservas() {
                         {num}
                       </div>
                     </div>
-                    <div className="flex-1 flex flex-col gap-2 pt-1">
+                    <div className="flex-1 min-w-0 flex flex-col gap-2 pt-1">
                       {reservas.length === 0 ? (
                         <p className="text-[#b0cce8] text-sm py-2 italic">Sin reservas</p>
                       ) : reservas.map(r => {

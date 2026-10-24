@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { May, useJerga } from '@/lib/jerga'
 import { createClient } from '@/lib/supabase-browser'
+import InputMonto from '@/components/InputMonto'
 
 const supabase = createClient()
 
@@ -177,13 +178,12 @@ export default function Valores() {
           <label className="block text-[#1e5a96] font-bold text-sm mb-1">Monto (CLP)</label>
           <div className="flex items-center border border-[#b0cce8] rounded-lg mb-3 bg-white overflow-hidden">
             <span className="px-3 text-gray-400 text-sm font-semibold">$</span>
-            <input
+            <InputMonto
               className="flex-1 p-3 text-sm bg-transparent outline-none"
-              placeholder="65000"
+              placeholder="65.000"
               value={monto}
-              onChange={(e) => setMonto(e.target.value.replace(/[^0-9]/g, ''))}
+              onChange={setMonto}
             />
-            {monto && <span className="px-3 text-[#2e6db4] text-xs font-semibold">{formatCLP(Number(monto))}</span>}
           </div>
 
           <div className="border border-[#b0cce8] rounded-lg px-3 mb-4 divide-y divide-[#e8f0f7]">

@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { May, useJerga } from '@/lib/jerga'
 import { createClient } from '@/lib/supabase-browser'
+import InputMonto from '@/components/InputMonto'
 
 type PilotoResumen  = { perfil_id: string; nombre: string; vuelos: number; deuda: number; pagado: number }
 type ServicioPiloto = { id: number; servicio: string; monto: number; cantidad: number }
@@ -449,7 +450,7 @@ export default function Pilotos() {
                       </div>
                     </div>
 
-                    <div className="flex-1 flex flex-col gap-2 pt-1">
+                    <div className="flex-1 min-w-0 flex flex-col gap-2 pt-1">
                       {pilotos.length === 0 ? (
                         <p className="text-[#b0cce8] text-sm py-2 italic">Sin {j.actividad_plural}</p>
                       ) : pilotos.map(p => {
@@ -630,10 +631,8 @@ export default function Pilotos() {
                                     </div>
                                     <div className="flex items-center rounded-xl overflow-hidden shrink-0" style={{ border:'1px solid #86efac', background:'white', width:'90px' }}>
                                       <span className="pl-2 text-gray-400 text-xs font-semibold select-none">$</span>
-                                      <input className="flex-1 text-sm bg-transparent outline-none px-1 py-2.5 w-0 text-[#0d2b5c]"
-                                        placeholder="0" value={pagoMonto}
-                                        onChange={e => setPagoMonto(e.target.value.replace(/[^0-9]/g,''))}
-                                        maxLength={8} />
+                                      <InputMonto className="flex-1 text-sm bg-transparent outline-none px-1 py-2.5 w-0 text-[#0d2b5c]"
+                                        placeholder="0" value={pagoMonto} onChange={setPagoMonto} maxLength={10} />
                                     </div>
                                     <button onClick={agregarPilotoPago} disabled={addingPago || !selectedPagoMetodoId || !pagoMonto}
                                       className="shrink-0 font-bold py-2.5 px-3 rounded-xl text-xs text-white transition-all"

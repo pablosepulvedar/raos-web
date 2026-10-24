@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { May, useJerga } from '@/lib/jerga'
 import { createClient } from '@/lib/supabase-browser'
+import InputMonto from '@/components/InputMonto'
 
 type Horario = { id: number; horario: number }
 type MetodoPago = { id: number; nombre: string }
@@ -36,9 +37,10 @@ function SwitchSiNo({ value, onChange, label }: { value: boolean; onChange: (v: 
   )
 }
 
-interface Props { id: string; onSave?: () => void; onDelete?: () => void }
+// soloPagos: servicios, resumen y pagos, para abrirlo en un modal desde Hoy
+interface Props { id: string; onSave?: () => void; onDelete?: () => void; soloPagos?: boolean }
 
-export default function DetalleContent({ id, onSave, onDelete }: Props) {
+export default function DetalleContent({ id, onSave, onDelete, soloPagos }: Props) {
   const j = useJerga()
   const sb = useRef(createClient()).current
 
@@ -205,7 +207,8 @@ export default function DetalleContent({ id, onSave, onDelete }: Props) {
     setDeletingSrvId(srvId)
     await sb.from('reserva_servicios').delete().eq('id', srvId)
     setDeletingSrvId(null)
-    fetchReservaServicios(); onSave?.()
+    // la cámara del pasajero sigue al servicio (trigger en la base)
+    fetchReservaServicios(); fetchPasajeros(); onSave?.()
   }
 
   const agregarServicio = async () => {
@@ -214,7 +217,7 @@ export default function DetalleContent({ id, onSave, onDelete }: Props) {
     await sb.from('reserva_servicios').insert({ reserva_id:Number(id), valor_id:selectedSrvId })
     setAddingSrv(false)
     setSelectedSrvId(null); setShowSrvPk(false)
-    fetchReservaServicios(); onSave?.()
+    fetchReservaServicios(); fetchPasajeros(); onSave?.()
   }
 
   const agregarPago = async () => {
@@ -280,7 +283,7 @@ export default function DetalleContent({ id, onSave, onDelete }: Props) {
     }
     setSavingPas(false)
     if (error) setPasError(error.message)
-    else { resetPasForm(); fetchPasajeros(); onSave?.() }
+    else { resetPasForm(); fetchPasajeros(); fetchReservaServicios(); onSave?.() }
   }
 
   const eliminarPasajero = async (pasId: number) => {
@@ -288,7 +291,7 @@ export default function DetalleContent({ id, onSave, onDelete }: Props) {
     setDeletingPasId(pasId)
     await sb.from('reservas_personas').delete().eq('id', pasId)
     setDeletingPasId(null)
-    fetchPasajeros(); onSave?.()
+    fetchPasajeros(); fetchReservaServicios(); onSave?.()
   }
 
   const horLabel = horarioId
@@ -328,109 +331,8 @@ export default function DetalleContent({ id, onSave, onDelete }: Props) {
     ? (() => { const v=valoresServicios.find(v=>v.id===selectedSrvId); return v?`${v.servicio} ${v.descuento?'-':''}${fmtCLP(v.monto)}`:'---' })()
     : 'Agregar servicio o descuento...'
 
-  return (
-    <div className="max-w-lg mx-auto px-4 py-5 flex flex-col gap-4">
-
-      {/* ── Datos + Servicios ── */}
-      <div className={sectionCls}>
-        <div className="flex items-center justify-between mb-4">
-          <p className="text-[#0d2b5c] font-bold text-sm uppercase tracking-wide">Datos de la reserva</p>
-          <div className="flex items-center gap-2">
-            {!editing && <span className="text-xs text-[#7aafd4] font-medium">Solo lectura</span>}
-            <button
-              onClick={toggleVolo}
-              disabled={savingVolo}
-              title={volo ? `Desmarcar ${j.actividad}` : `Marcar como ${j.realizado}`}
-              className="w-8 h-8 rounded-xl flex items-center justify-center transition-all disabled:opacity-50"
-              style={{ background: volo ? 'rgba(155,89,182,0.2)' : 'rgba(46,109,180,0.1)' }}>
-              <span className="text-base">{savingVolo ? '⏳' : '🪂'}</span>
-            </button>
-          </div>
-        </div>
-
-        {resMsg && (
-          <div className={`mb-3 p-3 rounded-xl text-sm ${resMsg.type==='ok'
-            ? 'bg-green-50 border border-green-300 text-green-800'
-            : 'bg-red-50 border border-red-300 text-red-800'}`}>
-            {resMsg.text}
-          </div>
-        )}
-
-        {/* Nombre */}
-        <div className="mb-2">
-          <label className={labelCls}>Nombre</label>
-          <input className={iCls} style={iStyle} value={nombre}
-            onChange={editing ? e=>setNombre(e.target.value) : undefined}
-            readOnly={!editing} placeholder="Nombre" />
-        </div>
-
-        {/* Teléfono + Fecha */}
-        <div className="flex gap-2 mb-2">
-          <div className="flex-1 min-w-0">
-            <label className={labelCls}>Teléfono</label>
-            <input className={iCls} style={iStyle} value={telefono} type="tel" maxLength={15}
-              onChange={editing ? e=>setTelefono(e.target.value.replace(/[^0-9]/g,'')) : undefined}
-              readOnly={!editing} placeholder="912345678" />
-          </div>
-          <div className="shrink-0">
-            <label className={labelCls}>Fecha</label>
-            <input className="rounded-xl p-3 text-sm text-[#0d2b5c]" style={iStyle}
-              type="date" value={fecha}
-              onChange={editing ? e=>setFecha(e.target.value) : undefined}
-              readOnly={!editing} />
-          </div>
-        </div>
-
-        {/* Horario + Personas + Abono */}
-        <div className="flex gap-2 mb-3">
-          <div className="flex-1">
-            <label className={labelCls}>Horario</label>
-            <div className="relative">
-              <button type="button"
-                onClick={editing ? () => setShowHorPk(!showHorPk) : undefined}
-                className={`${iCls} text-left`}
-                style={{ ...iStyle, color: horarioId ? '#0d2b5c' : '#7aafd4', cursor: editing ? 'pointer' : 'default' }}>
-                {horLabel}
-              </button>
-              {showHorPk && editing && (
-                <div className="absolute z-10 w-full bg-white rounded-xl mt-1 shadow-xl overflow-hidden" style={{ border:'1px solid #b0cce8' }}>
-                  {horarios.map(h => (
-                    <button key={h.id} type="button"
-                      onClick={() => { setHorarioId(h.id); setShowHorPk(false) }}
-                      className="w-full text-left px-4 py-3 text-sm text-[#0d2b5c] hover:bg-blue-50"
-                      style={{ borderBottom:'1px solid #e8f0fb' }}>
-                      {fmtH(h.horario)}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-          <div className="w-16 shrink-0">
-            <label className={labelCls}>Pers.</label>
-            <input className="w-full rounded-xl p-3 text-sm text-[#0d2b5c] text-center" style={iStyle}
-              type="number" min="1" max="99" value={cantidad} placeholder="1"
-              onChange={editing ? e=>setCantidad(e.target.value) : undefined}
-              readOnly={!editing} />
-          </div>
-          <div className="w-28 shrink-0">
-            <label className={labelCls}>Abono</label>
-            {editing ? (
-              <div className="flex items-center rounded-xl overflow-hidden h-[46px]" style={{ border:'1px solid #b0cce8', background:'white' }}>
-                <span className="px-2 text-gray-400 text-xs font-semibold select-none">$</span>
-                <input className="flex-1 text-sm bg-transparent outline-none w-0 text-[#0d2b5c]"
-                  placeholder="0" value={abono}
-                  onChange={e=>setAbono(e.target.value.replace(/[^0-9]/g,''))}
-                  maxLength={6} />
-              </div>
-            ) : (
-              <div className="rounded-xl p-3 text-sm text-[#0d2b5c] bg-[#f5f8fc]" style={{ border:'1px solid #d8e6f3' }}>
-                {abono ? fmtCLP(Number(abono)) : '—'}
-              </div>
-            )}
-          </div>
-        </div>
-
+  const bloquePagos = (
+      <>
         {/* Cuadro servicios */}
         <div className="rounded-xl p-3 mb-3" style={{ background:'#f0f6ff', border:'1px solid #b0cce8' }}>
           <label className={labelCls + ' mb-2'}>Servicios</label>
@@ -447,7 +349,7 @@ export default function DetalleContent({ id, onSave, onDelete }: Props) {
                         : { background:'#2e6db4', color:'#fff' }}>
                       {rs.valores?.servicio}
                       {esDesc ? ` -${fmtCLP(rs.valores?.monto??0)}` : ` ${fmtCLP(rs.valores?.monto??0)}`}
-                      {editing && (
+                      {(editing || soloPagos) && (
                         <button onClick={()=>eliminarServicio(rs.id)} disabled={deletingSrvId===rs.id}
                           className="ml-0.5 font-bold hover:opacity-70 disabled:opacity-40 leading-none">
                           {deletingSrvId===rs.id ? '⏳' : '×'}
@@ -459,7 +361,7 @@ export default function DetalleContent({ id, onSave, onDelete }: Props) {
             }
           </div>
 
-          {editing && (
+          {(editing || soloPagos) && (
             <div>
               <div className="relative">
                 <button type="button" onClick={()=>setShowSrvPk(!showSrvPk)}
@@ -610,10 +512,8 @@ export default function DetalleContent({ id, onSave, onDelete }: Props) {
             </div>
             <div className="flex items-center rounded-xl overflow-hidden shrink-0" style={{ border:'1px solid #86efac', background:'white', width:'96px' }}>
               <span className="pl-2 text-gray-400 text-xs font-semibold select-none">$</span>
-              <input className="flex-1 text-sm bg-transparent outline-none px-1 py-2.5 w-0 text-[#0d2b5c]"
-                placeholder="0" value={pagoMonto}
-                onChange={e => setPagoMonto(e.target.value.replace(/[^0-9]/g,''))}
-                maxLength={8} />
+              <InputMonto className="flex-1 text-sm bg-transparent outline-none px-1 py-2.5 w-0 text-[#0d2b5c]"
+                placeholder="0" value={pagoMonto} onChange={setPagoMonto} maxLength={10} />
             </div>
             <button onClick={agregarPago} disabled={addingPago || !selectedPagoMetodoId || !pagoMonto}
               className="shrink-0 font-bold py-2.5 px-3 rounded-xl text-xs text-white transition-all"
@@ -622,6 +522,118 @@ export default function DetalleContent({ id, onSave, onDelete }: Props) {
             </button>
           </div>
         </div>
+
+      </>
+  )
+
+  if (soloPagos) return (
+    <div className="max-w-lg mx-auto px-4 py-5">
+      <div className={sectionCls}>{bloquePagos}</div>
+    </div>
+  )
+
+  return (
+    <div className="max-w-lg mx-auto px-4 py-5 flex flex-col gap-4">
+
+      {/* ── Datos + Servicios ── */}
+      <div className={sectionCls}>
+        <div className="flex items-center justify-between mb-4">
+          <p className="text-[#0d2b5c] font-bold text-sm uppercase tracking-wide">Datos de la reserva</p>
+          <div className="flex items-center gap-2">
+            {!editing && <span className="text-xs text-[#7aafd4] font-medium">Solo lectura</span>}
+            <button
+              onClick={toggleVolo}
+              disabled={savingVolo}
+              title={volo ? `Desmarcar ${j.actividad}` : `Marcar como ${j.realizado}`}
+              className="w-8 h-8 rounded-xl flex items-center justify-center transition-all disabled:opacity-50"
+              style={{ background: volo ? 'rgba(155,89,182,0.2)' : 'rgba(46,109,180,0.1)' }}>
+              <span className="text-base">{savingVolo ? '⏳' : '🪂'}</span>
+            </button>
+          </div>
+        </div>
+
+        {resMsg && (
+          <div className={`mb-3 p-3 rounded-xl text-sm ${resMsg.type==='ok'
+            ? 'bg-green-50 border border-green-300 text-green-800'
+            : 'bg-red-50 border border-red-300 text-red-800'}`}>
+            {resMsg.text}
+          </div>
+        )}
+
+        {/* Nombre */}
+        <div className="mb-2">
+          <label className={labelCls}>Nombre</label>
+          <input className={iCls} style={iStyle} value={nombre}
+            onChange={editing ? e=>setNombre(e.target.value) : undefined}
+            readOnly={!editing} placeholder="Nombre" />
+        </div>
+
+        {/* Teléfono + Fecha */}
+        <div className="flex gap-2 mb-2">
+          <div className="flex-1 min-w-0">
+            <label className={labelCls}>Teléfono</label>
+            <input className={iCls} style={iStyle} value={telefono} type="tel" maxLength={15}
+              onChange={editing ? e=>setTelefono(e.target.value.replace(/[^0-9]/g,'')) : undefined}
+              readOnly={!editing} placeholder="912345678" />
+          </div>
+          <div className="shrink-0">
+            <label className={labelCls}>Fecha</label>
+            <input className="rounded-xl p-3 text-sm text-[#0d2b5c]" style={iStyle}
+              type="date" value={fecha}
+              onChange={editing ? e=>setFecha(e.target.value) : undefined}
+              readOnly={!editing} />
+          </div>
+        </div>
+
+        {/* Horario + Personas + Abono */}
+        <div className="flex gap-2 mb-3">
+          <div className="flex-1">
+            <label className={labelCls}>Horario</label>
+            <div className="relative">
+              <button type="button"
+                onClick={editing ? () => setShowHorPk(!showHorPk) : undefined}
+                className={`${iCls} text-left`}
+                style={{ ...iStyle, color: horarioId ? '#0d2b5c' : '#7aafd4', cursor: editing ? 'pointer' : 'default' }}>
+                {horLabel}
+              </button>
+              {showHorPk && editing && (
+                <div className="absolute z-10 w-full bg-white rounded-xl mt-1 shadow-xl overflow-hidden" style={{ border:'1px solid #b0cce8' }}>
+                  {horarios.map(h => (
+                    <button key={h.id} type="button"
+                      onClick={() => { setHorarioId(h.id); setShowHorPk(false) }}
+                      className="w-full text-left px-4 py-3 text-sm text-[#0d2b5c] hover:bg-blue-50"
+                      style={{ borderBottom:'1px solid #e8f0fb' }}>
+                      {fmtH(h.horario)}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="w-16 shrink-0">
+            <label className={labelCls}>Pers.</label>
+            <input className="w-full rounded-xl p-3 text-sm text-[#0d2b5c] text-center" style={iStyle}
+              type="number" min="1" max="99" value={cantidad} placeholder="1"
+              onChange={editing ? e=>setCantidad(e.target.value) : undefined}
+              readOnly={!editing} />
+          </div>
+          <div className="w-28 shrink-0">
+            <label className={labelCls}>Abono</label>
+            {editing ? (
+              <div className="flex items-center rounded-xl overflow-hidden h-[46px]" style={{ border:'1px solid #b0cce8', background:'white' }}>
+                <span className="px-2 text-gray-400 text-xs font-semibold select-none">$</span>
+                <InputMonto className="flex-1 text-sm bg-transparent outline-none w-0 text-[#0d2b5c]"
+                  placeholder="0" value={abono} onChange={setAbono} maxLength={7} />
+              </div>
+            ) : (
+              <div className="rounded-xl p-3 text-sm text-[#0d2b5c] bg-[#f5f8fc]" style={{ border:'1px solid #d8e6f3' }}>
+                {abono ? fmtCLP(Number(abono)) : '—'}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {bloquePagos}
 
         {/* Botón Editar / Guardar */}
         <button

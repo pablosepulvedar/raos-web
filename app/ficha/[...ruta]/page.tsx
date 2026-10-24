@@ -27,8 +27,14 @@ const T = {
     detalle: 'Especificar', si: 'Sí', no: 'No',
     imagen: '¿Autorizas usar tus fotos, video y audio en redes sociales?',
     instagram: 'Tu Instagram para etiquetarte (sin @)',
-    tutor: 'Adulto responsable (eres menor de edad)',
-    tNombre: 'Nombre del padre, madre o tutor', tDocumento: 'RUT o pasaporte',
+    tutor: 'Tus datos (padre, madre o tutor)',
+    tNombre: 'Tu nombre y apellido', tDocumento: 'Tu RUT o pasaporte',
+    quien: '¿Quién completa esta ficha?',
+    quienAdulto: 'Soy el pasajero (18 años o más)',
+    quienTutor: 'Soy padre, madre o tutor de un menor',
+    datosMenor: '1. Datos del menor', nombreMenor: 'Nombre y apellido del menor',
+    avisoMenor: 'Los menores de 18 no pueden firmar: la ficha la completa y acepta su padre, madre o tutor.',
+    noEsMenor: 'Marcaste que es menor de edad, pero la edad es de 18 o más.',
     comoT: '¿Cómo nos conociste?',
     declaracion: '5. Seguros, fotos y aceptación del riesgo',
     enviar: 'Confirmar', enviando: 'Enviando...',
@@ -47,8 +53,14 @@ const T = {
     detalle: 'Details', si: 'Yes', no: 'No',
     imagen: 'Do you allow us to use your photos, video and audio on social media?',
     instagram: 'Your Instagram so we can tag you (no @)',
-    tutor: 'Responsible adult (you are a minor)',
-    tNombre: 'Parent or guardian name', tDocumento: 'ID or passport',
+    tutor: 'Your details (parent or guardian)',
+    tNombre: 'Your full name', tDocumento: 'Your ID or passport',
+    quien: 'Who is filling in this form?',
+    quienAdulto: 'I am the passenger (18 or older)',
+    quienTutor: 'I am the parent or guardian of a minor',
+    datosMenor: "1. Minor's details", nombreMenor: "Minor's full name",
+    avisoMenor: 'Minors under 18 cannot sign: their parent or guardian fills in and accepts the form.',
+    noEsMenor: 'You marked a minor, but the age is 18 or over.',
     comoT: 'How did you hear about us?',
     declaracion: '5. Insurance, photos and risk acceptance',
     enviar: 'Confirm', enviando: 'Sending...',
@@ -122,7 +134,10 @@ export default function FichaPublica() {
 
   const t = T[idioma]
   const edad = parseInt(f.edad, 10)
-  const esMenor = Number.isFinite(edad) && edad < 18
+  // Lo elige quien llena la ficha; una edad menor a 18 lo fuerza igual
+  const [paraMenor, setParaMenor] = useState(false)
+  const edadDeMenor = Number.isFinite(edad) && edad < 18
+  const esMenor = paraMenor || edadDeMenor
 
   useEffect(() => {
     createClient().rpc('ficha_por_token', { p_token: token }).then(({ data }) => {
@@ -139,9 +154,13 @@ export default function FichaPublica() {
     const faltan =
       !f.nombre.trim() || !f.documento.trim() || !f.nacionalidad.trim() ||
       !f.emergencia_nombre.trim() || !f.emergencia_telefono.trim() ||
-      !Number.isFinite(edad) || !acepta || (esMenor && !f.tutor_nombre.trim())
+      !Number.isFinite(edad) || !acepta || (esMenor && (!f.tutor_nombre.trim() || !f.tutor_documento.trim()))
     if (faltan) {
       setError(t.faltan)
+      return
+    }
+    if (esMenor && !edadDeMenor) {
+      setError(t.noEsMenor)
       return
     }
 
@@ -151,6 +170,8 @@ export default function FichaPublica() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         ...f, edad, token, idioma, acepta,
+        // un adulto que firma por sí mismo no lleva tutor, aunque haya alcanzado a escribirlo
+        tutor_nombre: esMenor ? f.tutor_nombre : '', tutor_documento: esMenor ? f.tutor_documento : '',
         experiencia_previa: experiencia, prevision, salud,
         autoriza_imagen: autorizaImagen, como_conocio: comoConocio,
       }),
@@ -203,26 +224,31 @@ export default function FichaPublica() {
       )}
       {!ficha.registro_sernatur && <div className="mb-6" />}
 
+      <h2 className={label}>{t.quien}</h2>
+      <div className="grid grid-cols-2 gap-2 mb-2">
+        {([[false, t.quienAdulto], [true, t.quienTutor]] as const).map(([v, txt]) => (
+          <button key={String(v)} type="button" onClick={() => setParaMenor(v)}
+            disabled={!v && edadDeMenor}
+            className={`px-3 py-3 rounded-xl text-sm font-semibold leading-snug text-left transition-colors disabled:opacity-40 ${
+              esMenor === v ? 'bg-[#ffd700] text-[#0d2b5c]' : 'bg-white/10 text-[#dceeff]'}`}>
+            {txt}
+          </button>
+        ))}
+      </div>
+      {esMenor
+        ? <p className="text-[#ffd700] text-xs mb-6">{t.avisoMenor}</p>
+        : <div className="mb-6" />}
+
       {/* 1 */}
-      <h2 className={label}>{t.datos}</h2>
+      <h2 className={label}>{esMenor ? t.datosMenor : t.datos}</h2>
       <div className="space-y-3 mb-6">
-        <input className={input} placeholder={t.nombre} value={f.nombre} onChange={set('nombre')} />
+        <input className={input} placeholder={esMenor ? t.nombreMenor : t.nombre} value={f.nombre} onChange={set('nombre')} />
         <input className={input} placeholder={t.documento} value={f.documento} onChange={set('documento')} />
         <div className="flex gap-3">
           <input className={input} inputMode="numeric" placeholder={t.edad} value={f.edad} onChange={set('edad')} />
           <input className={input} placeholder={t.nacionalidad} value={f.nacionalidad} onChange={set('nacionalidad')} />
         </div>
         <input className={input} placeholder={t.giftCard} value={f.gift_card} onChange={set('gift_card')} />
-      </div>
-
-      {/* 2 */}
-      <h2 className={label}>{t.urgencia}</h2>
-      <div className="space-y-3 mb-6">
-        <input className={input} placeholder={t.eNombre} value={f.emergencia_nombre} onChange={set('emergencia_nombre')} />
-        <div className="flex gap-3">
-          <input className={input} inputMode="tel" placeholder={t.eTelefono} value={f.emergencia_telefono} onChange={set('emergencia_telefono')} />
-          <input className={input} placeholder={t.eParentesco} value={f.emergencia_parentesco} onChange={set('emergencia_parentesco')} />
-        </div>
       </div>
 
       {esMenor && (
@@ -234,6 +260,17 @@ export default function FichaPublica() {
           </div>
         </>
       )}
+
+      {/* 2 */}
+      <h2 className={label}>{t.urgencia}</h2>
+      <div className="space-y-3 mb-6">
+        <input className={input} placeholder={t.eNombre} value={f.emergencia_nombre} onChange={set('emergencia_nombre')} />
+        <div className="flex gap-3">
+          <input className={input} inputMode="tel" placeholder={t.eTelefono} value={f.emergencia_telefono} onChange={set('emergencia_telefono')} />
+          <input className={input} placeholder={t.eParentesco} value={f.emergencia_parentesco} onChange={set('emergencia_parentesco')} />
+        </div>
+      </div>
+
 
       {/* 3 */}
       <h2 className={label}>{t.experiencia}</h2>

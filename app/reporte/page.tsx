@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from 'react'
 import { May, useJerga } from '@/lib/jerga'
 import { createClient } from '@/lib/supabase-browser'
 import Cargando from '@/components/Cargando'
+import InputMonto from '@/components/InputMonto'
 
 type ReservaDetalle = {
   id: number; nombre: string; cantidad: number; abono: number | null
@@ -368,9 +369,8 @@ export default function Reporte() {
                 <div className="flex gap-2">
                   <div className="flex items-center flex-1 rounded-xl overflow-hidden" style={{ border:'1px solid #b0cce8', background:'white' }}>
                     <span className="pl-3 text-gray-400 text-xs font-semibold select-none">$</span>
-                    <input className="flex-1 text-sm bg-transparent outline-none px-2 py-2.5 text-[#0d2b5c]"
-                      placeholder="0" value={gMonto}
-                      onChange={e => setGMonto(e.target.value.replace(/[^0-9]/g,''))}
+                    <InputMonto className="flex-1 text-sm bg-transparent outline-none px-2 py-2.5 text-[#0d2b5c]"
+                      placeholder="0" value={gMonto} onChange={setGMonto}
                       onKeyDown={e => e.key==='Enter' && agregarGasto()} />
                   </div>
                   <button onClick={agregarGasto} disabled={savingGasto || !gDescripcion.trim() || !gMonto}
