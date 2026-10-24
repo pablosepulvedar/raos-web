@@ -479,7 +479,9 @@
 </figure>
 
   <p>Es el corazón del sistema. Tiene dos pestañas: <b>Agenda</b>, que es el listado por días,
-  y <b>Hoy</b>, que es el paso a paso de la jornada (capítulo 5).</p>
+  y <b>Hoy</b>, que es el paso a paso de la jornada (capítulo 5). Las dos muestran los mismos datos:
+  lo que se cambia en una aparece en la otra al cambiar de pestaña, sin recargar. Y el sistema
+  recuerda la última que usaste: si trabajas en Hoy, Reservas vuelve a abrir en Hoy.</p>
 
   <h3>4.1 La agenda</h3>
 
@@ -501,7 +503,7 @@
 
   <h4>Cómo leer una tarjeta</h4>
   <ul>
-    <li><b>Nombre × cantidad</b> y la hora, a la izquierda.</li>
+    <li><b>Nombre × cantidad</b> y la hora, a la izquierda. Dentro de cada día, las salidas van siempre en orden de hora.</li>
     <li>En la columna del medio, los clientes de esa reserva, con 🥳 si es cumpleañero y 📷 o 📽️ según la cámara.</li>
     <li>A la derecha, el botón para marcar que la salida <b>ya ocurrió</b>. Pide confirmación y cambia el color de la tarjeta.</li>
     <li>El color dice el estado: <b>azul</b>, pendiente; <b>morado</b>, ya pasó o está marcada como realizada.</li>
@@ -548,6 +550,8 @@
   <h4>Servicios y descuentos</h4>
   <p>Cada servicio agregado suma al total. Los valores marcados como <b>descuento</b> (en rojo) restan.
   Se agregan en modo edición, uno por unidad: dos salidas iguales son dos veces el mismo servicio.</p>
+  <p>Todos los montos del sistema se escriben solo con números y se ven con punto de miles mientras
+  escribes: tecleas <i>65000</i> y aparece <b>65.000</b>. No hace falta escribir puntos ni comas.</p>
 
   <h4>El resumen financiero</h4>
   <p>Es el cuadro azul con la cuenta completa, en este orden:</p>
@@ -585,15 +589,25 @@
   <ul>
     <li><b>Nombre</b> — lo único obligatorio.</li>
     <li><b>Edad</b> y <b>Peso</b> — el peso importa para decidir el equipo y el guía.</li>
-    <li><b>Cámara</b> — Sin cámara, Normal o 360°. Es lo que después se marca en el día de la operación.</li>
+    <li><b>Cámara</b> — Sin cámara, Normal o 360°. Va de la mano con el servicio cobrado: elegir 360° agrega
+        el servicio <i>Cámara 360</i> a la reserva, y agregar ese servicio se lo asigna al primer cliente que
+        todavía no tiene cámara. Cambiarla o quitarla ajusta el cobro solo.</li>
     <li><b>Guía</b> — se elige de la lista de usuarios con rol de guía. Esta asignación es la que alimenta los pagos a guías (capítulo 7).</li>
     <li><b>¿Es cumpleañero?</b> — al activarlo queda marcado con 🥳 en la agenda. Deja seleccionada la cámara 360° por defecto.</li>
   </ul>
 
   <div class="nota">
     <span class="etiqueta">La cantidad se ajusta sola</span>
-    <p>Si agregas más clientes de los que decía la reserva, el sistema sube el número de personas.
-    Nunca lo baja solo: si alguien se cae de la salida, corrígelo a mano.</p>
+    <p>Si agregas más clientes de los que decía la reserva, el sistema sube el número de personas, y si
+    borras uno, lo baja. Al borrar un cliente se va también su ficha si no la había firmado; una ficha
+    firmada se conserva siempre.</p>
+  </div>
+
+  <div class="ojo">
+    <span class="etiqueta">La cámara se reconoce por el nombre del servicio</span>
+    <p>Para saber qué servicio es la cámara, el sistema busca la palabra <b>cámara</b> en su nombre
+    (y <b>360</b> para la 360°). Si en Varios → Valores tu servicio se llama distinto, por ejemplo solo
+    “360º”, la cámara y el cobro no se enlazan y hay que cargar los dos a mano.</p>
   </div>
 </section>
 
@@ -631,8 +645,9 @@
     <tr><td><b>Salió / Voló</b></td><td>…se marcó que la salida ya ocurrió.</td></tr>
   </table>
 
-  <p>Con los cinco listos la tarjeta se pone verde y dice <b>✓ Todo listo</b>. La pantalla se refresca sola cada
-  quince segundos, así que cuando un cliente firma desde su teléfono, el estado cambia sin que haya que recargar.</p>
+  <p>La cabecera de cada salida es <b>azul</b> mientras está pendiente y pasa a <b>morado</b> al marcarla como
+  realizada, igual que en la agenda. Con los cinco pasos listos dice <b>✓ listo</b>. La pantalla se refresca sola
+  cada quince segundos, así que cuando un cliente firma desde su teléfono, el estado cambia sin que haya que recargar.</p>
 
   <figure class="w92">
     <img src="shots/10-hoy-expandida-p1.png" alt="">
@@ -649,24 +664,39 @@
   <h4>Fichas</h4>
   <ol class="pasos">
     <li>Si todavía no existen, el botón amarillo <b>Generar N links</b> crea una ficha por persona.</li>
-    <li><b>Enviar por WhatsApp</b> abre el chat con el teléfono de la reserva y un mensaje con un link por cliente, numerado.</li>
+    <li><b>WhatsApp</b> abre el chat con el teléfono de la reserva y un mensaje con un link por cliente, numerado.</li>
+    <li><b>QR</b> muestra un código QR por cliente, con su nombre abajo y flechas ‹ › para pasar al siguiente.
+        Sirve en la base: cada uno escanea el suyo con la cámara del teléfono y firma ahí mismo.</li>
     <li><b>Copiar link</b> copia el de una sola persona; <b>copiar todos</b>, los que falten.</li>
-    <li>Cuando alguien firma, su línea pasa a ✅ con la hora y la IP desde donde firmó.</li>
+    <li>Cuando alguien firma, su línea pasa a ✅ con la hora y la IP desde donde firmó. Si es menor de edad,
+        lleva una etiqueta amarilla <b>menor</b>: esa ficha la firmó su padre, madre o tutor.</li>
     <li><b>ver ficha</b> abre la ficha firmada completa; <b>registro</b> muestra todos los intentos, incluidos los fallidos.</li>
   </ol>
 
   <h4>Pago</h4>
   <p>Muestra <b>total, pagado y lo que falta</b>. Para cobrar: se toca el método, se escribe el monto
-  (viene propuesto el saldo) y se confirma con <b>Cobrar</b>. Si la reserva no tiene servicios cargados,
-  avisa que hay que agregarlos en el detalle.</p>
+  (viene propuesto el saldo) y se confirma con <b>Cobrar</b>.</p>
+  <p>El botón verde cuadrado al lado del título abre <b>Servicios y pagos</b> en una ventana: lo mismo
+  que el detalle de la reserva para la plata —agregar o quitar servicios, ver el resumen, borrar un pago o
+  cobrar en línea— sin salir de Hoy.</p>
 
-  <h4>Cámara</h4>
-  <p>Una fila por cliente con tres botones: <b>Sin cámara</b>, <b>Normal</b> y <b>360°</b>. Es excluyente.
-  Los clientes aparecen acá cuando firman su ficha o cuando se cargan a mano en el detalle.</p>
+  <h4>Clientes y cámara</h4>
+  <p>Una fila por cliente con tres botones de cámara: <b>Sin</b>, <b>Normal</b> y <b>360°</b>. Es excluyente,
+  y elegir una cámara agrega su cobro a la reserva (capítulo 4.4).</p>
+  <ul>
+    <li>El cuadrado con el <b>parapente</b>, al final de la fila, asigna el guía: se abre la lista, tocas uno y
+        la ventana se cierra. El botón queda <b>verde</b> y el nombre del guía aparece bajo el del cliente.
+        Al tocarlo de nuevo se ve el elegido marcado y se puede cambiar por otro o quitar.</li>
+    <li><b>Pasajero +</b>, junto al título, agrega un cliente en blanco con su propio link de ficha. Sus datos
+        llegan cuando firma. Agregar un cliente no carga ningún cobro.</li>
+    <li>La <b>✕</b> junto al nombre quita a un cliente que sigue en blanco (por ejemplo “Pasajero 3”) y su link.
+        Cuando ya firmó, la ✕ desaparece: se borra desde el detalle.</li>
+  </ul>
 
   <h4>Cierre</h4>
-  <p><b>Marcar como salió</b> cierra la salida (y vuelve a abrirla si se tocó por error). <b>Detalle</b>
-  lleva a la reserva completa, por si falta cargar un servicio o corregir un dato.</p>
+  <p><b>Marcar como salió</b> cierra la salida (y vuelve a abrirla si se tocó por error). <b>✎ Detalle</b>
+  abre la reserva completa en una ventana encima de Hoy, para editar cualquier dato sin perder el lugar;
+  al cerrarla, Hoy se actualiza.</p>
 
   <div class="ojo">
     <span class="etiqueta">Orden recomendado del día</span>
@@ -719,6 +749,8 @@
   </figure>
 
   <ol>
+    <li><b>¿Quién completa esta ficha?</b> — lo primero: <i>el pasajero (18 años o más)</i> o <i>su padre, madre
+        o tutor</i>. Un menor no puede firmar, así que en ese caso la ficha la llena y la acepta el adulto.</li>
     <li><b>Datos personales</b> — nombre, RUT o pasaporte, edad, nacionalidad y número de gift card si la tiene.</li>
     <li><b>Contacto en caso de urgencia</b> — nombre, teléfono y parentesco.</li>
     <li><b>Declaración de experiencia</b> — si ha hecho la actividad antes.</li>
@@ -729,14 +761,24 @@
         <i>“Declaro haber leído y acepto los riesgos de la actividad”</i>, que es obligatoria.</li>
   </ol>
 
-  <p>La ficha está en <b>español e inglés</b>: el cliente cambia con los botones ES / EN de arriba.
-  Si la edad es menor de 18, aparecen además los campos del <b>tutor</b>, que son obligatorios.</p>
+  <p>La ficha está en <b>español e inglés</b>: el cliente cambia con los botones ES / EN de arriba.</p>
+
+  <h4>Menores de edad</h4>
+  <p>Si se elige <i>padre, madre o tutor</i>, los datos de arriba pasan a ser <b>los del menor</b> y aparece
+  una sección con <b>los datos del adulto</b> (nombre y RUT o pasaporte), obligatorios. Si alguien escribe una
+  edad menor de 18 sin haberlo elegido, el selector cambia solo; y si marca menor pero la edad es de 18 o más,
+  la ficha no se envía hasta corregirlo.</p>
+  <p>En la ficha firmada el participante queda marcado como <b>menor de edad</b>, el adulto aparece en su propia
+  sección y la evidencia de la firma queda a su nombre: <i>“Carolina Soto, como padre, madre o tutor de Martina
+  Soto, marcó la declaración…”</i>.</p>
 
   <h3>Qué queda guardado</h3>
   <figure class="w92">
     <img src="shots/24-ficha-firmada-p2.png" alt="">
     <figcaption><b>Ficha firmada, abajo:</b> declaración de salud y la evidencia de la firma.</figcaption>
   </figure>
+  <p>La ficha firmada lleva arriba la fecha, la hora y el <b>guía a cargo</b>: el que tenga asignado ese
+  cliente en la reserva. Se imprime o se guarda como PDF con el botón de arriba.</p>
   <p>Al confirmar, el servidor guarda —además de las respuestas— la evidencia de la firma:</p>
   <ul>
     <li><b>Fecha y hora</b> exactas.</li>
@@ -757,7 +799,8 @@
   </div>
 
   <h3>Dónde se crean</h3>
-  <p>Los links se generan desde la pestaña <b>Hoy</b> (botón <i>Generar N links</i>). Si las reservas llegan
+  <p>Los links se generan desde la pestaña <b>Hoy</b> (botón <i>Generar N links</i>), y desde ahí mismo se mandan
+  por WhatsApp o se muestran como QR. Si las reservas llegan
   por la API desde tu página web, los links vienen de vuelta en la respuesta y se mandan directamente al
   cliente al momento de la compra (capítulo 12).</p>
 
@@ -1076,7 +1119,8 @@
     el detalle de lo que cambió.</figcaption>
   </figure>
 
-  <p>Se filtra por persona y por fecha. Al tocar una línea de cambio se ve campo por campo
+  <p>Se filtra por persona y por fecha. Muestra los 50 movimientos más recientes y, al bajar hasta el
+  final, carga los 50 siguientes. Al tocar una línea de cambio se ve campo por campo
   <b>el valor anterior y el nuevo</b>: en el ejemplo, el abono pasó de vacío a $30.000 y la
   cantidad de 3 a 4 pasajeros.</p>
 
