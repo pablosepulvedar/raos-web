@@ -1,11 +1,12 @@
 'use client'
 
 import Link from 'next/link'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase-browser'
 import Cargando from '@/components/Cargando'
 
 const supabase = createClient()
+const PAGINA = 50
 
 type Linea = {
   id: number
@@ -70,23 +71,47 @@ export default function Bitacora() {
     return d.toISOString().slice(0, 10)
   })
   const [abierta, setAbierta] = useState<number | null>(null)
+  const [hayMas, setHayMas] = useState(false)
+  const cargandoMas = useRef(false)
+  const fin = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     supabase.from('perfiles').select('id, nombre').order('nombre')
       .then(({ data }) => setPersonas((data as Persona[]) ?? []))
   }, [])
 
-  const cargar = useCallback(async () => {
-    setLineas(null)
+  // De a 50: la primera página al cambiar el filtro, las siguientes al llegar al final
+  const pagina = useCallback(async (desdeFila: number) => {
     let q = supabase.from('bitacora').select('*')
       .gte('cuando', desde + 'T00:00:00')
       .order('cuando', { ascending: false })
-      .limit(300)
+      .order('id', { ascending: false })
+      .range(desdeFila, desdeFila + PAGINA - 1)
     if (quien) q = q.eq('perfil_id', quien)
     const { data } = await q
-    setLineas((data as Linea[]) ?? [])
+    const nuevas = (data as Linea[]) ?? []
+    setHayMas(nuevas.length === PAGINA)
+    return nuevas
   }, [quien, desde])
-  useEffect(() => { cargar() }, [cargar])
+
+  useEffect(() => {
+    setLineas(null)
+    pagina(0).then(setLineas)
+  }, [pagina])
+
+  useEffect(() => {
+    const el = fin.current
+    if (!el || !hayMas) return
+    const obs = new IntersectionObserver(async ([e]) => {
+      if (!e.isIntersecting || cargandoMas.current || !lineas) return
+      cargandoMas.current = true
+      const mas = await pagina(lineas.length)
+      setLineas(prev => [...(prev ?? []), ...mas])
+      cargandoMas.current = false
+    })
+    obs.observe(el)
+    return () => obs.disconnect()
+  }, [hayMas, lineas, pagina])
 
   const nombreDe = (id: string | null, origen: string) =>
     id ? (personas.find(p => p.id === id)?.nombre ?? 'Alguien que ya no está')
@@ -171,11 +196,7 @@ export default function Bitacora() {
           ))}
         </div>
 
-        {lineas && lineas.length >= 300 && (
-          <p className="text-xs text-gray-500 text-center mt-4">
-            Se muestran los 300 movimientos más recientes. Acota la fecha para ver más atrás.
-          </p>
-        )}
+        {hayMas && <div ref={fin} className="py-4"><Cargando /></div>}
       </main>
     </div>
   )

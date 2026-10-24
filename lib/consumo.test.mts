@@ -50,3 +50,16 @@ assert.equal(desde, '2026-09-23')
 assert.ok((Date.parse(hasta) - Date.parse(desde)) / 86_400_000 <= 30)
 
 console.log('consumo: ok')
+
+// Los hosts que no son principales quedan en una sola fila, al final
+{
+  const { agruparHosts, OTROS_HOSTS } = await import('./consumo.ts')
+  const g = agruparHosts(
+    [{ nombre: 'raos.reservaps.cl', requests: 9 }, { nombre: 'imap.reservaps.cl', requests: 2 }, { nombre: 'ns1.reservaps.cl', requests: 3 }],
+    h => h === 'raos.reservaps.cl',
+  )
+  assert.deepEqual(g, [{ nombre: 'raos.reservaps.cl', requests: 9 }, { nombre: OTROS_HOSTS, requests: 5 }])
+  const w = resumir([{ sum: { requests: 4, errors: 0 }, dimensions: { scriptName: '__unknown__', date: '2026-10-19' } }], [])
+  assert.equal(w.workers[0].nombre, 'Workers ya borrados')
+}
+console.log('consumo: agrupado OK')

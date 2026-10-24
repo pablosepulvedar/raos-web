@@ -39,6 +39,17 @@ export function ventana(hoy = new Date()) {
   return { desde: fechaISO(desde), hasta: fechaISO(hoy) }
 }
 
+export const WORKER_BORRADO = 'Workers ya borrados'
+export const OTROS_HOSTS = 'Otros (escáneres y subdominios inventados)'
+
+// Deja una fila por cada host principal y suma el resto en una sola: los escáneres
+// prueban cientos de nombres (imap, mysql, ns1...) y tapaban a las empresas.
+export function agruparHosts(hosts: Parte[], principal: (host: string) => boolean): Parte[] {
+  const quedan = hosts.filter(h => principal(h.nombre))
+  const otros = hosts.filter(h => !principal(h.nombre)).reduce((t, h) => t + h.requests, 0)
+  return otros ? [...quedan, { nombre: OTROS_HOSTS, requests: otros }] : quedan
+}
+
 type FilaWorker = { sum: { requests: number; errors: number }; dimensions: { scriptName: string; date: string } }
 type FilaHost = { count: number; dimensions: { clientRequestHTTPHost: string } }
 
@@ -50,7 +61,10 @@ export function resumir(workers: FilaWorker[], hosts: FilaHost[]) {
 
   for (const f of workers) {
     porDia.set(f.dimensions.date, (porDia.get(f.dimensions.date) ?? 0) + f.sum.requests)
-    porWorker.set(f.dimensions.scriptName, (porWorker.get(f.dimensions.scriptName) ?? 0) + f.sum.requests)
+    // Cloudflare llama __unknown__ al worker que ya no existe (los envs raos/demo/admin
+    // se borraron el 2026-10-20 y siguen dentro de la ventana de 28 días)
+    const w = f.dimensions.scriptName === '__unknown__' ? WORKER_BORRADO : f.dimensions.scriptName
+    porWorker.set(w, (porWorker.get(w) ?? 0) + f.sum.requests)
     errores += f.sum.errors
   }
 

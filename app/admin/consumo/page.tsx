@@ -150,10 +150,13 @@ npx wrangler secret put CLOUDFLARE_ZONE_ID`}
 
             <div className={caja}>
               <p className="text-[#0d2b5c] font-bold mb-3">Día a día</p>
-              <Barras
-                datos={(cf.dias ?? []).map(d => ({ nombre: d.fecha, requests: d.requests }))}
-                maximo={pico}
-              />
+              {/* El más reciente arriba; se ven unos 10 y el resto con scroll */}
+              <div className="max-h-[15rem] overflow-y-auto pr-1">
+                <Barras
+                  datos={[...(cf.dias ?? [])].reverse().map(d => ({ nombre: d.fecha, requests: d.requests }))}
+                  maximo={pico}
+                />
+              </div>
             </div>
           </>
         )}
