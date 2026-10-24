@@ -212,11 +212,10 @@ export default function DiaDeVuelo() {
   const borrable = (p: Persona, r: Reserva) =>
     /^Pasajero \d+$/.test(p.nombre) && !r.fichas_riesgo.some(f => f.persona_id === p.id && f.aceptada_at)
 
-  // Se lleva su ficha (si no, generar_fichas le volvería a crear un pasajero) y baja la cantidad
+  // La ficha sin firmar se va con él (trigger en la base); acá solo baja la cantidad
   const quitarPasajero = (p: Persona, r: Reserva) => {
     if (!confirm(`¿Quitar a ${p.nombre}? Su link de ficha deja de funcionar.`)) return
     return conBloqueo(`del-${p.id}`, async () => {
-      await sb.from('fichas_riesgo').delete().eq('persona_id', p.id).is('aceptada_at', null)
       await sb.from('reservas_personas').delete().eq('id', p.id)
       await sb.from('reservas').update({ cantidad: Math.max(r.cantidad - 1, 0) }).eq('id', r.id)
     })

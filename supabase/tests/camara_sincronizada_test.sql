@@ -1,4 +1,5 @@
--- Prueba: la cámara del pasajero y el servicio cobrado se arrastran uno al otro.
+-- Prueba: la cámara del pasajero y el servicio cobrado se arrastran uno al otro,
+-- y la ficha sin firmar se va con su pasajero.
 -- Uso: docker exec -i supabase_db_raos-web psql -U postgres -t -A < supabase/tests/camara_sincronizada_test.sql
 begin;
 create temp table res (n int, prueba text, esperado text, obtenido text);
@@ -48,6 +49,18 @@ begin
   update public.reservas_personas set sin_camara = true where id = p1;
   select count(*)::text into v from public.reserva_servicios where reserva_id = r;
   insert into res values (6, 'Sin cámara no toca el servicio pendiente', '1', v);
+
+  -- Borrar un pasajero se lleva su ficha sin firmar, pero no la firmada
+  perform set_config('role', 'postgres', true);
+  insert into public.fichas_riesgo (reserva_id, persona_id, empresa_id) values (r, p1, e);
+  insert into public.reservas_personas (reserva_id, nombre, empresa_id) values (r, 'Caro', e) returning id into p2;
+  insert into public.fichas_riesgo (reserva_id, persona_id, empresa_id, aceptada_at) values (r, p2, e, now());
+  perform set_config('role', 'authenticated', true);
+  delete from public.reservas_personas where id in (p1, p2);
+  select count(*)::text into v from public.fichas_riesgo where reserva_id = r and aceptada_at is null;
+  insert into res values (7, 'Pasajero borrado: su ficha sin firmar se va', '0', v);
+  select count(*)::text into v from public.fichas_riesgo where reserva_id = r and aceptada_at is not null;
+  insert into res values (8, 'Pasajero borrado: la ficha firmada queda', '1', v);
 end $p$;
 reset role;
 select case when esperado = obtenido then 'OK   ' else 'FALLA' end || '  ' || n || '. ' || prueba

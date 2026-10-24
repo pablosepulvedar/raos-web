@@ -114,7 +114,8 @@ export default function Reservas() {
   const fetchDays = useCallback(async (from: string, to: string) => {
     const { data } = await sb.from('reservas')
       .select('*, horarios(horario), reservas_personas(id, nombre, camara_normal, camara_360, sin_camara, cumpleanero)')
-      .gte('fecha', from).lte('fecha', to).order('fecha')
+      .gte('fecha', from).lte('fecha', to).order('fecha').order('id')
+    // Siempre por hora del horario (el id del horario no sigue el orden del día)
     const rows = (data||[]) as (Reserva & { horarios?: { horario: number } | null })[]
     rows.sort((a, b) => (a.horarios?.horario ?? 9999) - (b.horarios?.horario ?? 9999))
     const g: Record<string, Reserva[]> = {}

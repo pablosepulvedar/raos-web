@@ -290,6 +290,14 @@ export default function DetalleContent({ id, onSave, onDelete, soloPagos }: Prop
     if (!confirm(`¿Seguro que deseas eliminar este ${j.cliente}?`)) return
     setDeletingPasId(pasId)
     await sb.from('reservas_personas').delete().eq('id', pasId)
+    // Su ficha sin firmar la borra la base; la cantidad baja igual que al agregar sube
+    const quedan = pasajeros.length - 1
+    const cant = parseInt(cantidad, 10) || 0
+    if (cant > quedan) {
+      const nueva = Math.max(cant - 1, quedan)
+      await sb.from('reservas').update({ cantidad: nueva }).eq('id', id)
+      setCantidad(String(nueva))
+    }
     setDeletingPasId(null)
     fetchPasajeros(); fetchReservaServicios(); onSave?.()
   }
