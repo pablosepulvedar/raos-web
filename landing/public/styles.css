@@ -10,6 +10,8 @@
   --foto-termico:   url("img/para-dos.jpg");
   --foto-extendido: url("img/grupos.jpg");
   --foto-premium:   url("img/rafting.jpg");
+  --foto-tradicional: url("img/cam-tradicional.jpg");
+  --foto-360:       url("img/cam-360.jpg");
   --foto-banda:     url("img/banda.jpg");
   --foto-c1:        url("img/c1.jpg");
   --foto-c2:        url("img/c2.jpg");
@@ -42,6 +44,8 @@
 .photo-termico   { background-image: var(--foto-termico); }
 .photo-extendido { background-image: var(--foto-extendido); }
 .photo-premium   { background-image: var(--foto-premium); }
+.photo-tradicional { background-image: var(--foto-tradicional); }
+.photo-360       { background-image: var(--foto-360); }
 .photo-band      { background-image: linear-gradient(rgba(11,26,51,.82), rgba(11,26,51,.88)), var(--foto-banda); }
 .photo-c1 { background-image: var(--foto-c1); }
 .photo-c2 { background-image: var(--foto-c2); }
@@ -185,7 +189,8 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 /* Tarjetas de vuelos */
 .cards { display: grid; gap: 20px; grid-template-columns: 1fr; margin-bottom: 32px; }
 @media (min-width: 600px) { .cards { grid-template-columns: repeat(2, 1fr); } }
-@media (min-width: 1000px) { .cards { grid-template-columns: repeat(4, 1fr); } }
+@media (min-width: 900px) { .cards { grid-template-columns: repeat(3, 1fr); } }
+@media (min-width: 1240px) { .cards { grid-template-columns: repeat(5, 1fr); } }
 .card { background: #fff; border-radius: var(--radius); overflow: hidden; box-shadow: 0 8px 24px rgba(11,26,51,.08); display: flex; flex-direction: column; }
 .card-photo { aspect-ratio: 16 / 10; position: relative; }
 .card-ic { position: absolute; top: 12px; left: 12px; width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; background: var(--blue); color: #fff; }
@@ -196,6 +201,61 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 .price-row { display: flex; align-items: flex-end; justify-content: space-between; gap: 8px; }
 .price { font-weight: 700; font-size: 1.3rem; color: var(--text) !important; line-height: 1.1; }
 .price small { display: block; font-size: .7rem; font-weight: 400; color: var(--muted); }
+
+/* El título despliega el detalle: <details> nativo, sin JavaScript */
+.mas summary { list-style: none; cursor: pointer; display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.mas summary::-webkit-details-marker { display: none; }
+.mas-ic { flex: none; width: 22px; height: 22px; border-radius: 50%; background: var(--light); position: relative; margin-top: 1px; transition: transform .2s; }
+.mas-ic::before, .mas-ic::after { content: ""; position: absolute; left: 6px; right: 6px; top: 10px; height: 2px; background: var(--blue); border-radius: 2px; }
+.mas-ic::after { transform: rotate(90deg); transition: transform .2s; }
+.mas[open] .mas-ic::after { transform: rotate(0); }
+.mas summary:hover h3 { text-decoration: underline; text-underline-offset: 3px; }
+.mas-txt { display: flex; flex-direction: column; gap: 8px; padding: 10px 0 4px; border-bottom: 1px solid #e3eaf4; margin-bottom: 2px; }
+.mas-txt .dur { margin-top: 0; }
+.tramos { display: grid; gap: 4px; font-size: .84rem; }
+.tramos li { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.tramos span { white-space: nowrap; }
+.tramos b { text-align: right; }
+.tramos s { white-space: nowrap; }
+.tramos span { color: var(--muted); }
+.tramos s { color: var(--muted); font-weight: 400; margin-right: 4px; }
+.card-btns { display: flex; gap: 8px; }
+/* En una tarjeta angosta (5 por fila) los dos botones no caben lado a lado */
+.card-body { container-type: inline-size; }
+@container (max-width: 230px) { .card-btns { flex-direction: column; } }
+.mas[open] + p { display: none; }
+.card-btns .btn { flex: 1; padding-left: .6em; padding-right: .6em; }
+.card-btns .btn-blue { border-radius: 8px; cursor: pointer; font-family: inherit; }
+.card-badge { position: absolute; right: 12px; bottom: 12px; background: var(--yellow); color: var(--navy); font-weight: 700; font-size: .78rem; padding: .3em .7em; border-radius: 999px; }
+
+/* Carrito */
+.carro-btn { position: fixed; right: 18px; bottom: 18px; z-index: 60; display: inline-flex; align-items: center; gap: 8px; min-height: 52px; padding: 0 18px; border: 0; border-radius: 999px; background: var(--blue); color: #fff; font: 700 1rem "Poppins", system-ui, sans-serif; box-shadow: 0 10px 28px rgba(11,26,51,.35); cursor: pointer; }
+.carro-btn[hidden] { display: none; }
+.carro-btn .ic { width: 22px; height: 22px; }
+.carro-btn span { background: var(--yellow); color: var(--navy); min-width: 24px; height: 24px; border-radius: 999px; display: grid; place-items: center; font-size: .8rem; padding: 0 6px; }
+.carro { width: min(440px, 100vw); max-width: 100vw; height: 100dvh; max-height: 100dvh; margin: 0 0 0 auto; padding: 0; border: 0; display: none; flex-direction: column; background: #fff; color: var(--text); }
+.carro[open] { display: flex; }
+.carro::backdrop { background: rgba(11,26,51,.55); }
+.carro-head { display: flex; align-items: center; justify-content: space-between; padding: 18px 20px; background: var(--navy); color: #fff; }
+.carro-head h2 { font-size: 1.1rem; }
+.carro-x { background: none; border: 0; color: #fff; font-size: 1.2rem; min-width: 44px; min-height: 44px; cursor: pointer; }
+.carro-items { flex: 1; overflow-y: auto; padding: 8px 20px; }
+.carro-items li { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; padding: 14px 0; border-bottom: 1px solid #e3eaf4; }
+.carro-items .nom { font-weight: 600; font-size: .92rem; }
+.carro-items .sub { color: var(--muted); font-size: .8rem; grid-column: 1; }
+.carro-items .monto { font-weight: 700; text-align: right; }
+.cant { display: inline-flex; align-items: center; gap: 2px; grid-column: 2; justify-self: end; }
+.cant button { width: 36px; height: 36px; border-radius: 10px; border: 1px solid #cfdbea; background: var(--light); color: var(--blue); font-size: 1.1rem; font-weight: 700; cursor: pointer; }
+.cant b { min-width: 28px; text-align: center; }
+.carro-vacio { padding: 24px 20px; color: var(--muted); font-size: .92rem; }
+.carro-pie { padding: 16px 20px 20px; border-top: 1px solid #e3eaf4; display: grid; gap: 10px; background: #f7f9fc; }
+.carro-pie label { display: grid; gap: 4px; font-size: .78rem; font-weight: 600; color: var(--muted); }
+.carro-pie input, .carro-pie select { font: 400 .95rem "Poppins", system-ui, sans-serif; padding: 10px 12px; border: 1px solid #cfdbea; border-radius: 10px; background: #fff; color: var(--text); min-height: 44px; width: 100%; }
+.carro-fila { display: grid; grid-template-columns: 1fr 110px; gap: 10px; }
+.carro-total { display: flex; justify-content: space-between; font-size: 1.15rem; }
+.carro-nota { font-size: .78rem; color: var(--muted); }
+.carro-enviar { width: 100%; }
+.carro-vaciar { background: none; border: 0; color: var(--muted); font: 400 .8rem "Poppins", system-ui, sans-serif; text-decoration: underline; cursor: pointer; min-height: 32px; }
 
 .note { display: flex; gap: .6em; align-items: flex-start; justify-content: center; font-size: .88rem; color: var(--muted); margin-bottom: 24px; text-align: left; }
 .note .ic { color: var(--blue); margin-top: .2em; }

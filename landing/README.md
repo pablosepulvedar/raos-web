@@ -50,7 +50,13 @@ Abrir `public/index.html` en el navegador, o `npx wrangler dev` desde esta carpe
 - **WhatsApp:** +56 9 4149 5370 (`wa.me/56941495370`), confirmado por el cliente. Los enlaces traen mensaje prellenado por tipo de vuelo.
 - **Credenciales:** Licencia DGAC 1541 · Registro Sernatur 79723 (vigente, [ficha](https://serviciosturisticos.sernatur.cl/61975-parapente-raos)).
 - **Redes:** Instagram [@parapenteraos](https://www.instagram.com/parapenteraos/) (verificada), TikTok [@parapente.raos](https://www.tiktok.com/@parapente.raos), Facebook `facebook.com/parapenteraos`. No hay YouTube.
-- **Precios:** 1 persona $65.000 · 2 personas $120.000 · 3 o más $59.000 c/u · Rafting + Parapente $90.000 p/p · Fotos y video Premium 360° $15.000.
+- **Precios (2026-10-24):** por tramo 1 persona / 2 personas (promo) / 3 o más c/u.
+  Básico sin grabación $60.000 / $110.000 / $59.000 · Video tradicional $70.000 / $130.000 / $68.000 ·
+  Video premium 360° $75.000 / $140.000 / $72.000 · Gift Card $70.000 (3 meses) · Rafting + Parapente $90.000 p/p.
+  **Viven en dos lugares:** las tarjetas de `public/index.html` y `PRODUCTOS` en `public/carrito.js`.
+- **Carrito (`public/carrito.js`):** sin librerías. "Comprar" suma al carrito y el pedido se envía por
+  WhatsApp con el detalle y el total. Todavía no cobra en línea (falta Mercado Pago de RAOS).
+  `node public/carrito.js` comprueba los tramos de precio.
 - **Requisitos:** 25–110 kg, edad mínima 5 años, menores con representante, no en estado de embarazo.
 - **Duración:** vuelo 8–15 min; actividad completa 40 min–1 h.
 - **Horarios (primavera/verano):** mié–vie 13:00–18:00, sáb–dom 12:00–18:00.
