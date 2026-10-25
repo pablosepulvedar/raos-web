@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { May, useJerga } from '@/lib/jerga'
 import { createClient } from '@/lib/supabase-browser'
 import InputMonto from '@/components/InputMonto'
+import { abrirWhatsApp } from '@/lib/whatsapp'
 
 type Horario = { id: number; horario: number }
 type MetodoPago = { id: number; nombre: string }
@@ -454,11 +455,10 @@ export default function DetalleContent({ id, onSave, onDelete, soloPagos }: Prop
                     className="text-xs font-semibold px-3 py-2 rounded-lg" style={{ background:'#16a34a', color:'#fff' }}>
                     Copiar link de pago
                   </button>
-                  <a href={`https://wa.me/?text=${encodeURIComponent(`Hola ${nombre}, aquí puedes pagar tu reserva: ${linkPago}`)}`}
-                    target="_blank" rel="noreferrer"
+                  <button type="button" onClick={() => abrirWhatsApp(`Hola ${nombre}, aquí puedes pagar tu reserva: ${linkPago}`)}
                     className="text-xs font-semibold px-3 py-2 rounded-lg" style={{ background:'#25d366', color:'#fff' }}>
                     Enviar por WhatsApp
-                  </a>
+                  </button>
                   <button onClick={() => setLinkPago(null)} className="text-xs px-3 py-2 rounded-lg" style={{ border:'1px solid #86efac', color:'#166534' }}>
                     Listo
                   </button>

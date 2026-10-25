@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase-browser'
 import Cargando from '@/components/Cargando'
+import { esAndroid, fijarBusiness, usaBusiness } from '@/lib/whatsapp'
 
 type Invitacion = {
   id: number
@@ -44,6 +45,10 @@ export default function Empresas() {
   const [invitaciones, setInvitaciones] = useState<Invitacion[]>([])
   const [publicado, setPublicado] = useState(false)
   const [respondiendo, setRespondiendo] = useState<number | null>(null)
+  // Por dispositivo: se lee después de montar (en el servidor no hay localStorage)
+  const [business, setBusiness] = useState(false)
+  const [android, setAndroid] = useState(false)
+  useEffect(() => { setBusiness(usaBusiness()); setAndroid(esAndroid()) }, [])
 
   const cargar = async () => {
     const [mias, invs, pub] = await Promise.all([
@@ -190,6 +195,33 @@ export default function Empresas() {
                 tu nombre y tu rubro: nunca tu correo ni tu teléfono, ni para quién vuelas hoy.
                 Nadie te agrega sin que aceptes, y puedes desmarcarlo cuando quieras.
               </span>
+            </span>
+          </label>
+        </div>
+
+        <div className="mt-4 bg-white border border-[#d4e6f5] rounded-xl p-5">
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              className="mt-1"
+              checked={business}
+              onChange={e => { fijarBusiness(e.target.checked); setBusiness(e.target.checked) }}
+            />
+            <span>
+              <span className="block font-bold text-[#0d2b5c]">
+                Abrir WhatsApp Business en este teléfono
+              </span>
+              <span className="block text-sm text-gray-600 mt-1">
+                Márcalo si el número de la empresa está en WhatsApp Business y en este teléfono
+                también está instalada la WhatsApp normal: así los botones de WhatsApp no abren la
+                equivocada. Vale solo para este teléfono.
+              </span>
+              {!android && (
+                <span className="block text-xs text-amber-700 mt-2">
+                  Funciona en Android. En iPhone no se puede elegir la app: si tienes las dos,
+                  borra la WhatsApp normal.
+                </span>
+              )}
             </span>
           </label>
         </div>

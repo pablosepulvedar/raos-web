@@ -6,6 +6,7 @@ import { May, useJerga, type Jerga } from '@/lib/jerga'
 import { createClient } from '@/lib/supabase-browser'
 import QRCode from 'qrcode'
 import { HandCoins } from 'lucide-react'
+import { abrirWhatsApp } from '@/lib/whatsapp'
 import DetalleContent from '@/components/reserva/DetalleContent'
 import InputMonto, { conMiles } from '@/components/InputMonto'
 
@@ -193,7 +194,7 @@ export default function DiaDeVuelo() {
       'Cada link es personal: compártelo con quien corresponda. ¡Nos vemos!',
     ].join('\n')
     const tel = r.telefono ? String(r.telefono).replace(/\D/g, '') : ''
-    window.open(`https://wa.me/${tel}?text=${encodeURIComponent(cuerpo)}`, '_blank')
+    abrirWhatsApp(cuerpo, tel)
   }
 
   const verQr = async (items: { nombre: string; link: string }[], i: number) => {
