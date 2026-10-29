@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase-browser'
 import Cargando from '@/components/Cargando'
 import { esAndroid, fijarBusiness, usaBusiness } from '@/lib/whatsapp'
+import Volver from '@/components/Volver'
 
 type Invitacion = {
   id: number
@@ -77,7 +78,7 @@ export default function Empresas() {
   return (
     <div className="min-h-screen bg-[#f8f9fa]">
       <header className="bg-[#0d2b5c] px-5 py-5 flex items-center gap-4">
-        <Link href="/" className="text-white text-lg font-semibold hover:opacity-80">← Volver</Link>
+        <Volver href="/" className="text-white" />
         <h1 className="text-white text-xl font-bold flex-1 text-center">Mi cuenta</h1>
         <div className="w-16" />
       </header>

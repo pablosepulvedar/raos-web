@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { InputPassword } from '@/components/InputPassword'
 import { createClient } from '@/lib/supabase-browser'
 import Cargando from '@/components/Cargando'
+import Volver from '@/components/Volver'
 
 const supabase = createClient()
 
@@ -139,7 +140,7 @@ export default function Admin() {
   return (
     <div className="min-h-screen bg-[#f8f9fa]">
       <header className="bg-[#0d2b5c] px-5 py-5 flex items-center gap-4">
-        <Link href="/" className="text-white text-lg font-semibold hover:opacity-80">← Volver</Link>
+        <Volver href="/" className="text-white" />
         <h1 className="text-white text-xl font-bold flex-1 text-center">🛠️ Panel de empresas</h1>
         <Link href="/admin/consumo" className="text-white text-sm font-semibold hover:opacity-80 w-16 text-right">📊 Consumo</Link>
       </header>

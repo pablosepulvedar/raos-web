@@ -15,7 +15,11 @@ type Ficha = {
   persona_id: number | null; ip: string | null; edad: number | null
 }
 type Log = { id: number; evento: string; detalle: string | null; ip: string | null; created_at: string }
-type Persona = { id: number; nombre: string; sin_camara: boolean; camara_normal: boolean; camara_360: boolean; perfil_id: string | null }
+type Persona = {
+  id: number; nombre: string; sin_camara: boolean; camara_normal: boolean; camara_360: boolean
+  perfil_id: string | null; cumpleanero: boolean; camara_promo: boolean
+}
+type Valor = { id: number; servicio: string; monto: number }
 type Pago = { id: number; monto: number; metodos_pago: { nombre: string } | null }
 type Servicio = { id: number; valores: { monto: number; descuento: boolean } | null }
 type Reserva = {
@@ -56,6 +60,13 @@ const linkDe = (token: string, nombre?: string) => {
 const fmtFecha = (iso: string) =>
   new Date(iso).toLocaleString('es-CL', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
 const tieneCamara = (p: Persona) => p.sin_camara || p.camara_normal || p.camara_360
+// Igual que camara_del_valor() en la base: el servicio se reconoce por el nombre
+const camaraDelServicio = (servicio: string): CamaraOp | null => {
+  const s = servicio.toLowerCase().replace(/á/g, 'a')
+  return s.includes('camara') ? (s.includes('360') ? 'camara_360' : 'camara_normal') : null
+}
+// Al cumpleañero la 360 le sale gratis (lo resuelve la base)
+const camaraGratis = (p: Persona) => p.camara_promo || (p.camara_360 && p.cumpleanero)
 
 // Manda el ultimo dato: firmar escribe en reservas_personas y el detalle tambien,
 // asi que esa es la lista buena. La ficha solo cubre el caso sin pasajero enlazado.
@@ -113,6 +124,9 @@ export default function DiaDeVuelo() {
   // QR de las fichas pendientes, uno por pasajero; se recorren con las flechas
   // Pasajero al que se le está eligiendo piloto (modal)
   const [eligePiloto, setEligePiloto] = useState<Persona | null>(null)
+  // Cámara elegida, esperando que digan si se cobra o va en promo
+  const [eligeCobro, setEligeCobro] = useState<{ p: Persona; op: CamaraOp } | null>(null)
+  const [valores, setValores] = useState<Valor[]>([])
   // Detalle completo o solo pagos, en un modal sobre Hoy
   const [modal, setModal] = useState<{ id: number; soloPagos: boolean } | null>(null)
   const [qr, setQr] = useState<{ items: { nombre: string; link: string }[]; i: number; img: string } | null>(null)
@@ -126,7 +140,7 @@ export default function DiaDeVuelo() {
     const { data } = await sb
       .from('reservas')
       .select(`id, nombre, telefono, cantidad, horario_id, volo, abono,
-               reservas_personas(id, nombre, sin_camara, camara_normal, camara_360, perfil_id),
+               reservas_personas(id, nombre, sin_camara, camara_normal, camara_360, perfil_id, cumpleanero, camara_promo),
                fichas_riesgo(id, token, nombre, aceptada_at, persona_id, ip, edad),
                reserva_servicios(id, valores(monto, descuento)),
                reserva_pagos(id, monto, metodos_pago(nombre))`)
@@ -140,6 +154,8 @@ export default function DiaDeVuelo() {
 
   useEffect(() => {
     sb.from('horarios').select('id, horario').then(({ data }) => setHorarios(data ?? []))
+    sb.from('valores').select('id, servicio, monto').eq('pasajero', true).eq('descuento', false).order('id')
+      .then(({ data }) => setValores(data ?? []))
     sb.from('metodos_pago').select('id, nombre').eq('activo', true).order('nombre').then(({ data }) => setMetodos(data ?? []))
     // Igual que el detalle de la reserva: los que tienen un rol "piloto"
     sb.from('roles').select('id').ilike('nombre', '%piloto%').then(async ({ data: roles }) => {
@@ -221,6 +237,20 @@ export default function DiaDeVuelo() {
       await sb.from('reservas').update({ cantidad: Math.max(r.cantidad - 1, 0) }).eq('id', r.id)
     })
   }
+
+  const fijarCamara = (p: Persona, op: CamaraOp, promo: boolean) =>
+    conBloqueo(`cam-${p.id}`, () => sb.from('reservas_personas').update({
+      sin_camara: op === 'sin_camara',
+      camara_normal: op === 'camara_normal',
+      camara_360: op === 'camara_360',
+      camara_promo: promo,
+    }).eq('id', p.id))
+
+  // Sin cámara o la 360 del cumpleañero no se cobran: directo. Lo demás pregunta.
+  const elegirCamara = (p: Persona, op: CamaraOp) =>
+    op === 'sin_camara' || (op === 'camara_360' && p.cumpleanero)
+      ? fijarCamara(p, op, false)
+      : setEligeCobro({ p, op })
 
   const agregarPago = async (r: Reserva) => {
     setPagoError(null)
@@ -317,6 +347,43 @@ export default function DiaDeVuelo() {
           </div>
         </div>
       )}
+      {eligeCobro && (() => {
+        const { p, op } = eligeCobro
+        const valor = valores.find(v => camaraDelServicio(v.servicio) === op)
+        const elegir = (promo: boolean) => { setEligeCobro(null); fijarCamara(p, op, promo) }
+        return (
+          <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center md:p-4" onClick={() => setEligeCobro(null)}>
+            <div className="absolute inset-0 bg-black/60" />
+            <div className="relative w-full max-w-sm bg-white rounded-t-2xl md:rounded-2xl shadow-2xl"
+              onClick={e => e.stopPropagation()}>
+              <div className="flex items-center px-5 pt-4 pb-3 border-b border-gray-100">
+                <p className="flex-1 text-[#0d2b5c] font-bold">
+                  Cámara {op === 'camara_360' ? '360°' : 'normal'} de {p.nombre}
+                </p>
+                <button onClick={() => setEligeCobro(null)} aria-label="Cerrar" className="text-gray-400 hover:text-gray-700 text-lg">✕</button>
+              </div>
+              <div className="p-3 space-y-1.5">
+                {valor ? (
+                  <button onClick={() => elegir(false)}
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left text-sm font-semibold bg-gray-50 text-[#0d2b5c] hover:bg-blue-50">
+                    <span className="flex-1 truncate">{valor.servicio}</span>
+                    <span>{fmtCLP(valor.monto)}</span>
+                  </button>
+                ) : (
+                  <p className="px-4 py-2 text-xs text-gray-500">
+                    No hay un valor con “cámara” en el nombre: se marca sin cobrar.
+                  </p>
+                )}
+                <button onClick={() => elegir(true)}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left text-sm font-semibold bg-gray-50 text-[#0d2b5c] hover:bg-blue-50">
+                  <span className="flex-1">Promo</span>
+                  <span>$0</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
       {qr && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-5" onClick={() => setQr(null)}>
           <div className="absolute inset-0 bg-black/60" />
@@ -538,6 +605,7 @@ export default function DiaDeVuelo() {
                           <div className="w-24 shrink-0 min-w-0">
                             <div className="flex items-center gap-1">
                               <p className="text-sm text-gray-700 truncate">{p.nombre}</p>
+                              {p.cumpleanero && <span className="text-xs shrink-0" title="Cumpleañero">🥳</span>}
                               {borrable(p, r) && (
                                 <button onClick={() => quitarPasajero(p, r)} disabled={ocupado === `del-${p.id}`}
                                   title={`Quitar ${p.nombre}`} aria-label={`Quitar ${p.nombre}`}
@@ -546,6 +614,9 @@ export default function DiaDeVuelo() {
                                 </button>
                               )}
                             </div>
+                            {camaraGratis(p) && (
+                              <p className="text-[11px] text-[#7c3aed] font-semibold">cámara $0</p>
+                            )}
                             {p.perfil_id && (
                               <p className="text-[11px] text-[#2e9e52] font-semibold truncate">
                                 {pilotos.find(pl => pl.id === p.perfil_id)?.nombre}
@@ -557,11 +628,7 @@ export default function DiaDeVuelo() {
                               const activa = p[c.op]
                               return (
                                 <button key={c.op}
-                                  onClick={() => conBloqueo(`cam-${p.id}`, () => sb.from('reservas_personas').update({
-                                    sin_camara: c.op === 'sin_camara',
-                                    camara_normal: c.op === 'camara_normal',
-                                    camara_360: c.op === 'camara_360',
-                                  }).eq('id', p.id))}
+                                  onClick={() => elegirCamara(p, c.op)}
                                   disabled={ocupado === `cam-${p.id}`}
                                   title={c.op === 'sin_camara' ? 'Sin cámara' : `Cámara ${c.label}`}
                                   className={`flex-1 h-8 rounded-lg text-xs font-semibold whitespace-nowrap disabled:opacity-60 ${

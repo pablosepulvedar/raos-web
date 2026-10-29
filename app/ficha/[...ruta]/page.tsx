@@ -7,6 +7,7 @@ import {
   COMO_CONOCIO, FICHA_CHECK, PREVISION, SALUD_ITEMS,
   fichaTexto, type Idioma, type Salud, type SaludKey,
 } from '@/lib/ficha-texto'
+import { faltantesFicha } from '@/lib/ficha-obligatorios'
 
 type Ficha = {
   empresa: string; registro_sernatur: string | null
@@ -18,7 +19,7 @@ const T = {
   es: {
     titulo: 'Ficha de inscripción y aceptación del riesgo', vuelo: 'Vuelo',
     datos: '1. Datos personales', nombre: 'Nombre y apellido', documento: 'RUT o pasaporte',
-    edad: 'Edad', nacionalidad: 'Nacionalidad', giftCard: 'N° Gift Card (si tienes)',
+    edad: 'Edad', peso: 'Peso (kg)', nacionalidad: 'Nacionalidad', giftCard: 'N° Gift Card (si tienes)',
     urgencia: '2. Contacto en caso de urgencia', eNombre: 'Nombre y apellido',
     eTelefono: 'Teléfono', eParentesco: 'Parentesco',
     experiencia: '3. Declaración de experiencia',
@@ -39,12 +40,14 @@ const T = {
     declaracion: '5. Seguros, fotos y aceptación del riesgo',
     enviar: 'Confirmar', enviando: 'Enviando...',
     listoTitulo: '¡Listo!', listoTexto: 'Tu ficha quedó registrada. Nos vemos en el despegue.',
-    faltan: 'Completa los campos obligatorios y acepta la declaración.',
+    faltan: 'Faltan datos obligatorios: están marcados en rojo.',
+    obligatorio: 'Obligatorio', telefonoCorto: 'Obligatorio: teléfono con al menos 8 dígitos',
+    pesoMal: 'Obligatorio: tu peso en kilos, sin decimales',
   },
   en: {
     titulo: 'Registration and risk acceptance form', vuelo: 'Flight',
     datos: '1. Personal details', nombre: 'Full name', documento: 'ID or passport',
-    edad: 'Age', nacionalidad: 'Nationality', giftCard: 'Gift card no. (if you have one)',
+    edad: 'Age', peso: 'Weight (kg)', nacionalidad: 'Nationality', giftCard: 'Gift card no. (if you have one)',
     urgencia: '2. Emergency contact', eNombre: 'Full name',
     eTelefono: 'Phone', eParentesco: 'Relationship',
     experiencia: '3. Experience declaration',
@@ -65,7 +68,9 @@ const T = {
     declaracion: '5. Insurance, photos and risk acceptance',
     enviar: 'Confirm', enviando: 'Sending...',
     listoTitulo: 'All set!', listoTexto: 'Your form has been recorded. See you at take-off.',
-    faltan: 'Please fill in the required fields and accept the declaration.',
+    faltan: 'Some required fields are missing: they are marked in red.',
+    obligatorio: 'Required', telefonoCorto: 'Required: phone with at least 8 digits',
+    pesoMal: 'Required: your weight in kg, no decimals',
   },
 }
 
@@ -117,7 +122,7 @@ export default function FichaPublica() {
   const [acepta, setAcepta] = useState(false)
 
   const [f, setF] = useState({
-    nombre: '', documento: '', edad: '', nacionalidad: '', gift_card: '',
+    nombre: '', documento: '', edad: '', peso: '', nacionalidad: '', gift_card: '',
     emergencia_nombre: '', emergencia_telefono: '', emergencia_parentesco: '',
     instagram: '', tutor_nombre: '', tutor_documento: '',
   })
@@ -138,6 +143,18 @@ export default function FichaPublica() {
   const [paraMenor, setParaMenor] = useState(false)
   const edadDeMenor = Number.isFinite(edad) && edad < 18
   const esMenor = paraMenor || edadDeMenor
+  // Se marcan en rojo recién después del primer intento de enviar
+  const [intento, setIntento] = useState(false)
+  const faltan = faltantesFicha({ ...f, salud, acepta, esMenor })
+  const falta = (k: string) => intento && faltan.includes(k)
+  const campo = (k: keyof typeof f, placeholder: string, extra: React.InputHTMLAttributes<HTMLInputElement> = {}) => (
+    <div className="flex-1 min-w-0">
+      <input id={`campo-${k}`} {...extra} placeholder={placeholder} value={f[k]} onChange={set(k)}
+        aria-invalid={falta(k)}
+        className={`${input} ${falta(k) ? '!border-red-400 ring-1 ring-red-400' : ''}`} />
+      {falta(k) && <p className="text-red-300 text-xs mt-1">{k === 'emergencia_telefono' ? t.telefonoCorto : k === 'peso' ? t.pesoMal : t.obligatorio}</p>}
+    </div>
+  )
 
   useEffect(() => {
     createClient().rpc('ficha_por_token', { p_token: token }).then(({ data }) => {
@@ -151,12 +168,13 @@ export default function FichaPublica() {
 
   const enviar = async () => {
     setError(null)
-    const faltan =
-      !f.nombre.trim() || !f.documento.trim() || !f.nacionalidad.trim() ||
-      !f.emergencia_nombre.trim() || !f.emergencia_telefono.trim() ||
-      !Number.isFinite(edad) || !acepta || (esMenor && (!f.tutor_nombre.trim() || !f.tutor_documento.trim()))
-    if (faltan) {
+    if (faltan.length) {
+      setIntento(true)
       setError(t.faltan)
+      // Lleva al primero que falta
+      const el = document.getElementById(`campo-${faltan[0]}`)
+      el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      if (el instanceof HTMLInputElement) el.focus({ preventScroll: true })
       return
     }
     if (esMenor && !edadDeMenor) {
@@ -169,7 +187,7 @@ export default function FichaPublica() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        ...f, edad, token, idioma, acepta,
+        ...f, edad, peso: parseInt(f.peso, 10), token, idioma, acepta,
         // un adulto que firma por sí mismo no lleva tutor, aunque haya alcanzado a escribirlo
         tutor_nombre: esMenor ? f.tutor_nombre : '', tutor_documento: esMenor ? f.tutor_documento : '',
         experiencia_previa: experiencia, prevision, salud,
@@ -242,12 +260,13 @@ export default function FichaPublica() {
       {/* 1 */}
       <h2 className={label}>{esMenor ? t.datosMenor : t.datos}</h2>
       <div className="space-y-3 mb-6">
-        <input className={input} placeholder={esMenor ? t.nombreMenor : t.nombre} value={f.nombre} onChange={set('nombre')} />
-        <input className={input} placeholder={t.documento} value={f.documento} onChange={set('documento')} />
+        {campo('nombre', esMenor ? t.nombreMenor : t.nombre)}
+        {campo('documento', t.documento)}
         <div className="flex gap-3">
-          <input className={input} inputMode="numeric" placeholder={t.edad} value={f.edad} onChange={set('edad')} />
-          <input className={input} placeholder={t.nacionalidad} value={f.nacionalidad} onChange={set('nacionalidad')} />
+          {campo('edad', t.edad, { inputMode: 'numeric' })}
+          {campo('peso', t.peso, { inputMode: 'numeric' })}
         </div>
+        {campo('nacionalidad', t.nacionalidad)}
         <input className={input} placeholder={t.giftCard} value={f.gift_card} onChange={set('gift_card')} />
       </div>
 
@@ -255,8 +274,8 @@ export default function FichaPublica() {
         <>
           <h2 className={label}>{t.tutor}</h2>
           <div className="flex gap-3 mb-6">
-            <input className={input} placeholder={t.tNombre} value={f.tutor_nombre} onChange={set('tutor_nombre')} />
-            <input className={input} placeholder={t.tDocumento} value={f.tutor_documento} onChange={set('tutor_documento')} />
+            {campo('tutor_nombre', t.tNombre)}
+            {campo('tutor_documento', t.tDocumento)}
           </div>
         </>
       )}
@@ -264,10 +283,10 @@ export default function FichaPublica() {
       {/* 2 */}
       <h2 className={label}>{t.urgencia}</h2>
       <div className="space-y-3 mb-6">
-        <input className={input} placeholder={t.eNombre} value={f.emergencia_nombre} onChange={set('emergencia_nombre')} />
+        {campo('emergencia_nombre', t.eNombre)}
         <div className="flex gap-3">
-          <input className={input} inputMode="tel" placeholder={t.eTelefono} value={f.emergencia_telefono} onChange={set('emergencia_telefono')} />
-          <input className={input} placeholder={t.eParentesco} value={f.emergencia_parentesco} onChange={set('emergencia_parentesco')} />
+          {campo('emergencia_telefono', t.eTelefono, { inputMode: 'tel' })}
+          {campo('emergencia_parentesco', t.eParentesco)}
         </div>
       </div>
 
@@ -299,9 +318,13 @@ export default function FichaPublica() {
               <SiNo value={salud[item.key].si} onChange={v => setSaludItem(item.key, { si: v })} si={t.si} no={t.no} />
             </div>
             {salud[item.key].si && (
-              <input className={`${input} mt-2`} placeholder={t.detalle}
-                value={salud[item.key].detalle}
-                onChange={e => setSaludItem(item.key, { detalle: e.target.value })} />
+              <>
+                <input id={`campo-salud_${item.key}`} placeholder={t.detalle}
+                  className={`${input} mt-2 ${falta(`salud_${item.key}`) ? '!border-red-400 ring-1 ring-red-400' : ''}`}
+                  value={salud[item.key].detalle}
+                  onChange={e => setSaludItem(item.key, { detalle: e.target.value })} />
+                {falta(`salud_${item.key}`) && <p className="text-red-300 text-xs mt-1">{t.obligatorio}</p>}
+              </>
             )}
           </div>
         ))}
@@ -335,7 +358,7 @@ export default function FichaPublica() {
         </p>
       </div>
 
-      <label className="flex items-start gap-3 mb-6 cursor-pointer">
+      <label id="campo-acepta" className={`flex items-start gap-3 mb-6 cursor-pointer rounded-xl ${falta('acepta') ? 'ring-2 ring-red-400 p-2' : ''}`}>
         <input type="checkbox" checked={acepta} onChange={e => setAcepta(e.target.checked)}
           className="mt-0.5 w-5 h-5 shrink-0 accent-[#ffd700]" />
         <span className="text-white text-sm">{FICHA_CHECK[idioma]}</span>

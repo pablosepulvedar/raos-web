@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase-browser'
+import Volver from '@/components/Volver'
 
 const supabase = createClient()
 
@@ -138,7 +139,7 @@ export default function CalendarPage() {
   return (
     <div className="min-h-screen bg-[#f8f9fa]">
       <header className="bg-[#ffd700] px-5 py-5 flex items-center gap-4">
-        <Link href="/" className="text-[#1e5a96] text-lg font-semibold hover:opacity-70">← Volver</Link>
+        <Volver href="/" className="text-[#1e5a96]" />
         <h1 className="text-[#1e5a96] text-xl font-bold flex-1 text-center">📅 Importar desde Calendar</h1>
         <div className="w-16" />
       </header>

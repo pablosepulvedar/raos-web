@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import Volver from '@/components/Volver'
 
 const menuItems = [
   { href: '/varios/horarios', icon: '🕒', label: 'Horarios', desc: 'Configuración de horarios' },
@@ -7,6 +8,7 @@ const menuItems = [
   { href: '/varios/metodos_pago', icon: '💳', label: 'Métodos de pago', desc: 'Formas de pago disponibles' },
   { href: '/varios/pagos', icon: '🔗', label: 'Cobro en línea', desc: 'Conecta Mercado Pago y manda links de pago' },
   { href: '/varios/calendar', icon: '📅', label: 'Google Calendar', desc: 'Conecta tu calendario y define cómo se leen tus eventos' },
+  { href: '/fichas', icon: '📋', label: 'Fichas firmadas', desc: 'Todas las fichas de riesgo, para buscarlas e imprimirlas' },
   { href: '/varios/bitacora', icon: '🧾', label: 'Quién hizo qué', desc: 'Quién creó, cambió o borró cada cosa' },
 ]
 
@@ -14,7 +16,7 @@ export default function Varios() {
   return (
     <div className="min-h-screen bg-[#f8f9fa]">
       <header className="bg-[#0d2b5c] px-5 py-5 flex items-center gap-4">
-        <Link href="/" className="text-[#ffd700] text-lg font-semibold hover:opacity-80">← Volver</Link>
+        <Volver href="/" className="text-[#ffd700]" />
         <h1 className="text-white text-xl font-bold flex-1 text-center">⚙️ Varios</h1>
         <div className="w-16" />
       </header>

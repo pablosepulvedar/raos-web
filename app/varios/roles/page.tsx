@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase-browser'
 import { May, useJerga } from '@/lib/jerga'
+import Volver from '@/components/Volver'
 
 const supabase = createClient()
 
@@ -94,7 +95,7 @@ export default function Roles() {
   return (
     <div className="min-h-screen bg-[#f8f9fa]">
       <header className="bg-[#0d2b5c] px-5 py-5 flex items-center gap-4">
-        <Link href="/varios" className="text-[#ffd700] text-lg font-semibold hover:opacity-80">← Volver</Link>
+        <Volver href="/varios" className="text-[#ffd700]" />
         <h1 className="text-white text-xl font-bold flex-1 text-center">🛡️ Roles</h1>
         <div className="w-16" />
       </header>

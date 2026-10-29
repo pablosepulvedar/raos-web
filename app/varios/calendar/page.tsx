@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useCallback, useEffect, useState } from 'react'
 import { useJerga } from '@/lib/jerga'
 import Cargando from '@/components/Cargando'
+import Volver from '@/components/Volver'
 
 type Plantilla = { id: string; nombre: string; ejemplo: string; patron: string }
 type Calendario = { id: string; nombre: string; principal: boolean }
@@ -114,7 +115,7 @@ export default function CalendarConfig() {
   return (
     <div className="min-h-screen bg-[#f8f9fa]">
       <header className="bg-[#0d2b5c] px-5 py-5 flex items-center gap-4">
-        <Link href="/varios" className="text-[#ffd700] text-lg font-semibold hover:opacity-80">← Volver</Link>
+        <Volver href="/varios" className="text-[#ffd700]" />
         <h1 className="text-white text-xl font-bold flex-1 text-center">📅 Google Calendar</h1>
         <div className="w-16" />
       </header>

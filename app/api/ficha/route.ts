@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { FICHA_VERSION, fichaTexto, type Idioma } from '@/lib/ficha-texto'
+import { faltantesFicha } from '@/lib/ficha-obligatorios'
 
 // Firma de la ficha. El pasajero no tiene sesión: entra solo con su token.
 // La evidencia (ip, navegador, hash del texto) la pone el servidor, nunca el cliente.
@@ -32,6 +33,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Falta aceptar la declaración' }, { status: 400 })
   }
 
+  // Lo mismo que exige el formulario: el navegador no es de fiar
+  const faltan = faltantesFicha({ ...b, esMenor: Number(b.edad) < 18 || !!String(b.tutor_nombre ?? '').trim() })
+  if (faltan.length) {
+    await log('error', `Faltan: ${faltan.join(', ')}`)
+    return NextResponse.json({ error: 'Faltan datos obligatorios', faltan }, { status: 400 })
+  }
+
   // El texto nombra a la empresa, así que el hash se calcula sobre el texto que
   // realmente se mostró, no sobre la plantilla.
   const { data: fichas } = await supabase.rpc('ficha_por_token', { p_token: b.token })
@@ -49,6 +57,7 @@ export async function POST(request: NextRequest) {
     p_nombre: b.nombre,
     p_documento: b.documento,
     p_edad: b.edad,
+    p_peso: Number(b.peso),
     p_nacionalidad: b.nacionalidad,
     p_emergencia_nombre: b.emergencia_nombre,
     p_emergencia_telefono: b.emergencia_telefono,

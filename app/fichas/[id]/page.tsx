@@ -1,13 +1,14 @@
 'use client'
 
-import { useParams, useRouter } from 'next/navigation'
+import { useParams } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase-browser'
+import Volver from '@/components/Volver'
 import { SALUD_ITEMS, fichaTexto, type Idioma, type Salud } from '@/lib/ficha-texto'
 
 type Ficha = {
   id: number; token: string; aceptada_at: string | null
-  nombre: string | null; documento: string | null; edad: number | null; nacionalidad: string | null
+  nombre: string | null; documento: string | null; edad: number | null; peso: number | null; nacionalidad: string | null
   gift_card: string | null
   emergencia_nombre: string | null; emergencia_telefono: string | null; emergencia_parentesco: string | null
   experiencia_previa: boolean; prevision: string | null; salud: Salud | null
@@ -15,7 +16,8 @@ type Ficha = {
   tutor_nombre: string | null; tutor_documento: string | null
   texto_version: string | null; texto_hash: string | null; idioma: string | null
   ip: string | null; user_agent: string | null
-  reservas: { nombre: string; fecha: string; horarios: { horario: number } | null } | null
+  // de reserva_de_fichas(): la reserva puede estar borrada y la ficha la sigue mostrando
+  reservas: { nombre: string; fecha: string; horario: number | null } | null
   empresas: { nombre: string; registro_sernatur: string | null } | null
   // el piloto asignado al pasajero de esta ficha
   reservas_personas: { perfiles: { nombre: string } | null } | null
@@ -48,17 +50,48 @@ function Seccion({ n, titulo }: { n: number | string; titulo: string }) {
 
 export default function FichaFirmada() {
   const id = String(useParams().id ?? '')
-  const router = useRouter()
   const sb = useRef(createClient()).current
   const [f, setF] = useState<Ficha | null>(null)
   const [noHay, setNoHay] = useState(false)
+  const hoja = useRef<HTMLDivElement>(null)
+  const pdf = useRef<Blob | null>(null)
+  const [armando, setArmando] = useState(false)
+
+  // Se arma una vez y se reutiliza para ver y para descargar
+  const armarPdf = async () => {
+    if (!pdf.current) {
+      setArmando(true)
+      const { fichaPdf } = await import('@/lib/ficha-pdf')
+      pdf.current = await fichaPdf(hoja.current!)
+      setArmando(false)
+    }
+    return URL.createObjectURL(pdf.current)
+  }
+  const verPdf = async () => {
+    // La pestaña se abre antes de esperar: si no, el navegador la bloquea
+    const w = window.open('', '_blank')
+    const url = await armarPdf()
+    if (w) w.location.href = url
+    else window.location.href = url
+  }
+  const descargarPdf = async () => {
+    const a = document.createElement('a')
+    a.href = await armarPdf()
+    a.download = `ficha-${(f?.nombre || 'pasajero').normalize('NFD').replace(/[̀-ͯ]/g, '')
+      .toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${f?.reservas?.fecha ?? f?.id}.pdf`
+    a.click()
+  }
 
   useEffect(() => {
     sb.from('fichas_riesgo')
-      .select('*, reservas(nombre, fecha, horarios(horario)), empresas(nombre, registro_sernatur), reservas_personas(perfiles(nombre))')
+      .select('*, empresas(nombre, registro_sernatur), reservas_personas(perfiles(nombre))')
       .eq('id', id)
       .maybeSingle()
-      .then(({ data }) => (data ? setF(data as unknown as Ficha) : setNoHay(true)))
+      .then(async ({ data }) => {
+        if (!data) return setNoHay(true)
+        const { data: rs } = await sb.rpc('reserva_de_fichas', { p_ids: [data.id] })
+        setF({ ...data, reservas: rs?.[0] ?? null } as unknown as Ficha)
+      })
   }, [sb, id])
 
   if (noHay) return <p className="p-10 text-center text-gray-500">Ficha no encontrada.</p>
@@ -72,18 +105,19 @@ export default function FichaFirmada() {
     <div className="flex-1 bg-gray-100 py-6 print:bg-white print:py-0">
       {/* Barra de acciones: no sale impresa */}
       <div className="max-w-[21cm] mx-auto mb-4 flex gap-2 px-4 print:hidden">
-        <button onClick={() => router.back()}
-          className="px-4 py-2 rounded-xl bg-white text-[#2e6db4] font-bold text-sm shadow-sm">
-          ← Volver
+        <Volver className="text-[#2e6db4] bg-white! shadow-sm" />
+        <button onClick={verPdf} disabled={armando}
+          className="px-4 py-2 rounded-xl bg-[#2e6db4] text-white font-bold text-sm shadow-sm disabled:opacity-60">
+          {armando ? 'Armando PDF...' : 'Ver PDF'}
         </button>
-        <button onClick={() => window.print()}
-          className="px-4 py-2 rounded-xl bg-[#2e6db4] text-white font-bold text-sm shadow-sm">
-          Imprimir / Guardar PDF
+        <button onClick={descargarPdf} disabled={armando}
+          className="px-4 py-2 rounded-xl bg-white text-[#2e6db4] font-bold text-sm shadow-sm disabled:opacity-60">
+          Descargar PDF
         </button>
       </div>
 
       <div className="overflow-x-auto print:overflow-visible">
-      <div className="max-w-[21cm] min-w-[40rem] mx-auto bg-white p-5 sm:p-8 shadow-sm print:shadow-none print:p-0">
+      <div ref={hoja} className="max-w-[21cm] min-w-[40rem] mx-auto bg-white p-5 sm:p-8 shadow-sm print:shadow-none print:p-0">
         <div className="flex items-start justify-between border-b-2 border-black pb-2 mb-3">
           <div>
             <h1 className="text-base font-bold uppercase">Ficha de inscripción y aceptación del riesgo</h1>
@@ -97,7 +131,7 @@ export default function FichaFirmada() {
 
         <div className="grid grid-cols-4 gap-px">
           <Campo label="Fecha del vuelo">{f.reservas?.fecha}</Campo>
-          <Campo label="Hora">{fmtH(f.reservas?.horarios?.horario)}</Campo>
+          <Campo label="Hora">{fmtH(f.reservas?.horario)}</Campo>
           <Campo label="Guía a cargo">{f.reservas_personas?.perfiles?.nombre}</Campo>
           <Campo label="N° Gift Card">{f.gift_card}</Campo>
         </div>
@@ -106,7 +140,7 @@ export default function FichaFirmada() {
         <div className="grid grid-cols-4 gap-px">
           <Campo label="Nombre y apellido">{f.nombre}</Campo>
           <Campo label="RUT o pasaporte">{f.documento}</Campo>
-          <Campo label="Edad">{f.edad}</Campo>
+          <Campo label="Edad / peso">{f.edad}{f.peso ? ` años · ${f.peso} kg` : ''}</Campo>
           <Campo label="Nacionalidad">{f.nacionalidad}</Campo>
         </div>
 

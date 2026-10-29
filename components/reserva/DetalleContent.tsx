@@ -165,13 +165,10 @@ export default function DetalleContent({ id, onSave, onDelete, soloPagos }: Prop
   }
 
   const eliminarReserva = async () => {
-    if (!confirm(`¿Eliminar la reserva de "${nombre}"? Esta acción no se puede deshacer.`)) return
+    if (!confirm(`¿Eliminar la reserva de "${nombre}"? Las fichas firmadas se conservan en Fichas firmadas.`)) return
     setEliminando(true)
-    // Borrar hijos en orden antes de borrar la reserva
-    await sb.from('perfil_valores').delete().in('reserva_id', [Number(id)])
-    await sb.from('reserva_pagos').delete().eq('reserva_id', Number(id))
-    await sb.from('reserva_servicios').delete().eq('reserva_id', Number(id))
-    await sb.from('reservas_personas').delete().eq('reserva_id', Number(id))
+    // La base solo la marca borrada (borrado lógico): pagos, pasajeros y fichas
+    // firmadas quedan guardados, ocultos con ella
     await sb.from('reservas').delete().eq('id', Number(id))
     setEliminando(false)
     onDelete?.()
@@ -280,6 +277,10 @@ export default function DetalleContent({ id, onSave, onDelete, soloPagos }: Prop
           await sb.from('reservas').update({cantidad:newTotal}).eq('id',id)
           setCantidad(String(newTotal))
         }
+        // Si la reserva ya tiene links de ficha, el nuevo necesita el suyo; si no,
+        // se generan todos juntos después desde Hoy
+        const { count } = await sb.from('fichas_riesgo').select('id', { count: 'exact', head: true }).eq('reserva_id', Number(id))
+        if (count) await sb.rpc('generar_fichas', { p_reserva_id: Number(id) })
       }
     }
     setSavingPas(false)

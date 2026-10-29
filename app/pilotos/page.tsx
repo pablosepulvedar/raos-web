@@ -5,8 +5,15 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { May, useJerga } from '@/lib/jerga'
 import { createClient } from '@/lib/supabase-browser'
 import InputMonto from '@/components/InputMonto'
+import Volver from '@/components/Volver'
 
-type PilotoResumen  = { perfil_id: string; nombre: string; vuelos: number; deuda: number; pagado: number }
+type Pasajero       = { nombre: string; camara: string }
+type PilotoResumen  = { perfil_id: string; nombre: string; vuelos: number; deuda: number; pagado: number; pasajeros: Pasajero[] }
+
+// Qué cámara llevó el pasajero, como se le dice en la base
+const camaraDe = (p: any) =>
+  (p.camara_360 ? 'Cámara 360°' : p.camara_normal ? 'Cámara normal' : 'Sin cámara')
+  + ((p.camara_360 || p.camara_normal) && (p.camara_promo || (p.camara_360 && p.cumpleanero)) ? ' · $0' : '')
 type ServicioPiloto = { id: number; servicio: string; monto: number; cantidad: number }
 type MetodoPago     = { id: number; nombre: string }
 type PagoPiloto     = { id: number; monto: number; metodos_pago: { nombre: string } | null }
@@ -79,7 +86,8 @@ export default function Pilotos() {
 
     const { data: rps } = await sb
       .from('reservas_personas')
-      .select('reserva_id, perfil_id, perfiles(id, nombre)')
+      .select('reserva_id, perfil_id, nombre, camara_normal, camara_360, camara_promo, cumpleanero, perfiles(id, nombre)')
+      .order('id')
       .in('reserva_id', reservas.map((r:any)=>r.id))
       .not('perfil_id','is',null)
 
@@ -96,7 +104,9 @@ export default function Pilotos() {
       if (!reservaIds[fecha]) reservaIds[fecha] = {}
 
       const ex = byDate[fecha].find(p=>p.perfil_id===pid)
-      if (ex) { ex.vuelos++ } else { byDate[fecha].push({ perfil_id:pid, nombre, vuelos:1, deuda:0, pagado:0 }) }
+      const pax = { nombre: row.nombre + (row.cumpleanero ? ' 🥳' : ''), camara: camaraDe(row) }
+      if (ex) { ex.vuelos++; ex.pasajeros.push(pax) }
+      else { byDate[fecha].push({ perfil_id:pid, nombre, vuelos:1, deuda:0, pagado:0, pasajeros:[pax] }) }
 
       if (!reservaIds[fecha][pid]) reservaIds[fecha][pid] = []
       if (!reservaIds[fecha][pid].includes(row.reserva_id)) reservaIds[fecha][pid].push(row.reserva_id)
@@ -359,7 +369,7 @@ export default function Pilotos() {
       {/* ── Header ── */}
       <header className="sticky top-0 z-20 flex items-center gap-3 px-5 py-4"
         style={{ background:'linear-gradient(135deg,#0d2b5c 0%,#1a4a85 100%)', boxShadow:'0 2px 12px rgba(13,43,92,0.3)' }}>
-        <Link href="/" className="text-[#7aafd4] text-sm">←</Link>
+        <Volver href="/" className="text-[#7aafd4]" />
         <button onClick={() => setShowCal(!showCal)} className="flex-1 flex items-center gap-1">
           <span className="text-white font-extrabold text-lg capitalize">{MESES[new Date().getMonth()].toLowerCase()}</span>
           <span className="text-[#7aafd4] text-sm ml-0.5">▾</span>
@@ -502,6 +512,15 @@ export default function Pilotos() {
 
                             {isExpanded && (
                               <div className="rounded-b-2xl p-4" style={{ background:'#f0f6ff', border:'1px solid #b0cce8', borderTop:'none' }}>
+                                <p className="text-[#0d2b5c] font-bold text-xs uppercase tracking-wide mb-2">Con quién voló</p>
+                                <div className="bg-white rounded-xl mb-4 divide-y divide-[#e3eef9]" style={{ border:'1px solid #d4e6f5' }}>
+                                  {p.pasajeros.map((x, i) => (
+                                    <div key={i} className="flex items-center justify-between gap-2 px-3 py-2 text-sm">
+                                      <span className="text-[#0d2b5c] truncate">{x.nombre}</span>
+                                      <span className={`text-xs font-semibold shrink-0 ${x.camara.startsWith('Sin') ? 'text-gray-400' : 'text-[#2e6db4]'}`}>{x.camara}</span>
+                                    </div>
+                                  ))}
+                                </div>
                                 <div className="flex items-center justify-between mb-3">
                                   <p className="text-[#0d2b5c] font-bold text-xs uppercase tracking-wide">Servicios del {j.operador}</p>
                                   <span className="text-xs font-bold text-white px-2 py-0.5 rounded-full"
