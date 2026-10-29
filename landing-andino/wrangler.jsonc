@@ -1,0 +1,8 @@
+{
+  "name": "parapenteandino",
+  "compatibility_date": "2026-10-01",
+  "assets": { "directory": "./public" },
+  // Sin dominio propio todavía: la URL workers.dev es la única entrada.
+  // Cuando se compre (p. ej. parapenteandino.cl), agregar aquí sus `routes`.
+  "workers_dev": true
+}

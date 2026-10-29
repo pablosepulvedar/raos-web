@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-label="ParapenteAndino">
+  <defs><clipPath id="c"><circle cx="60" cy="60" r="58"/></clipPath></defs>
+  <circle cx="60" cy="60" r="58" fill="#12304f"/>
+  <g clip-path="url(#c)">
+    <!-- La cordillera -->
+    <path d="M-2 100 L26 72 L36 81 L54 56 L65 69 L77 60 L122 100 Z" fill="#7ea3ce"/>
+    <path d="M48 64.5 L54 56 L60 63.5 L56.5 62 L53 66 Z M73 63.5 L77 60 L82 64.5 Z" fill="#ffffff"/>
+    <path d="M-2 98 Q60 86 122 98 V122 H-2 Z" fill="#0b2138"/>
+  </g>
+  <!-- La vela es un bigote -->
+  <path id="vela" d="M60 31 C54 22 40 21 31 29 C25 34 17 33 13 25 C13 37 23 44 34 41 C44 38 52 36 60 40 C68 36 76 38 86 41 C97 44 107 37 107 25 C103 33 95 34 89 29 C80 21 66 22 60 31 Z" fill="#f08a3c"/>
+  <path d="M24 33.5 L25.5 42 M38 28 L40 40 M50 26 L51.5 37.5 M70 26 L68.5 37.5 M82 28 L80 40 M96 33.5 L94.5 42" stroke="#c96a26" stroke-width="1"/>
+  <!-- Líneas y piloto -->
+  <path d="M34 41 L58 66 M47 38.5 L59 66 M73 38.5 L61 66 M86 41 L62 66" stroke="#f6d5b8" stroke-width="1.1"/>
+  <circle cx="60" cy="67" r="3.4" fill="#ffffff"/>
+  <path d="M56.8 70.4 h6.4 l-1.2 5.4 h-4 z" fill="#ffffff"/>
+</svg>

@@ -19,6 +19,7 @@ jobs:
     outputs:
       reservaps: ${{ steps.filtro.outputs.reservaps }}
       landing: ${{ steps.filtro.outputs.landing }}
+      andino: ${{ steps.filtro.outputs.andino }}
       cron: ${{ steps.filtro.outputs.cron }}
     steps:
       - uses: actions/checkout@v4
@@ -38,6 +39,7 @@ jobs:
           hay() { echo "$tocado" | grep -qE "$1"; }
           hay '^landing-reservaps/' && echo "reservaps=true" >> $GITHUB_OUTPUT || true
           hay '^landing/'           && echo "landing=true"   >> $GITHUB_OUTPUT || true
+          hay '^landing-andino/'    && echo "andino=true"    >> $GITHUB_OUTPUT || true
           hay '^cron/'              && echo "cron=true"      >> $GITHUB_OUTPUT || true
 
   reservaps-landing:
@@ -57,6 +59,15 @@ jobs:
       - uses: actions/checkout@v4
       - run: npx wrangler@4 deploy
         working-directory: landing
+
+  andino-landing:
+    needs: cambios
+    if: needs.cambios.outputs.andino == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: npx wrangler@4 deploy
+        working-directory: landing-andino
 
   raos-cron:
     needs: cambios
