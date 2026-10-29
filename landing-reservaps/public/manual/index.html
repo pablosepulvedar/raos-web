@@ -1446,6 +1446,31 @@
     <p>Desde el mismo detalle se cambian nombre, rubro, logo, color y si está <b>activa</b>. Desactivarla es
     la forma de suspender a un cliente sin borrar su información.</p>
   </div>
+
+  <h3>Cobros de la plataforma</h3>
+  <p>En el panel, arriba a la derecha, <b>💰 Cobros</b> lleva la cuenta de lo que cada empresa paga por usar
+  el sistema. Arriba muestra el <b>ingreso mensual</b> (y su equivalente al año), cuántas empresas hay en cada
+  estado y las que vencen en los próximos 15 días. Abajo, una tarjeta por empresa con su estado en color.</p>
+  <table>
+    <tr><th>Estado</th><th>Qué significa</th></tr>
+    <tr><td><b>Al día</b></td><td>Pagado hasta una fecha que todavía no llega.</td></tr>
+    <tr><td><b>En prueba</b></td><td>Los 30 días gratis.</td></tr>
+    <tr><td><b>Vencida</b></td><td>Pasó la fecha: la empresa ve una franja amarilla durante 7 días.</td></tr>
+    <tr><td><b>Suspendida</b></td><td>Pasaron los 7 días: su sistema queda bloqueado hasta que se registre el pago.</td></tr>
+    <tr><td><b>Cortesía</b></td><td>No se cobra y no vence nunca.</td></tr>
+    <tr><td><b>Sin cobrar</b></td><td>No tiene plan asignado: no se cobra ni se suspende.</td></tr>
+  </table>
+  <p>Al tocar una empresa se elige el <b>plan</b> (mensual $25.000, semestral $127.500, anual $240.000,
+  fundador $200.000 al año, prueba o cortesía, todo con IVA incluido), que propone su precio; el
+  <b>precio pactado</b> se puede cambiar si se acordó otro. <b>Registrar pago</b> pide fecha, monto, método y
+  hasta cuándo cubre (lo calcula solo según el plan) y deja a la empresa al día en el momento.
+  <b>Dejar de cobrar</b> la saca del cobro sin borrar sus pagos anteriores.</p>
+  <div class="ojo">
+    <span class="etiqueta">La suspensión no deja botados a los pasajeros</span>
+    <p>Una empresa suspendida no puede usar el sistema, pero sus links de ficha y la API de su página web
+    siguen funcionando, y no se borra nada. El administrador del sistema sigue entrando, con una franja
+    roja que avisa que esa empresa está suspendida.</p>
+  </div>
 </section>
 
 <!-- ══════════════════ 14 ══════════════════ -->
@@ -1466,6 +1491,10 @@
   <h4>Firmó la ficha pero no aparece como firmada.</h4>
   <p>La pantalla se refresca sola cada quince segundos. Si igual no aparece, abre <b>registro</b> en esa ficha:
   ahí quedan los intentos fallidos con su motivo.</p>
+
+  <h4>Aparece una franja amarilla que dice que el plan venció.</h4>
+  <p>El pago de la plataforma está atrasado. Hay 7 días para ponerse al día antes de que el sistema se suspenda;
+  al registrarse el pago, la franja desaparece sola. Si el sistema ya está suspendido, tus datos siguen guardados.</p>
 
   <h4>¿Dónde veo una ficha de hace meses?</h4>
   <p>En <b>Varios → Fichas firmadas</b>: búscala por nombre o RUT, o acota por fechas, y descárgala en PDF.</p>
