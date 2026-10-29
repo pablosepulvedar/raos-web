@@ -142,7 +142,10 @@ export default function Admin() {
       <header className="bg-[#0d2b5c] px-5 py-5 flex items-center gap-4">
         <Volver href="/" className="text-white" />
         <h1 className="text-white text-xl font-bold flex-1 text-center">🛠️ Panel de empresas</h1>
-        <Link href="/admin/consumo" className="text-white text-sm font-semibold hover:opacity-80 w-16 text-right">📊 Consumo</Link>
+        <div className="flex flex-col items-end gap-1 shrink-0">
+          <Link href="/admin/cobros" className="text-white text-sm font-semibold hover:opacity-80">💰 Cobros</Link>
+          <Link href="/admin/consumo" className="text-white text-sm font-semibold hover:opacity-80">📊 Consumo</Link>
+        </div>
       </header>
 
       <div className="max-w-3xl mx-auto px-5 py-5">

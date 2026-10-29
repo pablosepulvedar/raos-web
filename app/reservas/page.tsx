@@ -160,7 +160,8 @@ export default function Reservas() {
       const [data] = await Promise.all([
         fetchDays(initStart, initEnd),
         sb.from('horarios').select('*').order('horario').then(({ data }) => setHorarios((data||[]) as Horario[])),
-        sb.from('valores').select('*').order('servicio').then(({ data }) => setValores((data||[]) as Valor[])),
+        // solo lo que se le cobra al pasajero: los valores del guía son su pago, no un servicio
+        sb.from('valores').select('*').eq('pasajero', true).order('servicio').then(({ data }) => setValores((data||[]) as Valor[])),
         fetchDots(new Date().getFullYear(), new Date().getMonth()),
       ])
       setByDate(data)

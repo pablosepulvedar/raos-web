@@ -254,7 +254,8 @@ export default function DiaDeVuelo() {
 
   const agregarPago = async (r: Reserva) => {
     setPagoError(null)
-    const valor = parseInt(monto, 10)
+    // Campo vacío = el saldo que se ve propuesto en gris
+    const valor = monto ? parseInt(monto, 10) : saldo(r).resta
     if (!metodoId || !Number.isFinite(valor) || valor <= 0) {
       setPagoError('Elige el método y escribe el monto')
       return

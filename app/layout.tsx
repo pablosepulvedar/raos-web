@@ -3,6 +3,7 @@ import { Geist } from "next/font/google";
 import "./globals.css";
 import DemoBanner from "@/components/DemoBanner";
 import PieManual from "@/components/PieManual";
+import AvisoCuenta from "@/components/AvisoCuenta";
 
 const geist = Geist({
   variable: "--font-geist-sans",
@@ -26,7 +27,7 @@ export default function RootLayout({
     <html lang="es" className={`${geist.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col bg-[#f0f4f8]">
         <DemoBanner />
-        {children}
+        <AvisoCuenta>{children}</AvisoCuenta>
         <PieManual />
       </body>
     </html>
