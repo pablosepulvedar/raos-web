@@ -438,7 +438,7 @@
     <tr><td><b>Usuarios</b></td><td>Crear gente, asignar roles, activar o desactivar</td><td>8</td></tr>
     <tr><td><b>Reservas</b></td><td>La agenda y la pestaña del día de operación</td><td>4 y 5</td></tr>
     <tr><td><b>Guías</b></td><td>Lo que hizo cada guía y lo que se le debe</td><td>7</td></tr>
-    <tr><td><b>Varios</b></td><td>Horarios, valores, roles, métodos de pago, cobro en línea, Google Calendar y quién hizo qué</td><td>9</td></tr>
+    <tr><td><b>Varios</b></td><td>Horarios, valores, roles, métodos de pago, cobro en línea, Google Calendar, fichas firmadas y quién hizo qué</td><td>9</td></tr>
     <tr><td><b>Importar Calendar</b></td><td>Traer reservas desde Google Calendar</td><td>11</td></tr>
     <tr><td><b>Cuadre del día</b></td><td>El resumen financiero de la jornada</td><td>10</td></tr>
     <tr><td><b>Panel de empresas</b></td><td>Solo lo ve el administrador del sistema</td><td>13</td></tr>
@@ -451,6 +451,9 @@
   <p>Si a alguien le faltan tarjetas, no es un error: es su rol. Cada rol ve las secciones que tenga
   marcadas en <b>Varios → Roles</b>; <b>Usuarios</b> lo ve solo el Admin, y <b>Panel de empresas</b>
   solo el administrador del sistema.</p>
+
+  <p>Para volver atrás, en cada pantalla está el <b>botón redondo con la flecha ←</b> arriba a la izquierda.
+  Al tocarlo gira mientras carga la pantalla anterior: no hace falta tocarlo dos veces.</p>
 
   <div class="ojo">
     <span class="etiqueta">La franja amarilla de la demo</span>
@@ -575,8 +578,10 @@
   el pago se registra solo en la reserva.</p>
 
   <h4>Eliminar</h4>
-  <p>Abajo del todo, <b>🗑️ Eliminar reserva</b> borra la reserva y todo lo que cuelga de ella: pagos, servicios,
-  clientes y fichas. Pide confirmación y no se puede deshacer. Solo lo ve el administrador.</p>
+  <p>Abajo del todo, <b>🗑️ Eliminar reserva</b> saca la reserva de la agenda, de Hoy, de Guías y del cuadre.
+  Pide confirmación. En realidad no se borra: queda guardada y oculta, con sus pagos y clientes, y sus
+  <b>fichas firmadas siguen disponibles en Varios → Fichas firmadas</b> (capítulo 9.7), marcadas como
+  <i>borrada</i>. Los links de ficha que no se habían firmado dejan de funcionar.</p>
 
   <h3>4.4 Los clientes de la reserva</h3>
 
@@ -593,7 +598,8 @@
         el servicio <i>Cámara 360</i> a la reserva, y agregar ese servicio se lo asigna al primer cliente que
         todavía no tiene cámara. Cambiarla o quitarla ajusta el cobro solo.</li>
     <li><b>Guía</b> — se elige de la lista de usuarios con rol de guía. Esta asignación es la que alimenta los pagos a guías (capítulo 7).</li>
-    <li><b>¿Es cumpleañero?</b> — al activarlo queda marcado con 🥳 en la agenda. Deja seleccionada la cámara 360° por defecto.</li>
+    <li><b>¿Es cumpleañero?</b> — al activarlo queda marcado con 🥳 en la agenda. Deja seleccionada la cámara 360° por defecto,
+        y <b>al cumpleañero la 360° no se le cobra</b>: el servicio no se agrega.</li>
   </ul>
 
   <div class="nota">
@@ -681,8 +687,16 @@
   cobrar en línea— sin salir de Hoy.</p>
 
   <h4>Clientes y cámara</h4>
-  <p>Una fila por cliente con tres botones de cámara: <b>Sin</b>, <b>Normal</b> y <b>360°</b>. Es excluyente,
-  y elegir una cámara agrega su cobro a la reserva (capítulo 4.4).</p>
+  <p>Una fila por cliente con tres botones de cámara: <b>Sin</b>, <b>Normal</b> y <b>360°</b>. Es excluyente.
+  Al elegir Normal o 360° se abre una ventana para decidir cómo se cobra:</p>
+  <ul>
+    <li><b>El servicio con su precio</b> (por ejemplo <i>Cámara 360 — $15.000</i>, el valor configurado en
+        Varios → Valores): se agrega el cobro a la reserva.</li>
+    <li><b>Promo — $0</b>: la cámara queda marcada para grabar, pero no suma nada.</li>
+  </ul>
+  <p>Al <b>cumpleañero</b> 🥳 la 360° no se le cobra, así que no pregunta. Cuando una cámara va gratis, bajo el
+  nombre aparece <b>cámara $0</b> en morado. Si después cambia (deja de ser promo, o pasa a otra cámara),
+  el cobro se ajusta solo.</p>
   <ul>
     <li>El cuadrado con el <b>parapente</b>, al final de la fila, asigna el guía: se abre la lista, tocas uno y
         la ventana se cierra. El botón queda <b>verde</b> y el nombre del guía aparece bajo el del cliente.
@@ -740,7 +754,8 @@
   <h3>Qué se le pide al cliente</h3>
   <figure class="w92">
     <img src="shots/26-ficha-publica-completa-p1.png" alt="">
-    <figcaption><b>Ficha, arriba:</b> datos personales, urgencia, experiencia y salud.</figcaption>
+    <figcaption><b>Ficha, arriba:</b> datos personales (con el peso), urgencia, experiencia y salud. Se tocó
+    <i>Confirmar</i> con datos a medias: lo que falta queda en rojo.</figcaption>
   </figure>
 
   <figure class="w92">
@@ -751,7 +766,7 @@
   <ol>
     <li><b>¿Quién completa esta ficha?</b> — lo primero: <i>el pasajero (18 años o más)</i> o <i>su padre, madre
         o tutor</i>. Un menor no puede firmar, así que en ese caso la ficha la llena y la acepta el adulto.</li>
-    <li><b>Datos personales</b> — nombre, RUT o pasaporte, edad, nacionalidad y número de gift card si la tiene.</li>
+    <li><b>Datos personales</b> — nombre, RUT o pasaporte, edad, <b>peso en kilos</b>, nacionalidad y número de gift card si la tiene.</li>
     <li><b>Contacto en caso de urgencia</b> — nombre, teléfono y parentesco.</li>
     <li><b>Declaración de experiencia</b> — si ha hecho la actividad antes.</li>
     <li><b>Declaración de salud</b> — previsión (Fonasa, Isapre, otra) y sí/no en alergias, medicamentos
@@ -762,6 +777,15 @@
   </ol>
 
   <p>La ficha está en <b>español e inglés</b>: el cliente cambia con los botones ES / EN de arriba.</p>
+
+  <h4>Datos obligatorios</h4>
+  <p>Son los que pide el reglamento (D.S. 19, art. 34, y la norma de parapente NCh3014): nombre, RUT o pasaporte,
+  edad, <b>peso</b> (el peso del pasajero más el piloto tiene que estar dentro del rango de la vela), nacionalidad,
+  el <b>contacto de urgencia completo</b> (nombre, teléfono de al menos 8 dígitos y parentesco), el detalle de
+  cada respuesta “Sí” en salud y la casilla de aceptación. La previsión y el Instagram son opcionales.</p>
+  <p>Si falta algo al tocar <b>Confirmar</b>, la ficha no se envía: la pantalla baja sola al primer dato que falta,
+  lo marca <b>en rojo</b> con la palabra <i>Obligatorio</i> y deja el cursor ahí. El servidor revisa lo mismo, así que
+  no hay forma de firmar una ficha incompleta.</p>
 
   <h4>Menores de edad</h4>
   <p>Si se elige <i>padre, madre o tutor</i>, los datos de arriba pasan a ser <b>los del menor</b> y aparece
@@ -778,7 +802,9 @@
     <figcaption><b>Ficha firmada, abajo:</b> declaración de salud y la evidencia de la firma.</figcaption>
   </figure>
   <p>La ficha firmada lleva arriba la fecha, la hora y el <b>guía a cargo</b>: el que tenga asignado ese
-  cliente en la reserva. Se imprime o se guarda como PDF con el botón de arriba.</p>
+  cliente en la reserva. Arriba están <b>Ver PDF</b>, que la abre como PDF en otra pestaña (desde ahí se imprime
+  o se comparte), y <b>Descargar PDF</b>, que guarda el archivo con el nombre del pasajero y la fecha, por ejemplo
+  <i>ficha-martina-soto-2026-10-24.pdf</i>.</p>
   <p>Al confirmar, el servidor guarda —además de las respuestas— la evidencia de la firma:</p>
   <ul>
     <li><b>Fecha y hora</b> exactas.</li>
@@ -794,8 +820,8 @@
     <span class="etiqueta">Lo legal, en corto</span>
     <p>La ficha cumple con el deber de informar el riesgo del D.S. 19, artículo 34, y la casilla marcada
     equivale a firma según la Ley 19.799 de firma electrónica — por eso se guarda la evidencia.
-    <b>Las fichas se conservan dos años</b>, como exige el reglamento: no las borres antes, y recuerda que
-    eliminar una reserva elimina también sus fichas.</p>
+    <b>Las fichas se conservan dos años</b>, como exige el reglamento. Por eso eliminar una reserva no borra
+    sus fichas firmadas: siguen en Varios → Fichas firmadas.</p>
   </div>
 
   <h3>Dónde se crean</h3>
@@ -838,6 +864,9 @@
   <h3>Quién aparece acá</h3>
   <p>Un guía aparece en un día porque <b>está asignado a algún cliente de ese día</b> (se asigna en el detalle de
   la reserva, capítulo 4.4). El número al lado de su nombre es la cantidad de clientes que llevó.</p>
+  <p>Al abrirlo, lo primero es <b>Con quién voló</b>: cada cliente que llevó ese día y su cámara
+  (<i>Cámara 360°</i>, <i>Cámara normal</i> o <i>Sin cámara</i>; con <i>· $0</i> si fue gratis y 🥳 si era
+  cumpleañero). Sirve para cuadrar los servicios del guía y para saber qué videos tiene que entregar.</p>
 
   <h3>Cargar lo que se le debe</h3>
   <ol class="pasos">
@@ -1147,6 +1176,21 @@
     cambio que no quede anotado. Nadie —tampoco el administrador— puede borrar una línea desde el
     sistema.</p>
   </div>
+
+  <h3>9.7 Fichas firmadas</h3>
+  <figure class="w72">
+    <img src="shots/35-fichas-firmadas.png" alt="">
+    <figcaption><b>Fichas firmadas.</b> Búsqueda por nombre o RUT y rango de fechas.</figcaption>
+  </figure>
+  <p>Todas las fichas firmadas de la empresa en un solo lugar, la más nueva arriba, para encontrar una sin
+  tener que ubicar su reserva. Cada tarjeta muestra el nombre (con <b>menor</b> si lo es), el RUT o pasaporte,
+  la reserva con su fecha y cuándo se firmó. Las de reservas eliminadas siguen acá, marcadas <i>(borrada)</i>.</p>
+  <ul>
+    <li><b>Buscar</b> por nombre o por RUT / pasaporte.</li>
+    <li><b>Firmadas desde / Hasta</b> acota por la fecha de la firma; se combina con la búsqueda.</li>
+    <li>Al tocar una se abre la ficha completa, con <b>Ver PDF</b> y <b>Descargar PDF</b> (capítulo 6).</li>
+  </ul>
+  <p>Carga de a 50 y trae más al bajar. La ve quien tenga el permiso de Reservas en su rol.</p>
 </section>
 
 <!-- ══════════════════ 10 ══════════════════ -->
@@ -1415,12 +1459,16 @@
   lo ve solo el Admin. Pídele a un administrador que revise tus roles y sus permisos.</p>
 
   <h4>El cliente dice que su link de ficha no funciona.</h4>
-  <p>Revisa que sea el link completo y que la ficha no haya sido eliminada junto con la reserva. Si el link
+  <p>Revisa que sea el link completo y que la reserva no haya sido eliminada (al eliminarla, los links sin
+  firmar dejan de funcionar). Si el link
   se perdió, en la pestaña Hoy se puede copiar de nuevo o reenviarlo por WhatsApp.</p>
 
   <h4>Firmó la ficha pero no aparece como firmada.</h4>
   <p>La pantalla se refresca sola cada quince segundos. Si igual no aparece, abre <b>registro</b> en esa ficha:
   ahí quedan los intentos fallidos con su motivo.</p>
+
+  <h4>¿Dónde veo una ficha de hace meses?</h4>
+  <p>En <b>Varios → Fichas firmadas</b>: búscala por nombre o RUT, o acota por fechas, y descárgala en PDF.</p>
 
   <h4>¿Puedo cobrar en dos partes?</h4>
   <p>Sí. Se registran tantos pagos como haga falta, con métodos distintos, y el saldo se va ajustando solo.</p>
@@ -1458,8 +1506,8 @@
     </tr>
     <tr>
       <td>Eliminar una reserva</td>
-      <td>Borra también sus fichas firmadas. Como las fichas deben conservarse dos años, elimina solo
-          reservas que nunca ocurrieron.</td>
+      <td>No se puede recuperar desde la pantalla: queda oculta. Si fue un error, el administrador del
+          sistema la puede restaurar desde la base de datos. Sus fichas firmadas siguen en Fichas firmadas.</td>
     </tr>
   </table>
 
