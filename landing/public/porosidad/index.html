@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Test de porosidad · Parapente RAOS</title>
+<style>
+  :root { --azul: #0d2b5c; --amarillo: #ffd700; --borde: #c9d8ea }
+  * { box-sizing: border-box }
+  body { margin: 0; font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; background: #eef3f8; color: #12233d }
+  header { background: var(--azul); color: #fff; padding: 18px 20px }
+  header h1 { margin: 0; font-size: 20px } header p { margin: 2px 0 0; color: #a8c4e0; font-size: 14px }
+  main { max-width: 680px; margin: 0 auto; padding: 16px 16px 120px }
+  fieldset { border: 0; background: #fff; border-radius: 14px; padding: 16px; margin: 0 0 14px; box-shadow: 0 1px 3px rgba(13,43,92,.08) }
+  legend { float: left; width: 100%; font-weight: 800; color: var(--azul); margin-bottom: 10px; text-transform: uppercase; font-size: 13px; letter-spacing: .5px }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 12px; clear: both }
+  .ancho { grid-column: 1 / -1 }
+  label { display: block; font-size: 13px; font-weight: 600; color: #3a5577 }
+  input, textarea, select { width: 100%; margin-top: 3px; padding: 10px 12px; font: inherit; border: 1px solid var(--borde); border-radius: 10px; background: #fff }
+  textarea { min-height: 110px; resize: vertical }
+  input[readonly] { background: #f2f6fb; font-weight: 700 }
+  .nota { font-size: 13px; color: #5a7392; margin: 6px 0 0 }
+  .barra { position: fixed; left: 0; right: 0; bottom: 0; background: #fff; border-top: 1px solid var(--borde); padding: 12px 16px calc(12px + env(safe-area-inset-bottom)) }
+  .barra div { max-width: 680px; margin: 0 auto; display: flex; gap: 10px }
+  button { flex: 1; min-height: 48px; border: 0; border-radius: 12px; font: 700 16px system-ui; cursor: pointer }
+  #generar { background: var(--amarillo); color: var(--azul) } #limpiar { flex: 0 0 auto; padding: 0 16px; background: #e6edf5; color: var(--azul) }
+  button:disabled { opacity: .6 }
+  #msg { max-width: 680px; margin: 0 auto 8px; font-size: 14px; color: #1d6b3a; text-align: center; min-height: 1em }
+</style>
+</head>
+<body>
+<header>
+  <h1>Test de porosidad</h1>
+  <p>Llena los datos y genera el PDF para el cliente. El PDF sale bloqueado: nadie puede cambiar los valores.</p>
+</header>
+
+<main>
+<form id="f" autocomplete="off">
+  <fieldset><legend>Equipo</legend><div class="grid">
+    <label>Marca<input name="Marca"></label>
+    <label>Modelo<input name="Modelo"></label>
+    <label>Homologación<input name="Homologacion"></label>
+    <label>Talla<input name="Talla" placeholder="L · 135-230 kg"></label>
+    <label>N° de serie<input name="N Serie"></label>
+    <label>Fabricado<input name="Fabricado" placeholder="03/2024"></label>
+  </div></fieldset>
+
+  <fieldset><legend>Piloto</legend><div class="grid">
+    <label class="ancho">Nombre y apellido<input name="Nombre y apellido"></label>
+    <label>Celular<input name="Celular" inputmode="tel"></label>
+    <label>Email<input name="Email" inputmode="email"></label>
+  </div></fieldset>
+
+  <fieldset><legend>Test</legend><div class="grid">
+    <label>Test tomado (fecha)<input name="Test tomado" data-hoy></label>
+    <label>Test Disc (seg)<input name="Test Disc" inputmode="decimal"></label>
+    <label>Hora inicio<input name="Hora inicio" placeholder="17:26"></label>
+    <label>Hora fin<input name="Hora Fin" placeholder="19:48"></label>
+    <label>Control inicio Test Disc<input name="Control inicio test disc" inputmode="decimal"></label>
+    <label>Control fin Test Disc<input name="Control fin test disc" inputmode="decimal"></label>
+  </div></fieldset>
+
+  <fieldset><legend>Extradós (segundos)</legend><div class="grid">
+    <label>1ro cajón derecho<input name="Extrados 1ro Cajon Der" inputmode="decimal" data-ext></label>
+    <label>1ro cajón izquierdo<input name="Extrados 1ro Cajon Izq" inputmode="decimal" data-ext></label>
+    <label>8vo cajón derecho<input name="Extrados 8vo Cajon Der" inputmode="decimal" data-ext></label>
+    <label>8vo cajón izquierdo<input name="Extrados 8vo Cajon Izq" inputmode="decimal" data-ext></label>
+    <label class="ancho">Cajón central<input name="Extrados Cajon Central" inputmode="decimal" data-ext></label>
+  </div></fieldset>
+
+  <fieldset><legend>Intradós (segundos)</legend><div class="grid">
+    <label>1ro cajón derecho<input name="Intrados 1ro Cajon Der" inputmode="decimal" data-int></label>
+    <label>1ro cajón izquierdo<input name="Intrados 1ro Cajon Izq" inputmode="decimal" data-int></label>
+    <label class="ancho">Cajón central<input name="Intrados Cajon Central" inputmode="decimal" data-int></label>
+  </div></fieldset>
+
+  <fieldset><legend>Resultados</legend><div class="grid">
+    <label>Valor medio extradós<input name="Valor medio extrados" readonly></label>
+    <label>Valor medio intradós<input name="Valor medio intrados" readonly></label>
+    <label class="ancho">Condición<input name="Condicion"></label>
+    <label class="ancho">Valoración y recomendaciones<textarea name="Valoracion y recomendaciones"></textarea></label>
+    <label>Temperatura desde (°C)<input name="Temperatura min" inputmode="decimal"></label>
+    <label>Temperatura hasta (°C)<input name="Temperatura max" inputmode="decimal"></label>
+    <label>Humedad desde (%)<input name="Humedad min" inputmode="decimal"></label>
+    <label>Humedad hasta (%)<input name="Humedad max" inputmode="decimal"></label>
+    <label>Firma<input name="Firma" value="Ramón A. Ocando S."></label>
+    <label>Fecha<input name="Fecha" data-hoy></label>
+  </div>
+  <p class="nota">Los promedios y la condición se calculan solos; la condición se puede cambiar a mano.</p>
+  </fieldset>
+</form>
+</main>
+
+<div class="barra">
+  <p id="msg" role="status"></p>
+  <div><button type="button" id="limpiar">Limpiar</button><button type="button" id="generar">Generar PDF</button></div>
+</div>
+
+<script src="pdf-lib.min.js"></script>
+<script>
+  const f = document.getElementById('f')
+  const campo = n => f.elements[n]
+  const num = v => parseFloat(String(v).replace(',', '.'))
+  const coma = (n, d = 2) => n.toFixed(d).replace('.', ',')
+  const hoy = () => new Date().toLocaleDateString('es-CL', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/-/g, '/')
+
+  // Misma tabla que la hoja de resultados
+  const condicion = s => s > 200 ? 'Más de 200 seg. · Excelente' : s > 70 ? 'Entre 70 y 200 seg. · Bueno'
+    : s > 25 ? 'Entre 25 y 70 seg. · Medio' : s >= 18 ? 'Entre 18 y 25 seg. · Regular' : 'Menos de 18 seg. · Inadecuado'
+
+  let condicionAMano = false
+  campo('Condicion').addEventListener('input', () => { condicionAMano = true })
+  function promedios() {
+    const prom = sel => {
+      const v = [...f.querySelectorAll(sel)].map(i => num(i.value)).filter(Number.isFinite)
+      return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null
+    }
+    const e = prom('[data-ext]'), i = prom('[data-int]')
+    campo('Valor medio extrados').value = e == null ? '' : coma(e)
+    campo('Valor medio intrados').value = i == null ? '' : coma(i)
+    if (e != null && !condicionAMano) campo('Condicion').value = condicion(e)
+  }
+  f.addEventListener('input', promedios)
+  const ponerHoy = () => f.querySelectorAll('[data-hoy]').forEach(i => { if (!i.value) i.value = hoy() })
+  ponerHoy()
+
+  document.getElementById('limpiar').onclick = () => {
+    if (!confirm('¿Borrar todos los datos del formulario?')) return
+    f.reset(); condicionAMano = false; ponerHoy(); promedios()
+  }
+
+  document.getElementById('generar').onclick = async () => {
+    const btn = document.getElementById('generar'), msg = document.getElementById('msg')
+    btn.disabled = true; msg.textContent = 'Generando…'
+    try {
+      const { PDFDocument } = PDFLib
+      const pdf = await PDFDocument.load(await (await fetch('plantilla.pdf', { cache: 'no-store' })).arrayBuffer())
+      const form = pdf.getForm()
+      for (const el of f.elements) {
+        if (!el.name) continue
+        try {
+          const tf = form.getTextField(el.name)
+          // Los comentarios van en letra chica fija (varias líneas); el resto se achica solo para caber
+          tf.acroField.setDefaultAppearance(el.tagName === 'TEXTAREA' ? '/Helv 9 Tf 0.001 0.014 0.2 rg' : '/Helv 0 Tf 0.001 0.014 0.2 rg')
+          tf.setText(el.value.trim())
+        } catch (e) { console.warn(el.name, e) }
+      }
+      // Aplanar: los valores quedan dibujados en la hoja y dejan de ser campos editables
+      form.flatten()
+      const bytes = await pdf.save()
+      const nombre = ['Test de porosidad', campo('Nombre y apellido').value.trim(),
+        [campo('Marca').value.trim(), campo('Modelo').value.trim()].filter(Boolean).join(' ')]
+        .filter(Boolean).join(' - ').replace(/[\\/:*?"<>|]/g, '') + '.pdf'
+      const archivo = new File([bytes], nombre, { type: 'application/pdf' })
+      // En el teléfono o la tablet se abre el menú Compartir (WhatsApp, correo...); en el PC se descarga
+      const tactil = matchMedia('(pointer: coarse)').matches
+      if (tactil && navigator.canShare && navigator.canShare({ files: [archivo] })) {
+        await navigator.share({ files: [archivo], title: nombre })
+      } else {
+        const a = document.createElement('a'); a.href = URL.createObjectURL(archivo); a.download = nombre; a.click()
+      }
+      msg.textContent = 'Listo: ' + nombre
+    } catch (e) {
+      if (e.name !== 'AbortError') msg.textContent = 'No se pudo generar: ' + e.message
+      else msg.textContent = ''
+    } finally { btn.disabled = false }
+  }
+</script>
+</body>
+</html>
