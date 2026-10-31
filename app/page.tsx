@@ -80,6 +80,20 @@ const menuItems = [
     sombra: 'rgba(180,83,9,0.35)',
   },
   {
+    // Herramienta propia de RAOS: en las demás empresas la tarjeta no existe
+    href: '/porosidad',
+    soloEmpresa: 'raos',
+    permiso: 'reservas',
+    emoji: '🧪',
+    titulo: 'Test de porosidad',
+    descripcion: 'Genera el PDF del test para el cliente',
+    from: '#7c3aed',
+    to: '#5b21b6',
+    texto: '#fff',
+    subtexto: '#e9d5ff',
+    sombra: 'rgba(124,58,237,0.35)',
+  },
+  {
     href: '/admin',
     emoji: '🛠️',
     titulo: 'Panel de empresas',
@@ -103,7 +117,7 @@ export default function Home() {
   const [esSuper, setEsSuper] = useState(false)
   // en admin.<dominio> el superadmin opera sobre la empresa que eligio en el panel
   const [enAdmin, setEnAdmin] = useState(false)
-  const [empresa, setEmpresa] = useState<{ nombre: string; logo_url: string | null } | null>(null)
+  const [empresa, setEmpresa] = useState<{ nombre: string; logo_url: string | null; slug: string } | null>(null)
   // Solo se ofrece cambiar de empresa a quien trabaja en más de una
   const [variasEmpresas, setVariasEmpresas] = useState(false)
   // Las tarjetas dependen del rol: mostrarlas antes de saberlo hace que aparezcan
@@ -127,7 +141,7 @@ export default function Home() {
         // deja ver una sola fila en `empresas`.
         const { data: suEmpresa } = await supabase
           .from('empresas')
-          .select('nombre, logo_url')
+          .select('nombre, logo_url, slug')
           .maybeSingle()
 
         setEsSuper(!!profile?.es_superadmin)
@@ -223,7 +237,8 @@ export default function Home() {
               : item.href === '/reporte'
                 ? { ...item, descripcion: `Reporte diario de ingresos, pagos y ${j.operador_plural}` }
                 : item
-          ).filter(item => (esAdmin || ((item as any).permiso && permisos.has((item as any).permiso))) && !((item as any).superOnly && !esSuper)).map((item) => (
+          ).filter(item => (esAdmin || ((item as any).permiso && permisos.has((item as any).permiso))) && !((item as any).superOnly && !esSuper)
+            && (!(item as any).soloEmpresa || (item as any).soloEmpresa === empresa?.slug)).map((item) => (
             <Link
               key={item.href}
               href={item.href}
