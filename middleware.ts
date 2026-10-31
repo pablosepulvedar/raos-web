@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { hostConocido } from '@/lib/hosts'
+import { anularSesion, leerSesion, sesionVencida } from '@/lib/sesion'
 
 export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname
@@ -31,6 +32,17 @@ export async function middleware(request: NextRequest) {
 
   // admin.<dominio> no es una empresa: entra al panel del superadmin
   const esAdmin = (request.headers.get('host') ?? '').split('.')[0] === 'admin'
+
+  // Pasadas 24 h desde que entró, la sesión se cierra aunque se haya ido renovando
+  const sesion = hasSession ? leerSesion(request.cookies.getAll()) : null
+  if (sesion && sesionVencida(sesion.access_token)) {
+    await anularSesion(sesion)
+    const res = path.startsWith('/api/')
+      ? NextResponse.json({ error: 'Sesión vencida' }, { status: 401 })
+      : NextResponse.redirect(new URL('/login?expirada=1', request.url))
+    for (const c of request.cookies.getAll()) if (c.name.startsWith('sb-')) res.cookies.delete(c.name)
+    return res
+  }
 
   if (!hasSession && !isLoginPage) {
     // A una llamada de API se le responde, no se le redirige: quien la hizo espera JSON

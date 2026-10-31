@@ -23,6 +23,11 @@ export default function Login() {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // El middleware manda acá con ?expirada=1 cuando la sesión cumplió sus 24 h
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).has('expirada'))
+      setError('Tu sesión expiró: por seguridad duran 24 horas. Vuelve a entrar.')
+  }, [])
   const [empresa, setEmpresa] = useState<Empresa | null>(null)
   const [slug, setSlug] = useState('')
   const [verPrueba, setVerPrueba] = useState(false)
