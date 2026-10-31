@@ -5,6 +5,18 @@ import { faltantesFicha } from '@/lib/ficha-obligatorios'
 
 // Firma de la ficha. El pasajero no tiene sesión: entra solo con su token.
 // La evidencia (ip, navegador, hash del texto) la pone el servidor, nunca el cliente.
+// Dos formas de llegar: `token` (la ficha de un pasajero) o `reserva_token` + `nuevo`
+// (el link de la reserva, cuando el pasajero no estaba en la lista y se agrega).
+
+// Lo que responde la base, dicho para el pasajero
+const MENSAJE: Record<string, string> = {
+  'ficha ya aceptada': 'Esta ficha ya la firmó otra persona. Si no eres tú, vuelve atrás y elige tu nombre en la lista.',
+  'pasajero ya ingresado': 'Ese pasajero ya se ingresó en esta reserva (mismo nombre o RUT/pasaporte). Si eres otra persona, revisa tus datos.',
+  'nombre en la lista': 'Tu nombre ya aparece en la lista de esta reserva: vuelve atrás y selecciónalo.',
+  'demasiados pasajeros': 'Esta reserva ya no admite más pasajeros por este link. Escríbele a la empresa.',
+  'ficha no encontrada': 'Este link ya no es válido. Pídele uno nuevo a la empresa.',
+  'reserva no encontrada': 'Este link ya no es válido. Pídele uno nuevo a la empresa.',
+}
 export async function POST(request: NextRequest) {
   const b = await request.json()
   const idioma: Idioma = b.idioma === 'en' ? 'en' : 'es'
@@ -28,7 +40,8 @@ export async function POST(request: NextRequest) {
       p_ip: ip, p_user_agent: userAgent,
     })
 
-  if (!b.token || !b.acepta) {
+  const nuevo = !b.token && !!b.reserva_token && !!b.nuevo
+  if ((!b.token && !nuevo) || !b.acepta) {
     if (b.token) await log('error', 'No marcó la declaración')
     return NextResponse.json({ error: 'Falta aceptar la declaración' }, { status: 400 })
   }
@@ -42,18 +55,20 @@ export async function POST(request: NextRequest) {
 
   // El texto nombra a la empresa, así que el hash se calcula sobre el texto que
   // realmente se mostró, no sobre la plantilla.
-  const { data: fichas } = await supabase.rpc('ficha_por_token', { p_token: b.token })
+  const { data: fichas } = nuevo
+    ? await supabase.rpc('fichas_de_reserva', { p_token: b.reserva_token })
+    : await supabase.rpc('ficha_por_token', { p_token: b.token })
   const empresa = fichas?.[0]?.empresa
   if (!empresa) {
-    await log('error', 'Token no encontrado')
+    if (!nuevo) await log('error', 'Token no encontrado')
     return NextResponse.json({ error: 'Ficha no encontrada' }, { status: 404 })
   }
 
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(fichaTexto(idioma, empresa)))
   const hash = [...new Uint8Array(digest)].map(x => x.toString(16).padStart(2, '0')).join('')
 
-  const { error } = await supabase.rpc('firmar_ficha', {
-    p_token: b.token,
+  const { data: tokenNuevo, error } = await supabase.rpc(nuevo ? 'firmar_ficha_nueva' : 'firmar_ficha', {
+    ...(nuevo ? { p_reserva_token: b.reserva_token } : { p_token: b.token }),
     p_nombre: b.nombre,
     p_documento: b.documento,
     p_edad: b.edad,
@@ -79,10 +94,12 @@ export async function POST(request: NextRequest) {
   })
 
   if (error) {
-    await log('error', error.message)
-    return NextResponse.json({ error: error.message }, { status: 400 })
+    if (!nuevo) await log('error', error.message)
+    return NextResponse.json({ error: MENSAJE[error.message] ?? error.message, codigo: error.message }, { status: 400 })
   }
 
+  // El que se agregó recién tiene ficha ahora: el registro va a esa
+  if (nuevo) b.token = tokenNuevo
   await log('firmada', `${b.nombre} · ${b.documento} · ${idioma} · ${FICHA_VERSION}`)
   return NextResponse.json({ ok: true })
 }

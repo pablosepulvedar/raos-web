@@ -23,7 +23,7 @@ type Valor = { id: number; servicio: string; monto: number }
 type Pago = { id: number; monto: number; metodos_pago: { nombre: string } | null }
 type Servicio = { id: number; valores: { monto: number; descuento: boolean } | null }
 type Reserva = {
-  id: number; nombre: string; telefono: number | null; cantidad: number
+  id: number; nombre: string; telefono: number | null; cantidad: number; ficha_token: string
   horario_id: number | null; volo: boolean; abono: number | null
   reservas_personas: Persona[]
   fichas_riesgo: Ficha[]
@@ -50,6 +50,10 @@ const fmtCLP = (v: number) => `$${Number(v).toLocaleString('es-CL')}`
 const slug = (nombre: string) =>
   nombre.normalize('NFD').replace(/[̀-ͯ]/g, '')
     .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+
+// El link de la reserva completa (ver app/ficha: /ficha/grupo/<token>)
+const linkGrupo = (r: { ficha_token: string; nombre: string }) =>
+  `${window.location.origin}/ficha/grupo/${r.ficha_token}/${slug(r.nombre)}`
 
 const linkDe = (token: string, nombre?: string) => {
   const base = `${window.location.origin}/ficha/${token}`
@@ -139,7 +143,7 @@ export default function DiaDeVuelo() {
   const cargar = useCallback(async () => {
     const { data } = await sb
       .from('reservas')
-      .select(`id, nombre, telefono, cantidad, horario_id, volo, abono,
+      .select(`id, nombre, telefono, cantidad, horario_id, volo, abono, ficha_token,
                reservas_personas(id, nombre, sin_camara, camara_normal, camara_360, perfil_id, cumpleanero, camara_promo),
                fichas_riesgo(id, token, nombre, aceptada_at, persona_id, ip, edad),
                reserva_servicios(id, valores(monto, descuento)),
@@ -201,13 +205,14 @@ export default function DiaDeVuelo() {
   }
 
   const whatsapp = (r: Reserva) => {
-    const pendientes = r.fichas_riesgo.filter(f => !f.aceptada_at)
+    // Un solo link para toda la reserva: cada pasajero elige su nombre de la lista.
+    // (Con un link por persona, todos abrían el primero y solo uno alcanzaba a firmar.)
     const cuerpo = [
       `Hola ${r.nombre}! Antes del vuelo necesitamos que cada pasajero complete su ficha de aceptación de riesgo.`,
       '',
-      ...pendientes.map((f, i) => `${i + 1}. ${nombreDe(f, r, i)}: ${linkDe(f.token, nombreDe(f, r, i))}`),
+      linkGrupo(r),
       '',
-      'Cada link es personal: compártelo con quien corresponda. ¡Nos vemos!',
+      'Cada pasajero abre el link, elige su nombre de la lista y completa su propia ficha. ¡Nos vemos!',
     ].join('\n')
     const tel = r.telefono ? String(r.telefono).replace(/\D/g, '') : ''
     abrirWhatsApp(cuerpo, tel)

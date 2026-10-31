@@ -1,7 +1,7 @@
 'use client'
 
 import { useParams } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase-browser'
 import {
   COMO_CONOCIO, FICHA_CHECK, PREVISION, SALUD_ITEMS,
@@ -12,8 +12,10 @@ import { faltantesFicha } from '@/lib/ficha-obligatorios'
 type Ficha = {
   empresa: string; registro_sernatur: string | null
   fecha: string; horario: number | null; aceptada_at: string | null
-  nombre: string | null; edad: number | null
+  nombre: string | null; edad: number | null; nombre_fijo?: boolean
 }
+// Un pasajero en el link de la reserva
+type Opcion = { ficha_token: string | null; nombre: string; firmada: boolean; generico: boolean }
 
 const T = {
   es: {
@@ -41,6 +43,11 @@ const T = {
     enviar: 'Confirmar', enviando: 'Enviando...',
     listoTitulo: '¡Listo!', listoTexto: 'Tu ficha quedó registrada. Nos vemos en el despegue.',
     faltan: 'Faltan datos obligatorios: están marcados en rojo.',
+    quienEres: '¿Quién eres?', eligeNombre: 'Elige tu nombre de la lista y completa tu ficha. Cada pasajero llena la suya.',
+    yaFirmo: 'ya firmó', sinNombre: 'escribir mi nombre', noEstoy: 'No estoy en la lista (agregarme)',
+    volverLista: 'Volver a la lista', otraFicha: 'Llenar la ficha de otro pasajero',
+    nombreFijo: 'Nombre registrado en la reserva. Si no eres tú, pide tu propio link.',
+    todasFirmadas: 'Todas las fichas de esta reserva ya están firmadas.',
     obligatorio: 'Obligatorio', telefonoCorto: 'Obligatorio: teléfono con al menos 8 dígitos',
     pesoMal: 'Obligatorio: tu peso en kilos, sin decimales',
   },
@@ -69,6 +76,11 @@ const T = {
     enviar: 'Confirm', enviando: 'Sending...',
     listoTitulo: 'All set!', listoTexto: 'Your form has been recorded. See you at take-off.',
     faltan: 'Some required fields are missing: they are marked in red.',
+    quienEres: 'Who are you?', eligeNombre: 'Pick your name from the list and fill in your form. Each passenger fills in their own.',
+    yaFirmo: 'already signed', sinNombre: 'type my name', noEstoy: "I'm not on the list (add me)",
+    volverLista: 'Back to the list', otraFicha: "Fill in another passenger's form",
+    nombreFijo: 'Name registered in the booking. If this is not you, ask for your own link.',
+    todasFirmadas: 'Every form in this booking is already signed.',
     obligatorio: 'Required', telefonoCorto: 'Required: phone with at least 8 digits',
     pesoMal: 'Required: your weight in kg, no decimals',
   },
@@ -108,11 +120,25 @@ function SiNo({ value, onChange, si, no }: { value: boolean; onChange: (v: boole
   )
 }
 
+const VACIO = {
+  nombre: '', documento: '', edad: '', peso: '', nacionalidad: '', gift_card: '',
+  emergencia_nombre: '', emergencia_telefono: '', emergencia_parentesco: '',
+  instagram: '', tutor_nombre: '', tutor_documento: '',
+}
+
 export default function FichaPublica() {
   // /ficha/<token> y tambien /ficha/<token>/<nombre>: el nombre va solo para que
   // se lea de quien es el link cuando se comparte por WhatsApp.
+  // /ficha/grupo/<token-de-reserva>/<nombre>: un solo link para toda la reserva,
+  // cada pasajero elige su nombre de la lista.
   const ruta = useParams().ruta
-  const token = String(Array.isArray(ruta) ? ruta[0] : ruta ?? '')
+  const partes = Array.isArray(ruta) ? ruta : [String(ruta ?? '')]
+  const grupo = partes[0] === 'grupo' ? partes[1] ?? '' : null
+  const [token, setToken] = useState(grupo !== null ? '' : partes[0])
+  const [lista, setLista] = useState<Opcion[] | null>(null)
+  const [eligiendo, setEligiendo] = useState(grupo !== null)
+  const [nuevo, setNuevo] = useState(false)
+  const [nombreFijo, setNombreFijo] = useState(false)
   const [idioma, setIdioma] = useState<Idioma>('es')
   const [ficha, setFicha] = useState<Ficha | null>(null)
   const [noExiste, setNoExiste] = useState(false)
@@ -121,11 +147,7 @@ export default function FichaPublica() {
   const [error, setError] = useState<string | null>(null)
   const [acepta, setAcepta] = useState(false)
 
-  const [f, setF] = useState({
-    nombre: '', documento: '', edad: '', peso: '', nacionalidad: '', gift_card: '',
-    emergencia_nombre: '', emergencia_telefono: '', emergencia_parentesco: '',
-    instagram: '', tutor_nombre: '', tutor_documento: '',
-  })
+  const [f, setF] = useState(VACIO)
   const [experiencia, setExperiencia] = useState(false)
   const [prevision, setPrevision] = useState('')
   const [salud, setSalud] = useState<Salud>(saludVacia)
@@ -156,15 +178,39 @@ export default function FichaPublica() {
     </div>
   )
 
+  const cargarGrupo = useCallback(async () => {
+    const { data } = await createClient().rpc('fichas_de_reserva', { p_token: grupo })
+    const row = data?.[0]
+    if (!row) return setNoExiste(true)
+    setFicha({ ...row, aceptada_at: null, nombre: null, edad: null })
+    setLista((data as Opcion[]).filter(o => o.ficha_token))
+  }, [grupo])
+
   useEffect(() => {
+    if (grupo !== null) { cargarGrupo(); return }
     createClient().rpc('ficha_por_token', { p_token: token }).then(({ data }) => {
       const row = data?.[0]
       if (!row) return setNoExiste(true)
       setFicha(row)
       if (row.aceptada_at) setListo(true)
+      setNombreFijo(!!row.nombre_fijo)
       setF(prev => ({ ...prev, nombre: row.nombre ?? '', edad: row.edad ? String(row.edad) : '' }))
     })
-  }, [token])
+    // el token del link personal no cambia; en el de la reserva lo cambia elegir()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [grupo, cargarGrupo])
+
+  // Link de la reserva: el pasajero se elige (o null = no está en la lista y se agrega)
+  const elegir = (o: Opcion | null) => {
+    setToken(o?.ficha_token ?? '')
+    setNuevo(!o)
+    setNombreFijo(!!o && !o.generico)
+    setF({ ...VACIO, nombre: o && !o.generico ? o.nombre : '' })
+    setError(null); setIntento(false); setAcepta(false); setParaMenor(false)
+    setEligiendo(false)
+    window.scrollTo(0, 0)
+  }
+  const volverALista = () => { setListo(false); setError(null); cargarGrupo(); setEligiendo(true); window.scrollTo(0, 0) }
 
   const enviar = async () => {
     setError(null)
@@ -187,7 +233,8 @@ export default function FichaPublica() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        ...f, edad, peso: parseInt(f.peso, 10), token, idioma, acepta,
+        ...f, edad, peso: parseInt(f.peso, 10), idioma, acepta,
+        ...(nuevo ? { reserva_token: grupo, nuevo: true } : { token }),
         // un adulto que firma por sí mismo no lleva tutor, aunque haya alcanzado a escribirlo
         tutor_nombre: esMenor ? f.tutor_nombre : '', tutor_documento: esMenor ? f.tutor_documento : '',
         experiencia_previa: experiencia, prevision, salud,
@@ -215,6 +262,45 @@ export default function FichaPublica() {
           <div className="text-6xl mb-4">🪂</div>
           <h1 className="text-[#ffd700] text-2xl font-extrabold mb-2">{t.listoTitulo}</h1>
           <p className="text-[#a8c4e0]">{t.listoTexto}</p>
+          {grupo !== null && (
+            <button onClick={volverALista} className="mt-8 px-5 py-3 rounded-xl bg-white/10 text-white font-semibold">
+              {t.otraFicha}
+            </button>
+          )}
+        </div>
+      </Marco>
+    )
+  }
+
+  if (grupo !== null && eligiendo) {
+    const pendientes = (lista ?? []).filter(o => !o.firmada)
+    return (
+      <Marco>
+        <div className="flex justify-end gap-1 mb-4">
+          {(['es', 'en'] as Idioma[]).map(i => (
+            <button key={i} onClick={() => setIdioma(i)}
+              className={`px-3 py-1 rounded-lg text-xs font-bold uppercase ${idioma === i ? 'bg-[#ffd700] text-[#0d2b5c]' : 'bg-white/10 text-[#a8c4e0]'}`}>
+              {i}
+            </button>
+          ))}
+        </div>
+        <h1 className="text-[#ffd700] text-xl font-extrabold leading-snug">{t.titulo}</h1>
+        <p className="text-[#a8c4e0] text-sm mt-1 mb-6">{ficha.empresa} · {t.vuelo} {ficha.fecha} {fmtH(ficha.horario)}</p>
+        <h2 className={label}>{t.quienEres}</h2>
+        <p className="text-[#dceeff] text-sm mb-4">{t.eligeNombre}</p>
+        {!pendientes.length && <p className="text-[#ffd700] text-sm mb-3">{t.todasFirmadas}</p>}
+        <div className="space-y-2">
+          {(lista ?? []).map(o => (
+            <button key={o.ficha_token} disabled={o.firmada} onClick={() => elegir(o)}
+              className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-left bg-white/10 text-white font-semibold disabled:opacity-40">
+              <span className="flex-1">{o.nombre}{o.generico && !o.firmada && <span className="text-[#a8c4e0] font-normal"> · {t.sinNombre}</span>}</span>
+              {o.firmada && <span className="text-xs text-[#a8c4e0]">✓ {t.yaFirmo}</span>}
+            </button>
+          ))}
+          <button onClick={() => elegir(null)}
+            className="w-full px-4 py-3.5 rounded-xl text-left border border-dashed border-white/30 text-[#ffd700] font-semibold">
+            + {t.noEstoy}
+          </button>
         </div>
       </Marco>
     )
@@ -222,6 +308,9 @@ export default function FichaPublica() {
 
   return (
     <Marco>
+      {grupo !== null && (
+        <button onClick={volverALista} className="text-[#a8c4e0] text-sm mb-2">← {t.volverLista}</button>
+      )}
       <div className="flex justify-end gap-1 mb-4">
         {(['es', 'en'] as Idioma[]).map(i => (
           <button key={i} onClick={() => setIdioma(i)}
@@ -260,7 +349,8 @@ export default function FichaPublica() {
       {/* 1 */}
       <h2 className={label}>{esMenor ? t.datosMenor : t.datos}</h2>
       <div className="space-y-3 mb-6">
-        {campo('nombre', esMenor ? t.nombreMenor : t.nombre)}
+        {campo('nombre', esMenor ? t.nombreMenor : t.nombre, nombreFijo ? { readOnly: true } : {})}
+        {nombreFijo && <p className="text-[#a8c4e0] text-xs -mt-2">{t.nombreFijo}</p>}
         {campo('documento', t.documento)}
         <div className="flex gap-3">
           {campo('edad', t.edad, { inputMode: 'numeric' })}
@@ -364,7 +454,14 @@ export default function FichaPublica() {
         <span className="text-white text-sm">{FICHA_CHECK[idioma]}</span>
       </label>
 
-      {error && <p className="mb-4 p-3 bg-red-500/20 border border-red-400/40 text-red-200 rounded-lg text-sm">{error}</p>}
+      {error && (
+        <div className="mb-4 p-3 bg-red-500/20 border border-red-400/40 text-red-200 rounded-lg text-sm">
+          <p>{error}</p>
+          {grupo !== null && !faltan.length && (
+            <button onClick={volverALista} className="mt-2 underline font-semibold">{t.volverLista}</button>
+          )}
+        </div>
+      )}
 
       <button onClick={enviar} disabled={enviando}
         className="w-full bg-[#ffd700] text-[#0d2b5c] font-extrabold py-4 rounded-xl hover:bg-yellow-400 transition-colors disabled:opacity-70">
