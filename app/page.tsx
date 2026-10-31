@@ -83,7 +83,7 @@ const menuItems = [
     // Herramienta propia de RAOS: en las demás empresas la tarjeta no existe
     href: '/porosidad',
     soloEmpresa: 'raos',
-    permiso: 'reservas',
+    soloAdmin: true,
     emoji: '🧪',
     titulo: 'Test de porosidad',
     descripcion: 'Genera el PDF del test para el cliente',
@@ -238,7 +238,8 @@ export default function Home() {
                 ? { ...item, descripcion: `Reporte diario de ingresos, pagos y ${j.operador_plural}` }
                 : item
           ).filter(item => (esAdmin || ((item as any).permiso && permisos.has((item as any).permiso))) && !((item as any).superOnly && !esSuper)
-            && (!(item as any).soloEmpresa || (item as any).soloEmpresa === empresa?.slug)).map((item) => (
+            && (!(item as any).soloEmpresa || (item as any).soloEmpresa === empresa?.slug)
+            && (!(item as any).soloAdmin || esAdmin)).map((item) => (
             <Link
               key={item.href}
               href={item.href}
