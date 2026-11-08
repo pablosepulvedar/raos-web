@@ -48,7 +48,10 @@ export default function ResumenPeriodo() {
     ;((pagosPilotos ?? []) as unknown as PorFecha[]).forEach(x => { fila(x.fecha).pilotos += x.monto })
     ;((gastos ?? []) as unknown as PorFecha[]).forEach(x => { fila(x.fecha).gastos += x.tipo === 'gasto' ? x.monto : -x.monto })
 
-    setDias(Object.values(mapa).sort((a, b) => a.fecha.localeCompare(b.fecha)))
+    // Una reserva sin pagos ni guía asignado creaba una fila con todo en cero: es ruido
+    setDias(Object.values(mapa)
+      .filter(d => d.vuelos || d.cobrado || d.pilotos || d.gastos)
+      .sort((a, b) => a.fecha.localeCompare(b.fecha)))
     setCargando(false)
   }
 
