@@ -26,7 +26,8 @@ export default function Reporteria() {
     ? elegido
     : disponibles[0]?.id ?? null
 
-  const nombre = (titulo: string) => titulo.replace('{operador}', j.operador_plural)
+  // En singular: es una tarjeta por cada uno ("Por guía", no "Por guías")
+  const nombre = (titulo: string) => titulo.replace('{operador}', j.operador)
 
   return (
     <div className="min-h-screen" style={{ background: 'linear-gradient(160deg,#e8f2ff 0%,#d0e6ff 100%)' }}>
