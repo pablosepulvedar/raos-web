@@ -370,9 +370,17 @@
 
   <ol class="pasos">
     <li>Escribe tu correo y tu contraseña. Las crea el administrador: no hay registro público.</li>
-    <li>Toca <b>Ingresar</b>. La sesión queda guardada en ese navegador; no hay que entrar de nuevo cada día.</li>
+    <li>Toca <b>Ingresar</b>. La sesión queda guardada en ese navegador, así que no hay que escribir la
+        contraseña cada vez que se abre.</li>
     <li>Para salir, usa <b>Salir →</b> arriba a la derecha del menú principal.</li>
   </ol>
+
+  <div class="ojo">
+    <span class="etiqueta">La sesión dura 24 horas</span>
+    <p>Pasado un día desde que entraste, el sistema cierra la sesión solo y te lleva de vuelta al acceso.
+    No es una falla: es para que un teléfono perdido o un computador compartido no quede abierto para
+    siempre. Vuelves a escribir tu contraseña y sigues donde estabas.</p>
+  </div>
 
   <div class="ojo">
     <span class="etiqueta">Si dice “Este usuario no pertenece a esta empresa”</span>
@@ -731,7 +739,7 @@
 </figure>
 
   <p>Es la ficha de inscripción y aceptación del riesgo que antes se firmaba en papel. Ahora la llena el propio
-  cliente desde su teléfono, con un link personal, y queda guardada con evidencia de quién la firmó, cuándo y desde dónde.</p>
+  cliente desde su teléfono y queda guardada con evidencia de quién la firmó, cuándo y desde dónde.</p>
 
   <div class="dos">
     <figure class="w72">
@@ -745,11 +753,30 @@
   </div>
 
   <h3>Cómo funciona el link</h3>
-  <p>Cada ficha tiene su propia dirección, con un código único y el nombre de la persona al final para
-  reconocerla al compartirla:</p>
-  <pre>https://tuempresa.&lt;dominio&gt;/ficha/86dd4f.../juan-perez</pre>
-  <p>El link <b>se abre sin cuenta ni contraseña</b>: el cliente no es usuario del sistema. Es personal:
-  cada persona de la reserva tiene el suyo y firma por sí misma.</p>
+
+  <p>Hay <b>un solo link por reserva</b>, no uno por persona. Se manda una vez al grupo —por WhatsApp, desde
+  la pestaña Hoy— y cada integrante firma la suya:</p>
+  <pre>https://tuempresa.&lt;dominio&gt;/ficha/grupo/86dd4f.../familia-perez</pre>
+
+  <p>El link <b>se abre sin cuenta ni contraseña</b>: el cliente no es usuario del sistema.</p>
+
+  <figure class="w72">
+    <img src="shots/36-ficha-quien-eres.png" alt="">
+    <figcaption><b>¿Quién eres?</b> Lo primero que ve quien abre el link: la lista de la reserva.</figcaption>
+  </figure>
+
+  <p>Al abrirlo aparece primero <b>“¿Quién eres?”</b> con la lista de la reserva. Cada uno toca su nombre y
+  llena su ficha. Los que ya firmaron salen marcados con <b>✓ ya firmó</b> y no se pueden volver a tocar, así
+  que nadie pisa la ficha de otro. Si alguien no aparece en la lista —porque se sumó a última hora— toca
+  <b>+ No estoy en la lista</b>, escribe su nombre y queda agregado a la reserva.</p>
+
+  <div class="ojo">
+    <span class="etiqueta">Por qué un link para todos y no uno por persona</span>
+    <p>Antes cada pasajero tenía su propio link. En la práctica se mandaban todos al mismo grupo de WhatsApp,
+    todos abrían el primero de la lista y terminaba firmando una sola persona por el resto. Con un link
+    común y la pregunta de quién eres, eso no puede pasar: el sistema además rechaza una segunda ficha con
+    el mismo nombre o el mismo RUT dentro de la reserva.</p>
+  </div>
 
   <h3>Qué se le pide al cliente</h3>
   <figure class="w92">
@@ -1544,6 +1571,16 @@
   <h4>Me faltan tarjetas en el menú.</h4>
   <p>Es el rol. Cada rol ve las secciones que el administrador le marcó en Varios → Roles, y Usuarios
   lo ve solo el Admin. Pídele a un administrador que revise tus roles y sus permisos.</p>
+
+  <h4>Me sacó del sistema y tuve que entrar de nuevo.</h4>
+  <p>Es normal: la sesión dura 24 horas desde que entraste. Pasado ese plazo hay que escribir la contraseña
+  otra vez. Está hecho así para que un teléfono perdido o un computador compartido no quede abierto.</p>
+
+  <h4>Mandé un solo link y firmó una sola persona del grupo.</h4>
+  <p>Hoy el link es uno por reserva y lo primero que pregunta es <b>quién eres</b>: cada integrante toca su
+  nombre y llena la suya. Los que ya firmaron aparecen marcados y no se pueden volver a tocar. Si alguien no
+  está en la lista, usa <b>+ No estoy en la lista</b>. Y si alguien intenta firmar dos veces con el mismo
+  nombre o el mismo RUT, el sistema lo rechaza.</p>
 
   <h4>El cliente dice que su link de ficha no funciona.</h4>
   <p>Revisa que sea el link completo y que la reserva no haya sido eliminada (al eliminarla, los links sin
