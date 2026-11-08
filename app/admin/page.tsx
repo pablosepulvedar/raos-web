@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { InputPassword } from '@/components/InputPassword'
 import { createClient } from '@/lib/supabase-browser'
 import Cargando from '@/components/Cargando'
@@ -100,6 +100,29 @@ export default function Admin() {
     cargarUsuarios(e.id)
   }
 
+  // Viene de /admin/alta: la empresa se crea con lo que el cliente ya declaro
+  const [desdeAlta, setDesdeAlta] = useState<{ id: number; inicial: Partial<DatosEmpresa> } | null>(null)
+  const idCreada = useRef<string | null>(null)
+  useEffect(() => {
+    const id = Number(new URLSearchParams(window.location.search).get('alta'))
+    if (!id) return
+    ;(async () => {
+      const { data } = await supabase.from('onboarding').select('*').eq('id', id).maybeSingle()
+      if (!data) return
+      setDesdeAlta({
+        id,
+        inicial: {
+          nombre: data.empresa_nombre ?? '',
+          slug: sugerirSlug(data.empresa_nombre ?? ''),
+          rubro: data.rubro ?? 'generico',
+          adminNombre: data.contacto_nombre ?? '',
+          email: data.contacto_email ?? '',
+        },
+      })
+      setCreandoEmpresa(true)
+    })()
+  }, [])
+
   const ejecutar = async (fn: () => Promise<string | void>, ok: string) => {
     setCargando(true)
     setMsg(null)
@@ -182,6 +205,8 @@ export default function Admin() {
 
         {creandoEmpresa && (
           <NuevaEmpresa
+            key={desdeAlta?.id ?? 'vacia'}
+            inicial={desdeAlta?.inicial}
             rubros={rubros}
             cargando={cargando}
             onCrear={async (d) => {
@@ -190,12 +215,20 @@ export default function Admin() {
                   p_id: null, p_slug: d.slug, p_nombre: d.nombre, p_logo_url: d.logo_url, p_color: d.color, p_activa: true, p_rubro: d.rubro,
                 })
                 if (error) return error.message.includes('duplicate') ? 'Ese slug ya existe' : error.message
+                idCreada.current = id as string
                 if (d.email) {
                   const err = await api('POST', { empresa_id: id, email: d.email, password: d.password, nombre: d.adminNombre, roles: ['Admin'] })
                   if (err) return `Empresa creada, pero falló el usuario admin: ${err}`
                 }
               }, `Empresa "${d.nombre}" creada`)
-              if (ok) { setCreandoEmpresa(false); cargarEmpresas() }
+              if (ok) {
+                // Deja el alta marcada como atendida, para no crear la empresa dos veces
+                if (desdeAlta) {
+                  await supabase.from('onboarding').update({ empresa_id: idCreada.current }).eq('id', desdeAlta.id)
+                  setDesdeAlta(null)
+                }
+                setCreandoEmpresa(false); cargarEmpresas()
+              }
             }}
           />
         )}
@@ -276,10 +309,25 @@ function Logo({ empresa }: { empresa: Pick<Empresa, 'nombre' | 'logo_url' | 'col
   )
 }
 
+// "Alma Outdoor SpA" -> "almaoutdoor". Es solo un punto de partida: el superadmin lo edita.
+// Se descartan palabras completas, no trozos: con una expresion suelta "Casa Grande"
+// perderia el "sa" y quedaria "cagrande".
+const TIPOS_SOCIEDAD = new Set(['spa', 'sa', 's.a.', 'ltda', 'ltda.', 'limitada', 'eirl', 'e.i.r.l.'])
+
+function sugerirSlug(nombre: string) {
+  const sinTildes = nombre.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase()
+  return sinTildes
+    .split(/\s+/)
+    .filter(parte => parte && !TIPOS_SOCIEDAD.has(parte))
+    .join('')
+    .replace(/[^a-z0-9]/g, '')
+    .slice(0, 24)
+}
+
 type DatosEmpresa = { slug: string; nombre: string; logo_url: string; color: string; rubro: string; adminNombre: string; email: string; password: string }
 
-function NuevaEmpresa({ rubros, cargando, onCrear }: { rubros: Rubro[]; cargando: boolean; onCrear: (d: DatosEmpresa) => void }) {
-  const [d, setD] = useState<DatosEmpresa>({ slug: '', nombre: '', logo_url: '', color: '#2e6db4', rubro: 'generico', adminNombre: '', email: '', password: '' })
+function NuevaEmpresa({ rubros, cargando, onCrear, inicial }: { rubros: Rubro[]; cargando: boolean; onCrear: (d: DatosEmpresa) => void; inicial?: Partial<DatosEmpresa> }) {
+  const [d, setD] = useState<DatosEmpresa>({ slug: '', nombre: '', logo_url: '', color: '#2e6db4', rubro: 'generico', adminNombre: '', email: '', password: '', ...inicial })
   const set = (k: keyof DatosEmpresa) => (e: React.ChangeEvent<HTMLInputElement>) => setD({ ...d, [k]: e.target.value })
   const slugValido = /^[a-z0-9-]+$/.test(d.slug)
   const adminIncompleto = !!(d.email || d.password || d.adminNombre) && !(d.email && d.password.length >= 6 && d.adminNombre)

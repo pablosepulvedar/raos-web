@@ -55,7 +55,14 @@ export default function Altas() {
     cargar()
   }
 
-  const linkDe = (t: string) => `${location.origin.replace(/\/\/[^.]+\./, '//')}/alta/${t}`
+  // El dominio raíz lo sirve la landing estática, no la aplicación: el link tiene que ir
+  // a un subdominio del worker. Se usa `admin`, que no es de ninguna empresa.
+  const linkDe = (t: string) => {
+    const h = location.hostname
+    const raiz = h.split('.').slice(1).join('.')
+    const base = raiz ? `admin.${raiz}` : location.host    // en localhost se deja tal cual
+    return `${location.protocol}//${base}/alta/${t}`
+  }
 
   const copiar = async (t: string) => {
     await navigator.clipboard.writeText(linkDe(t))
@@ -149,8 +156,8 @@ export default function Altas() {
                 )}
 
                 {!f.empresa_id && (
-                  <Link href="/admin" className="inline-block mt-3 px-4 py-2 rounded-xl bg-[#1a4a85] text-white text-sm font-bold">
-                    Crear la empresa en el panel
+                  <Link href={`/admin?alta=${f.id}`} className="inline-block mt-3 px-4 py-2 rounded-xl bg-[#1a4a85] text-white text-sm font-bold">
+                    Crear la empresa con estos datos
                   </Link>
                 )}
               </>
