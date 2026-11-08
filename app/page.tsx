@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { May, useJerga } from '@/lib/jerga'
 import { createClient } from '@/lib/supabase-browser'
 import Cargando from '@/components/Cargando'
+import { PERMISOS_REPORTE } from './reporte/reportes'
 
 const menuItems = [
   {
@@ -69,10 +70,11 @@ const menuItems = [
   },
   {
     href: '/reporte',
-    permiso: 'reporte',
+    // Cada reporte es un permiso aparte: basta tener uno para ver la tarjeta
+    permisos: PERMISOS_REPORTE,
     emoji: '📊',
-    titulo: 'Cuadre del día',
-    descripcion: 'Reporte diario de ingresos, pagos y pilotos',
+    titulo: 'Reportería',
+    descripcion: 'Cuadre del día, resúmenes por período y por piloto',
     from: '#b45309',
     to: '#78350f',
     texto: '#fff',
@@ -235,9 +237,10 @@ export default function Home() {
             item.href === '/pilotos'
               ? { ...item, titulo: May(j.operador_plural), descripcion: `Ver y gestionar pagos de ${j.operador_plural}` }
               : item.href === '/reporte'
-                ? { ...item, descripcion: `Reporte diario de ingresos, pagos y ${j.operador_plural}` }
+                ? { ...item, descripcion: `Cuadre del día, resúmenes por período y por ${j.operador}` }
                 : item
-          ).filter(item => (esAdmin || ((item as any).permiso && permisos.has((item as any).permiso))) && !((item as any).superOnly && !esSuper)
+          ).filter(item => (esAdmin || ((item as any).permiso && permisos.has((item as any).permiso))
+              || ((item as any).permisos as string[] | undefined)?.some(x => permisos.has(x))) && !((item as any).superOnly && !esSuper)
             && (!(item as any).soloEmpresa || (item as any).soloEmpresa === empresa?.slug)
             && (!(item as any).soloAdmin || esAdmin)).map((item) => (
             <Link
