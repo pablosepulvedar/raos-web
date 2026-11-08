@@ -42,7 +42,7 @@ export default function Alta() {
     empresa_nombre: '', empresa_rut: '', giro: '', direccion: '', comuna: '', ciudad: '',
     rubro: 'generico', sitio_web: '',
     contacto_nombre: '', contacto_cargo: '', contacto_email: '', contacto_telefono: '',
-    comentarios: '', firmante_nombre: '', firmante_rut: '', plan: 'prueba',
+    comentarios: '', firmante_nombre: '', firmante_rut: '', plan: 'mensual',
   })
   const set = (k: keyof typeof d) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
     setD(x => ({ ...x, [k]: e.target.value }))
@@ -140,7 +140,7 @@ export default function Alta() {
 
       <h2 className={label}>El plan</h2>
       <p className="text-[#a8c4e0] text-sm mt-1 mb-3">
-        Puedes empezar con la prueba gratis y cambiarte después. Los precios incluyen IVA.
+        Los precios incluyen IVA. Se puede cambiar de plan más adelante.
       </p>
       <div className="grid gap-2 mb-7">
         {PLANES_QUE_ELIGE_EL_CLIENTE.map(id => {

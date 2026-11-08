@@ -58,7 +58,7 @@ begin
     assert sqlerrm like '%no encontrado%', 'esperaba link no encontrado, obtuvo: ' || sqlerrm;
   end;
 
-  -- NADIE se asigna 'cortesia' ni 'fundador' desde el formulario
+  -- NADIE se asigna 'prueba', 'cortesia' ni 'fundador' desde el formulario
   reset role;
   insert into public.onboarding (etiqueta, token) values ('Colado', 'tok-colado');
   set local role anon;
@@ -73,6 +73,13 @@ begin
     perform public.onboarding_firmar('tok-colado', 'Viva', '', '', '', '', '', 'generico', '',
       'X', '', 'x@x.cl', '', '', 'X', '', 'fundador', 'v', 'h', '1.1.1.1', 'ua');
     assert false, 'no deberia aceptar el plan fundador desde el formulario';
+  exception when others then
+    assert sqlerrm like '%plan no%', 'esperaba plan no valido, obtuvo: ' || sqlerrm;
+  end;
+  begin
+    perform public.onboarding_firmar('tok-colado', 'Viva', '', '', '', '', '', 'generico', '',
+      'X', '', 'x@x.cl', '', '', 'X', '', 'prueba', 'v', 'h', '1.1.1.1', 'ua');
+    assert false, 'no deberia aceptar el plan de prueba desde el formulario';
   exception when others then
     assert sqlerrm like '%plan no%', 'esperaba plan no valido, obtuvo: ' || sqlerrm;
   end;
