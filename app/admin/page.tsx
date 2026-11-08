@@ -6,6 +6,7 @@ import { InputPassword } from '@/components/InputPassword'
 import { createClient } from '@/lib/supabase-browser'
 import Cargando from '@/components/Cargando'
 import Volver from '@/components/Volver'
+import { PLANES, cubreHasta, type Plan } from '@/lib/planes'
 
 const supabase = createClient()
 
@@ -101,7 +102,7 @@ export default function Admin() {
   }
 
   // Viene de /admin/alta: la empresa se crea con lo que el cliente ya declaro
-  const [desdeAlta, setDesdeAlta] = useState<{ id: number; inicial: Partial<DatosEmpresa> } | null>(null)
+  const [desdeAlta, setDesdeAlta] = useState<{ id: number; plan: Plan | null; inicial: Partial<DatosEmpresa> } | null>(null)
   const idCreada = useRef<string | null>(null)
   useEffect(() => {
     const id = Number(new URLSearchParams(window.location.search).get('alta'))
@@ -111,6 +112,7 @@ export default function Admin() {
       if (!data) return
       setDesdeAlta({
         id,
+        plan: data.plan as Plan | null,
         inicial: {
           nombre: data.empresa_nombre ?? '',
           slug: sugerirSlug(data.empresa_nombre ?? ''),
@@ -225,6 +227,16 @@ export default function Admin() {
                 // Deja el alta marcada como atendida, para no crear la empresa dos veces
                 if (desdeAlta) {
                   await supabase.from('onboarding').update({ empresa_id: idCreada.current }).eq('id', desdeAlta.id)
+                  // La suscripción queda creada con el plan que eligió y el precio de lista;
+                  // si se pactó otro, se corrige en Cobros.
+                  if (desdeAlta.plan && idCreada.current) {
+                    const pl = PLANES[desdeAlta.plan]
+                    const hoy = new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Santiago' })
+                    await supabase.from('suscripciones').insert({
+                      empresa_id: idCreada.current, plan: desdeAlta.plan,
+                      precio: pl.precio, inicio: hoy, vence: cubreHasta(hoy, pl.meses),
+                    })
+                  }
                   setDesdeAlta(null)
                 }
                 setCreandoEmpresa(false); cargarEmpresas()

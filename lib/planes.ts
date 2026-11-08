@@ -11,6 +11,11 @@ export const PLANES = {
 } as const
 export type Plan = keyof typeof PLANES
 
+// Los que el cliente puede elegir al dar de alta su empresa. 'fundador' y 'cortesia'
+// los pone el superadmin a mano: no se ofrecen ni se aceptan desde el formulario.
+export const PLANES_QUE_ELIGE_EL_CLIENTE = ['prueba', 'mensual', 'semestral', 'anual'] as const
+export type PlanElegible = (typeof PLANES_QUE_ELIGE_EL_CLIENTE)[number]
+
 // Lo que entra al mes por ese plan, para sumar el ingreso mensual
 export const alMes = (plan: Plan, precio: number) => Math.round(precio / PLANES[plan].meses)
 

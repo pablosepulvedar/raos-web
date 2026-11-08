@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
 import { CONTRATO_TEXTO, CONTRATO_TITULO } from '@/lib/contrato-texto'
+import { PLANES, PLANES_QUE_ELIGE_EL_CLIENTE } from '@/lib/planes'
 import Cargando from '@/components/Cargando'
 
 // Alta de una empresa nueva. Se abre sin cuenta, solo con el token del link.
@@ -41,7 +42,7 @@ export default function Alta() {
     empresa_nombre: '', empresa_rut: '', giro: '', direccion: '', comuna: '', ciudad: '',
     rubro: 'generico', sitio_web: '',
     contacto_nombre: '', contacto_cargo: '', contacto_email: '', contacto_telefono: '',
-    comentarios: '', firmante_nombre: '', firmante_rut: '',
+    comentarios: '', firmante_nombre: '', firmante_rut: '', plan: 'prueba',
   })
   const set = (k: keyof typeof d) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
     setD(x => ({ ...x, [k]: e.target.value }))
@@ -135,6 +136,29 @@ export default function Alta() {
         <input className={campo} type="email" placeholder="Correo *" value={d.contacto_email} onChange={set('contacto_email')} />
         <input className={campo} placeholder="Teléfono" value={d.contacto_telefono} onChange={set('contacto_telefono')} />
         <textarea className={`${campo} sm:col-span-2`} rows={3} placeholder="¿Algo que debamos saber? (opcional)" value={d.comentarios} onChange={set('comentarios')} />
+      </div>
+
+      <h2 className={label}>El plan</h2>
+      <p className="text-[#a8c4e0] text-sm mt-1 mb-3">
+        Puedes empezar con la prueba gratis y cambiarte después. Los precios incluyen IVA.
+      </p>
+      <div className="grid gap-2 mb-7">
+        {PLANES_QUE_ELIGE_EL_CLIENTE.map(id => {
+          const pl = PLANES[id]
+          const elegido = d.plan === id
+          return (
+            <label key={id}
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer border ${
+                elegido ? 'bg-[#ffd700]/15 border-[#ffd700]' : 'bg-white/10 border-white/15'}`}>
+              <input type="radio" name="plan" value={id} checked={elegido}
+                onChange={() => setD(x => ({ ...x, plan: id }))} className="w-4 h-4 shrink-0" />
+              <span className="flex-1 text-white font-semibold text-sm">{pl.nombre}</span>
+              <span className="text-[#ffd700] font-bold text-sm whitespace-nowrap">
+                {pl.precio ? `$${pl.precio.toLocaleString('es-CL')}` : 'Gratis'}
+              </span>
+            </label>
+          )
+        })}
       </div>
 
       <h2 className={label}>{CONTRATO_TITULO}</h2>

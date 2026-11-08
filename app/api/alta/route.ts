@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { CONTRATO_TEXTO, CONTRATO_VERSION } from '@/lib/contrato-texto'
 import { createHash } from 'node:crypto'
+import { PLANES_QUE_ELIGE_EL_CLIENTE } from '@/lib/planes'
 
 // Alta de una empresa nueva. Quien llena el formulario no tiene sesión: entra con su token.
 // La evidencia (IP, navegador, versión y hash del texto) la pone el servidor, nunca el
@@ -12,6 +13,7 @@ const MENSAJE: Record<string, string> = {
   'este formulario ya fue enviado': 'Este formulario ya se envió. Si necesitas corregir algo, escríbenos.',
   'falta el nombre de la empresa': 'Falta el nombre de la empresa.',
   'falta el nombre de quien acepta': 'Falta el nombre de quien acepta el acuerdo.',
+  'plan no válido': 'El plan elegido no es válido.',
 }
 
 export async function POST(request: NextRequest) {
@@ -55,6 +57,8 @@ export async function POST(request: NextRequest) {
     p_comentarios: b.comentarios ?? '',
     p_firmante_nombre: b.firmante_nombre ?? '',
     p_firmante_rut: b.firmante_rut ?? '',
+    // La base vuelve a validarlo: acá solo se evita mandar basura
+    p_plan: PLANES_QUE_ELIGE_EL_CLIENTE.includes(b.plan) ? b.plan : null,
     p_texto_version: CONTRATO_VERSION,
     p_texto_hash: hash,
     p_ip: ip,

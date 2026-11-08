@@ -28,7 +28,7 @@ begin
   perform public.onboarding_firmar('tok-de-prueba',
     'Alma Outdoor', '76.123.456-7', 'Turismo aventura', 'Camino 123', 'Puente Alto', 'Santiago',
     'parapente', 'alma.cl', 'Pamela Rozas', 'Socia', 'PAMELA@ALMA.CL ', '+56912345678',
-    'sin comentarios', 'Pamela Rozas', '12.345.678-9',
+    'sin comentarios', 'Pamela Rozas', '12.345.678-9', 'mensual',
     '2026-11-v1', 'abc123', '1.2.3.4', 'navegador de prueba');
   reset role;
 
@@ -43,7 +43,7 @@ begin
   set local role anon;
   begin
     perform public.onboarding_firmar('tok-de-prueba', 'Otra', '', '', '', '', '', 'generico', '',
-      'X', '', 'x@x.cl', '', '', 'X', '', 'v', 'h', '1.1.1.1', 'ua');
+      'X', '', 'x@x.cl', '', '', 'X', '', 'mensual', 'v', 'h', '1.1.1.1', 'ua');
     assert false, 'no deberia dejar firmar dos veces';
   exception when others then
     assert sqlerrm like '%ya fue enviado%', 'esperaba el aviso de ya enviado, obtuvo: ' || sqlerrm;
@@ -52,11 +52,34 @@ begin
   -- Ni firmar un link inexistente
   begin
     perform public.onboarding_firmar('no-existe', 'X', '', '', '', '', '', 'generico', '',
-      'X', '', 'x@x.cl', '', '', 'X', '', 'v', 'h', '1.1.1.1', 'ua');
+      'X', '', 'x@x.cl', '', '', 'X', '', 'mensual', 'v', 'h', '1.1.1.1', 'ua');
     assert false, 'no deberia dejar firmar un link inexistente';
   exception when others then
     assert sqlerrm like '%no encontrado%', 'esperaba link no encontrado, obtuvo: ' || sqlerrm;
   end;
+
+  -- NADIE se asigna 'cortesia' ni 'fundador' desde el formulario
+  reset role;
+  insert into public.onboarding (etiqueta, token) values ('Colado', 'tok-colado');
+  set local role anon;
+  begin
+    perform public.onboarding_firmar('tok-colado', 'Viva', '', '', '', '', '', 'generico', '',
+      'X', '', 'x@x.cl', '', '', 'X', '', 'cortesia', 'v', 'h', '1.1.1.1', 'ua');
+    assert false, 'no deberia aceptar el plan cortesia desde el formulario';
+  exception when others then
+    assert sqlerrm like '%plan no%', 'esperaba plan no valido, obtuvo: ' || sqlerrm;
+  end;
+  begin
+    perform public.onboarding_firmar('tok-colado', 'Viva', '', '', '', '', '', 'generico', '',
+      'X', '', 'x@x.cl', '', '', 'X', '', 'fundador', 'v', 'h', '1.1.1.1', 'ua');
+    assert false, 'no deberia aceptar el plan fundador desde el formulario';
+  exception when others then
+    assert sqlerrm like '%plan no%', 'esperaba plan no valido, obtuvo: ' || sqlerrm;
+  end;
+  reset role;
+  select count(*) into n from public.onboarding where token = 'tok-colado' and aceptado_at is not null;
+  assert n = 0, 'el intento con plan invalido no deberia haber firmado nada';
+  set local role anon;
 
   -- Ni crear links: eso es solo del superadmin
   begin
