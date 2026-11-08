@@ -284,7 +284,7 @@
     <li><a href="#cap-7">Pagos a los guías</a><small>Servicios del día, deuda y pagos</small></li>
     <li><a href="#cap-8">Usuarios y roles</a><small>Crear gente, asignar roles, bloquear</small></li>
     <li><a href="#cap-9">Varios: la configuración</a><small>Horarios, valores, roles, métodos de pago y cobro en línea</small></li>
-    <li><a href="#cap-10">Cuadre del día</a><small>Ingresos, gastos, desglose por método y neto</small></li>
+    <li><a href="#cap-10">Reportería</a><small>Cuadre del día, resúmenes por período, por guía, por servicio y por método</small></li>
     <li><a href="#cap-11">Importar desde Google Calendar</a><small>Traer reservas agendadas fuera del sistema</small></li>
     <li><a href="#cap-12">API de integración</a><small>Que tu web cree la reserva al cobrar</small></li>
     <li><a href="#cap-13">Panel de empresas</a><small>Solo para el administrador del sistema</small></li>
@@ -345,7 +345,7 @@
     <li><b>Ficha de aceptación de riesgo</b> — el papel que antes se firmaba en la base, ahora firmado desde el teléfono del cliente, con evidencia legal.</li>
     <li><b>Cobros</b> — qué se pagó, con qué método, cuánto falta; y un link de pago en línea si está conectado.</li>
     <li><b>Pagos a los guías</b> — qué le corresponde a cada uno por lo que hizo ese día y cuánto se le ha pagado.</li>
-    <li><b>Cuadre del día</b> — el resumen de la jornada: entró, salió, quedó.</li>
+    <li><b>Reportería</b> — el cuadre del día y los informes del mes: por guía, por servicio y por método de pago.</li>
     <li><b>API</b> — que tu página web cree la reserva sola cuando un cliente compra en línea.</li>
   </ul>
 </section>
@@ -388,12 +388,12 @@
     <tr>
       <td><b>Admin</b></td>
       <td>Dueño, administración</td>
-      <td>Todo: reservas, guías, usuarios, configuración y cuadre del día.</td>
+      <td>Todo: reservas, guías, usuarios, configuración y toda la reportería.</td>
     </tr>
     <tr>
       <td><b>Coordinador</b></td>
       <td>Quien opera la agenda</td>
-      <td>Reservas, guías, configuración. <b>No</b> ve Usuarios ni Cuadre del día.</td>
+      <td>Reservas, guías, configuración. <b>No</b> ve Usuarios ni la reportería.</td>
     </tr>
     <tr>
       <td><b>Guía</b> <span style="color:#5b6b65">(piloto, arriero, instructor…)</span></td>
@@ -440,7 +440,7 @@
     <tr><td><b>Guías</b></td><td>Lo que hizo cada guía y lo que se le debe</td><td>7</td></tr>
     <tr><td><b>Varios</b></td><td>Horarios, valores, roles, métodos de pago, cobro en línea, Google Calendar, fichas firmadas y quién hizo qué</td><td>9</td></tr>
     <tr><td><b>Importar Calendar</b></td><td>Traer reservas desde Google Calendar</td><td>11</td></tr>
-    <tr><td><b>Cuadre del día</b></td><td>El resumen financiero de la jornada</td><td>10</td></tr>
+    <tr><td><b>Reportería</b></td><td>El cuadre del día y los informes por período</td><td>10</td></tr>
     <tr><td><b>Panel de empresas</b></td><td>Solo lo ve el administrador del sistema</td><td>13</td></tr>
   </table>
 
@@ -1080,17 +1080,25 @@
 
   <h3>9.3 Roles</h3>
   <figure class="w72">
-    <img src="shots/17-roles.png" alt="">
-    <figcaption><b>Roles.</b> Cada rol con las secciones que ve. Admin viene marcado entero y no se edita.</figcaption>
+    <img src="shots/17-roles-p1.png" alt="">
+    <figcaption><b>Roles, arriba.</b> Cada rol con las secciones que ve. Admin viene marcado entero y no se edita.</figcaption>
+  </figure>
+
+  <figure class="w72">
+    <img src="shots/17-roles-p2.png" alt="">
+    <figcaption><b>Roles, abajo.</b> Los cinco informes de Reportería, cada uno con su casilla.</figcaption>
   </figure>
   <p>Debajo de cada rol están las secciones del menú que puede ver: <b>Reservas</b>, <b>Guías</b>
-  (o pilotos, según tu rubro), <b>Varios</b>, <b>Importar Calendar</b> y <b>Cuadre del día</b>.
+  (o pilotos, según tu rubro), <b>Varios</b>, <b>Importar Calendar</b> y los cinco informes de
+  <b>Reportería</b>, cada uno con su propia casilla.
   Marcas o desmarcas y queda guardado al instante; quien tenga ese rol lo nota la próxima vez que abra el menú.</p>
   <ul>
     <li><b>Admin</b> es el rol de base: aparece todo marcado y en gris, sin Editar ni Borrar. Así nadie
     se queda afuera de su propia empresa.</li>
     <li>Los demás roles se agregan, se renombran, se borran y se configuran. Los nuevos nacen con
-    Reservas, Guías, Varios e Importar Calendar marcados.</li>
+    Reservas, Guías, Varios e Importar Calendar marcados, y sin ningún informe.</li>
+    <li><b>Cada informe se marca por separado.</b> Así le puedes dar a un guía el informe
+    <i>Por guía</i> —donde ve solo lo suyo— sin mostrarle los ingresos de la empresa.</li>
     <li><b>Usuarios</b> no aparece en la lista: crear y quitar gente es siempre del Admin.</li>
     <li>Un rol asignado a alguien no se puede borrar: primero hay que quitárselo a esos usuarios.</li>
     <li>Solo un Admin cambia permisos. Si otro lo intenta, el sistema responde
@@ -1114,7 +1122,7 @@
   </figure>
   <p>Efectivo, transferencia, débito, crédito, o los que uses. Se pueden desactivar sin borrarlos: dejan de
   ofrecerse al cobrar, pero los pagos antiguos conservan su método. Son también las columnas del desglose
-  del cuadre del día.</p>
+  de la reportería.</p>
 
   <h3>9.5 Cobro en línea</h3>
   <figure class="w92">
@@ -1195,7 +1203,7 @@
 
 <!-- ══════════════════ 10 ══════════════════ -->
 <section>
-  <h2 id="cap-10"><span class="num">Capítulo 10</span>Cuadre del día</h2>
+  <h2 id="cap-10"><span class="num">Capítulo 10</span>Reportería</h2>
 <figure class="video-web">
   <video controls preload="metadata" playsinline>
     <source src="video/clip-cuadre.mp4" type="video/mp4">
@@ -1204,8 +1212,14 @@
   <figcaption>Cuadre del dia</figcaption>
 </figure>
 
-  <p>El resumen financiero de una jornada, pensado para cerrar la caja. Lo ve el Admin y los roles que lo tengan marcado en Varios → Roles.
-  Arriba se cambia de día con las flechas o se vuelve a hoy con el botón <b>Hoy</b>.</p>
+  <p>Acá viven todos los informes del sistema. Al entrar se abre el <b>cuadre del día</b>, que es el de siempre;
+  arriba, en el título, hay un selector para cambiar de informe. Solo aparecen los informes que tu rol tenga
+  marcados en Varios → Roles, así que dos personas pueden ver listas distintas.</p>
+
+  <h3>10.1 Cuadre del día</h3>
+
+  <p>El resumen financiero de una jornada, pensado para cerrar la caja.
+  Se cambia de día con las flechas o se vuelve a hoy con el botón <b>Hoy</b>.</p>
 
   <figure class="w92">
     <img src="shots/22-cuadre-del-dia-p1.png" alt="">
@@ -1222,7 +1236,7 @@
     <figcaption><b>Cuadre, abajo:</b> los guías del día y el balance final.</figcaption>
   </figure>
 
-  <h3>Los bloques, en orden</h3>
+  <h4>Los bloques, en orden</h4>
   <ol>
     <li><b>Las tres cifras de arriba</b> — cobrado, pagado a guías y balance del día.</li>
     <li><b>Reservas del día</b> — cada una con su total, sus servicios, sus pagos y si quedó pagada o debiendo.</li>
@@ -1234,7 +1248,7 @@
     <li><b>Balance del día</b> — la cuenta final.</li>
   </ol>
 
-  <h3>Cómo se calcula el neto</h3>
+  <h4>Cómo se calcula el neto</h4>
   <pre>Neto del día
   = total cobrado
   + otros ingresos
@@ -1250,6 +1264,54 @@
     <p>Es una reserva de dinero por cada salida realizada, para los pagos que se hacen a fin de mes.
     Hoy está fija en <b>$15.000 por salida</b> dentro del sistema: no se configura desde la pantalla.
     Si tu empresa usa otro valor, hay que cambiarlo en el código.</p>
+  </div>
+
+  <h3>10.2 Los informes por período</h3>
+
+  <p>Los otros cuatro informes no miran un día sino un <b>rango de fechas</b>. Arriba traen tres atajos
+  —<b>Este mes</b>, <b>Mes pasado</b> y <b>30 días</b>— y dos campos de fecha para elegir cualquier otro rango.</p>
+
+  <figure class="w72">
+    <img src="shots/37-reporte-periodo.png" alt="">
+    <figcaption><b>Resumen por período.</b> Los totales del rango y el detalle día a día.</figcaption>
+  </figure>
+
+  <table class="tabla">
+    <tr><th>Informe</th><th>Para qué sirve</th></tr>
+    <tr><td><b>Resumen por período</b></td>
+        <td>Un renglón por día: vuelos, cobrado, pagado a guías y neto. Arriba, los totales del rango.
+            Es el cuadre del día, pero de un mes completo. Los días sin movimiento no aparecen.</td></tr>
+    <tr><td><b>Por guía</b></td>
+        <td>Cada guía con sus salidas del rango, lo que generó, lo que se le pagó y el <b>saldo</b> que queda
+            debiéndose. Sirve para pagar a fin de mes sin sumar a mano.</td></tr>
+    <tr><td><b>Por servicio</b></td>
+        <td>Cuánto se vendió de cada valor del catálogo. Los valores marcados como descuento restan,
+            así el total cuadra con lo cobrado. Sirve para saber qué se vende y qué no.</td></tr>
+    <tr><td><b>Por método de pago</b></td>
+        <td>Cuánto entró y cuánto salió por efectivo, transferencia, tarjeta, etc., y cuánto queda en cada uno.
+            Sirve para cuadrar con el banco.</td></tr>
+  </table>
+
+  <figure class="w72">
+    <img src="shots/38-reporte-guia.png" alt="">
+    <figcaption><b>Por guía.</b> Lo que generó cada uno, lo que se le pagó y el saldo que queda.</figcaption>
+  </figure>
+
+  <figure class="w72">
+    <img src="shots/39-reporte-servicio.png" alt="">
+    <figcaption><b>Por servicio.</b> Qué se vende y qué no, con los descuentos restando.</figcaption>
+  </figure>
+
+  <figure class="w72">
+    <img src="shots/40-reporte-metodo-pago.png" alt="">
+    <figcaption><b>Por método de pago.</b> Entró, salió y queda en cada medio de pago.</figcaption>
+  </figure>
+
+  <div class="ojo">
+    <span class="etiqueta">Un guía solo ve lo suyo</span>
+    <p>Si le das a un guía el informe <b>Por guía</b>, va a ver únicamente sus propias salidas y sus propios
+    pagos, con un aviso que se lo recuerda. Eso no depende de la pantalla: lo impide la base de datos,
+    así que no hay forma de que vea los datos de otro guía ni los ingresos de la empresa.</p>
   </div>
 </section>
 
