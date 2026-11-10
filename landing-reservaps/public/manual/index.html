@@ -278,7 +278,7 @@
     <li><a href="#cap-1">Qué es el sistema</a><small>Para qué sirve, una empresa por subdominio, rubros y vocabulario</small></li>
     <li><a href="#cap-2">Entrar al sistema</a><small>Pantalla de acceso, roles y qué ve cada uno</small></li>
     <li><a href="#cap-3">Menú principal</a><small>Las puertas de entrada a cada parte</small></li>
-    <li><a href="#cap-4">Reservas</a><small>Agenda, crear una reserva, detalle, servicios, pagos y pasajeros</small></li>
+    <li><a href="#cap-4">Reservas</a><small>Agenda, crear una reserva, detalle, servicios, pagos, pasajeros y reagendar</small></li>
     <li><a href="#cap-5">El día de la operación</a><small>La pestaña Hoy: los cinco pasos de cada salida</small></li>
     <li><a href="#cap-6">Ficha de aceptación de riesgo</a><small>Link al cliente, firma, evidencia y registro</small></li>
     <li><a href="#cap-7">Pagos a los guías</a><small>Servicios del día, deuda y pagos</small></li>
@@ -489,10 +489,11 @@
   <figcaption>El detalle de la reserva: pagos, fichas y WhatsApp</figcaption>
 </figure>
 
-  <p>Es el corazón del sistema. Tiene dos pestañas: <b>Agenda</b>, que es el listado por días,
-  y <b>Hoy</b>, que es el paso a paso de la jornada (capítulo 5). Las dos muestran los mismos datos:
-  lo que se cambia en una aparece en la otra al cambiar de pestaña, sin recargar. Y el sistema
-  recuerda la última que usaste: si trabajas en Hoy, Reservas vuelve a abrir en Hoy.</p>
+  <p>Es el corazón del sistema. Tiene tres pestañas: <b>Agenda</b>, que es el listado por días;
+  <b>Hoy</b>, que es el paso a paso de la jornada (capítulo 5); y <b>Espera</b>, con lo que quedó
+  por reagendar. Agenda y Hoy muestran los mismos datos: lo que se cambia en una aparece en la otra
+  al cambiar de pestaña, sin recargar. Y el sistema recuerda la última que usaste: si trabajas en
+  Hoy, Reservas vuelve a abrir en Hoy.</p>
 
   <h3>4.1 La agenda</h3>
 
@@ -622,6 +623,51 @@
     <p>Para saber qué servicio es la cámara, el sistema busca la palabra <b>cámara</b> en su nombre
     (y <b>360</b> para la 360°). Si en Varios → Valores tu servicio se llama distinto, por ejemplo solo
     “360º”, la cámara y el cobro no se enlazan y hay que cargar los dos a mano.</p>
+  </div>
+  <h3>4.5 Cuando una salida no se hace: dejarla por reagendar</h3>
+
+  <p>Si un día no se vuela —por viento, por lluvia, porque el cliente no llegó— esas reservas
+  <b>no deben quedar como realizadas</b>: si se dejan ahí, cuentan como salidas hechas en los
+  informes y se le pagan a los guías.</p>
+
+  <p>Para eso, en el detalle de la reserva está <b>⏳ Dejar por reagendar</b>. Al usarlo:</p>
+  <ul>
+    <li>La reserva <b>sale de la Agenda y de Hoy</b> y se va a la pestaña <b>Espera</b>.</li>
+    <li><b>Deja de contar en todos los informes</b>: cuadre del día, resumen por período, por guía,
+        por servicio y por método de pago. Tampoco se le paga al guía.</li>
+    <li><b>Sus pagos tampoco cuentan</b> mientras espera. Un abono cuenta el día que se vuela, no el
+        día que se cobró: así el dinero aparece junto a la salida que lo generó.</li>
+    <li><b>Se suelta el guía</b>: ese día no voló, así que no se le debe nada.</li>
+    <li>Nada se borra. Pasajeros, fichas firmadas, servicios y pagos quedan tal cual.</li>
+  </ul>
+
+  <h3>4.6 Reagendar</h3>
+
+  <p>En la pestaña <b>Espera</b> está la lista de lo que quedó pendiente, con el nombre, cuántas
+  personas, <b>la fecha en que iba a ser</b> y el teléfono, con botón para escribir por WhatsApp y
+  coordinar el día nuevo.</p>
+
+  <figure class="w72">
+    <img src="shots/41-espera.png" alt="">
+    <figcaption><b>Espera.</b> Lo que quedó por reagendar, con la fecha que tenía.</figcaption>
+  </figure>
+
+  <p>Al tocar <b>Reagendar</b> se elige la fecha y la hora nuevas, y la reserva vuelve a la agenda
+  como cualquier otra. Desde ese momento cuenta normalmente, pero <b>en la fecha nueva</b>:
+  es el día en que realmente se voló.</p>
+
+  <div class="nota">
+    <span class="etiqueta">Acuérdate de asignar el guía otra vez</span>
+    <p>Como al dejarla en espera se soltó, la reserva vuelve sin guía. Al reagendarla hay que
+    asignarlo de nuevo en Hoy, y puede ser otro: quien esté disponible ese día.</p>
+  </div>
+
+  <div class="ojo">
+    <span class="etiqueta">Quién puede reagendar</span>
+    <p>Es un permiso aparte, que se marca en Varios → Roles como <b>“Dejar por reagendar y
+    reagendar”</b>. Quien no lo tenga no ve el botón, y tampoco puede hacerlo por otros medios:
+    el bloqueo está en la base de datos. Ver la pestaña Espera sigue la regla de siempre: quien no
+    ve una reserva en la agenda, tampoco la ve ahí.</p>
   </div>
 </section>
 
