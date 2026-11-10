@@ -88,8 +88,10 @@ export default function EnEspera() {
   return (
     <div className="max-w-lg mx-auto px-4 py-5 flex flex-col gap-3">
       <p className="text-sm text-gray-600">
-        {filas.length} {filas.length === 1 ? 'reserva' : 'reservas'} por reagendar. No cuentan como
-        {' '}{j.actividad_plural} realizadas ni se le pagan a los {j.operador_plural}.
+        {/* Redacción sin género: la palabra de la actividad cambia con el rubro
+            (vuelos, salidas, bajadas…) y "realizadas" no concordaba con todas. */}
+        {filas.length} {filas.length === 1 ? 'reserva' : 'reservas'} por reagendar. Mientras estén acá
+        no cuentan en los informes ni se les paga a los {j.operador_plural}.
       </p>
 
       {filas.map(r => (
