@@ -66,6 +66,8 @@ export default function CuadreDia() {
       .from('reservas')
       .select('id, nombre, cantidad, abono, horarios(horario), reserva_servicios(id, valores(servicio, monto, descuento)), reserva_pagos(id, monto, metodos_pago(nombre))')
       .eq('fecha', fecha)
+      // Las que están por reagendar no son del día: no cuentan ni ellas ni sus pagos
+      .is('espera_at', null)
       .order('horario_id')
     setReservas((resData || []) as unknown as ReservaDetalle[])
 

@@ -77,8 +77,9 @@ export default function Pilotos() {
 
   // ── Fetch helpers ──────────────────────────────────────
   const fetchRange = useCallback(async (from: string, to: string) => {
+    // Por reagendar: la actividad no se hizo, así que al guía no se le paga
     const { data: reservas } = await sb.from('reservas').select('id, fecha')
-      .gte('fecha', from).lte('fecha', to)
+      .gte('fecha', from).lte('fecha', to).is('espera_at', null)
     if (!reservas?.length) return { byDate:{}, reservaIds:{} }
 
     const fechaMap: Record<number, string> = {}
@@ -141,7 +142,8 @@ export default function Pilotos() {
   const fetchDots = useCallback(async (y: number, m: number) => {
     const first = `${y}-${String(m+1).padStart(2,'0')}-01`
     const last  = `${y}-${String(m+1).padStart(2,'0')}-${new Date(y,m+1,0).getDate()}`
-    const { data: reservasMes } = await sb.from('reservas').select('id, fecha').gte('fecha',first).lte('fecha',last)
+    const { data: reservasMes } = await sb.from('reservas').select('id, fecha')
+      .gte('fecha',first).lte('fecha',last).is('espera_at', null)
     if (!reservasMes?.length) { setDots(new Set()); return }
     const { data: conPilotos } = await sb
       .from('reservas_personas').select('reserva_id')

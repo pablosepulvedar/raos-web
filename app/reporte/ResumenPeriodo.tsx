@@ -25,7 +25,7 @@ export default function ResumenPeriodo() {
     setCargando(true)
     const { data: crudas } = await sb
       .from('reservas').select('id, fecha, cantidad, reserva_pagos(monto)')
-      .gte('fecha', p.desde).lte('fecha', p.hasta)
+      .gte('fecha', p.desde).lte('fecha', p.hasta).is('espera_at', null)
     const reservas = (crudas ?? []) as unknown as Reserva[]
     const ids = reservas.map(r => r.id)
 

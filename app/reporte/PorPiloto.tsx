@@ -26,7 +26,9 @@ export default function PorPiloto() {
   // el RLS ya le entrega solo sus propios vuelos y sus propios pagos.
   const traer = async () => {
     setCargando(true)
-    const { data: reservas } = await sb.from('reservas').select('id').gte('fecha', p.desde).lte('fecha', p.hasta)
+    // Las que están por reagendar no cuentan como vuelo ni se le pagan al guía
+    const { data: reservas } = await sb.from('reservas').select('id')
+      .gte('fecha', p.desde).lte('fecha', p.hasta).is('espera_at', null)
     const ids = (reservas ?? []).map((r: { id: number }) => r.id)
 
     const [{ data: personas }, { data: valores }, { data: pagos }] = await Promise.all([

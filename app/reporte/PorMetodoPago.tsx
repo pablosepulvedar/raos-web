@@ -20,7 +20,9 @@ export default function PorMetodoPago() {
 
   const traer = async () => {
     setCargando(true)
-    const { data: reservas } = await sb.from('reservas').select('id').gte('fecha', p.desde).lte('fecha', p.hasta)
+    // Un abono cuenta el día que se vuela: si la salida está por reagendar, no entra
+    const { data: reservas } = await sb.from('reservas').select('id')
+      .gte('fecha', p.desde).lte('fecha', p.hasta).is('espera_at', null)
     const ids = (reservas ?? []).map((r: { id: number }) => r.id)
 
     const [{ data: cobros }, { data: aPilotos }, { data: gastos }] = await Promise.all([

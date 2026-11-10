@@ -47,6 +47,7 @@ export default function DetalleContent({ id, onSave, onDelete, soloPagos }: Prop
 
   const [esAdmin, setEsAdmin]       = useState(false)
   const [eliminando, setEliminando] = useState(false)
+  const [aEspera, setAEspera] = useState(false)
 
   // Reserva fields
   const [nombre, setNombre] = useState('')
@@ -172,6 +173,19 @@ export default function DetalleContent({ id, onSave, onDelete, soloPagos }: Prop
     await sb.from('reservas').delete().eq('id', Number(id))
     setEliminando(false)
     onDelete?.()
+  }
+
+  // Por reagendar: la salida no se hizo. Sale de la agenda y de Hoy, deja de contar
+  // en informes y pagos, y suelta al guía. La reserva y sus datos quedan intactos.
+  const pasarAEspera = async () => {
+    if (!confirm(`¿Dejar la reserva de "${nombre}" por reagendar?
+
+Sale de la agenda y deja de contar como ${j.actividad} realizada. La podrás reagendar desde la pestaña Espera.`)) return
+    setAEspera(true)
+    const { error } = await sb.rpc('reserva_a_espera', { p_id: Number(id) })
+    setAEspera(false)
+    if (error) return setResMsg({ type: 'err', text: 'No se pudo: ' + error.message })
+    onDelete?.()   // cierra el detalle y refresca la lista, igual que al eliminar
   }
 
   const toggleVolo = async () => {
@@ -659,6 +673,15 @@ export default function DetalleContent({ id, onSave, onDelete, soloPagos }: Prop
             className="w-full mt-2 font-bold py-2.5 rounded-xl text-sm transition-all"
             style={{ background:'#e8f0fb', color:'#2e6db4' }}>
             Cancelar
+          </button>
+        )}
+        {!editing && (
+          <button
+            onClick={pasarAEspera}
+            disabled={aEspera}
+            className="w-full mt-3 font-bold py-2.5 rounded-xl text-sm transition-all disabled:opacity-50"
+            style={{ background:'#fff8e1', color:'#92722a', border:'1px solid #ffe08a' }}>
+            {aEspera ? 'Guardando...' : '⏳ Dejar por reagendar'}
           </button>
         )}
         {esAdmin && !editing && (

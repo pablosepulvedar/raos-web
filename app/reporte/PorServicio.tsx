@@ -17,7 +17,8 @@ export default function PorServicio() {
 
   const traer = async () => {
     setCargando(true)
-    const { data: reservas } = await sb.from('reservas').select('id').gte('fecha', p.desde).lte('fecha', p.hasta)
+    const { data: reservas } = await sb.from('reservas').select('id')
+      .gte('fecha', p.desde).lte('fecha', p.hasta).is('espera_at', null)
     const ids = (reservas ?? []).map((r: { id: number }) => r.id)
     const { data } = ids.length
       ? await sb.from('reserva_servicios').select('valores(servicio, monto, descuento)').in('reserva_id', ids)

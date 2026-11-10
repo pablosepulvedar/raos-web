@@ -149,6 +149,7 @@ export default function DiaDeVuelo() {
                reserva_servicios(id, valores(monto, descuento)),
                reserva_pagos(id, monto, metodos_pago(nombre))`)
       .eq('fecha', hoy())
+      .is('espera_at', null)        // las que están por reagendar no son del día
       // sin orden los pasajeros cambian de lugar cada vez que se edita uno
       .order('id', { referencedTable: 'reservas_personas' })
       .order('id', { referencedTable: 'fichas_riesgo' })

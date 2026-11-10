@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { May, useJerga } from '@/lib/jerga'
 import { createClient } from '@/lib/supabase-browser'
 import DetalleContent from '@/components/reserva/DetalleContent'
+import EnEspera from '@/components/reserva/EnEspera'
 import DiaDeVuelo from '@/components/reserva/DiaDeVuelo'
 import Volver from '@/components/Volver'
 
@@ -57,7 +58,7 @@ export default function Reservas() {
   const [horarios, setHorarios] = useState<Horario[]>([])
   const [valores,  setValores]  = useState<Valor[]>([])
 
-  const [tab, setTab] = useState<'agenda'|'hoy'>('agenda')
+  const [tab, setTab] = useState<'agenda'|'hoy'|'espera'>('agenda')
 
   // Detail modal (md+)
   const [detailId, setDetailId] = useState<string|null>(null)
@@ -115,7 +116,9 @@ export default function Reservas() {
   const fetchDays = useCallback(async (from: string, to: string) => {
     const { data } = await sb.from('reservas')
       .select('*, horarios(horario), reservas_personas(id, nombre, camara_normal, camara_360, sin_camara, cumpleanero)')
-      .gte('fecha', from).lte('fecha', to).order('fecha').order('id')
+      .gte('fecha', from).lte('fecha', to)
+      .is('espera_at', null)        // las que están por reagendar viven en su propia pestaña
+      .order('fecha').order('id')
     // Siempre por hora del horario (el id del horario no sigue el orden del día)
     const rows = (data||[]) as (Reserva & { horarios?: { horario: number } | null })[]
     rows.sort((a, b) => (a.horarios?.horario ?? 9999) - (b.horarios?.horario ?? 9999))
@@ -147,7 +150,7 @@ export default function Reservas() {
   useEffect(() => {
     try { if (localStorage.getItem('reservas-tab') === 'hoy') setTab('hoy') } catch {}
   }, [])
-  const cambiarTab = (k: 'agenda'|'hoy') => {
+  const cambiarTab = (k: 'agenda'|'hoy'|'espera') => {
     setTab(k)
     try { localStorage.setItem('reservas-tab', k) } catch {}
     if (k === 'agenda') refreshWindow()
@@ -283,7 +286,7 @@ export default function Reservas() {
 
       {/* ── Pestañas ── */}
       <div className="max-w-lg mx-auto w-full flex gap-1 px-4 pt-3">
-        {([['agenda','Agenda'],['hoy','Hoy']] as const).map(([k, label]) => (
+        {([['agenda','Agenda'],['hoy','Hoy'],['espera','Espera']] as const).map(([k, label]) => (
           <button key={k} onClick={() => cambiarTab(k)}
             className={`flex-1 py-2 rounded-xl text-sm font-bold transition-colors ${
               tab === k ? 'bg-[#2e6db4] text-white' : 'bg-[rgba(46,109,180,0.12)] text-[#2e6db4]'}`}>
@@ -329,7 +332,7 @@ export default function Reservas() {
       )}
 
       {/* ── Lista ── */}
-      {tab === 'hoy' ? <DiaDeVuelo /> : (
+      {tab === 'hoy' ? <DiaDeVuelo /> : tab === 'espera' ? <EnEspera /> : (
       <main className="max-w-lg mx-auto pb-28 px-0" ref={listRef}>
         {loading ? (
           <div className="flex flex-col items-center justify-center py-24 gap-3">
