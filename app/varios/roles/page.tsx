@@ -12,7 +12,7 @@ type Rol = { id: number; nombre: string; created_at: string; restringido: boolea
 
 // Las secciones del menú principal. "reservas" además lo aplica el RLS: sin él,
 // solo ve sus propios vuelos ya hechos, en la pantalla de pilotos.
-const SECCIONES = ['reservas', 'pilotos', 'varios', 'calendar',
+const SECCIONES = ['reservas', 'reagendar', 'pilotos', 'varios', 'calendar',
   'reporte', 'reporte_periodo', 'reporte_pilotos', 'reporte_servicios', 'reporte_metodos'] as const
 
 export default function Roles() {
@@ -21,6 +21,7 @@ export default function Roles() {
     reservas: 'Reservas',
     pilotos: May(j.operador_plural),
     varios: 'Varios',
+    reagendar: 'Dejar por reagendar y reagendar',
     calendar: 'Importar Calendar',
     reporte: 'Reportería · Cuadre del día',
     reporte_periodo: 'Reportería · Resumen por período',

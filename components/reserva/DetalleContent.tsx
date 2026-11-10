@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { May, useJerga } from '@/lib/jerga'
 import { createClient } from '@/lib/supabase-browser'
+import { usePermisos } from '@/lib/permisos'
 import InputMonto from '@/components/InputMonto'
 import { abrirWhatsApp } from '@/lib/whatsapp'
 
@@ -48,6 +49,9 @@ export default function DetalleContent({ id, onSave, onDelete, soloPagos }: Prop
   const [esAdmin, setEsAdmin]       = useState(false)
   const [eliminando, setEliminando] = useState(false)
   const [aEspera, setAEspera] = useState(false)
+  // Mover una salida de día es un permiso aparte (Varios > Roles)
+  const { esAdmin: admin, permisos } = usePermisos()
+  const puedeReagendar = admin || permisos.has('reagendar')
 
   // Reserva fields
   const [nombre, setNombre] = useState('')
@@ -675,7 +679,7 @@ Sale de la agenda y deja de contar como ${j.actividad} realizada. La podrás rea
             Cancelar
           </button>
         )}
-        {!editing && (
+        {!editing && puedeReagendar && (
           <button
             onClick={pasarAEspera}
             disabled={aEspera}

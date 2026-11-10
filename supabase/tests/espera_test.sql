@@ -30,6 +30,13 @@ begin
   insert into public.reserva_pagos (reserva_id, metodo_pago_id, monto, empresa_id)
     values (v_res, v_metodo, 50000, v_empresa);
 
+  -- Mover una salida pide el permiso 'reagendar'. Este bloque prueba la mecánica,
+  -- no los permisos: se toma la identidad de un superadmin (sigue corriendo como
+  -- dueño de la base, solo se fija quién pregunta). El permiso tiene su bloque aparte.
+  select id into v_perfil from public.perfiles where es_superadmin limit 1;
+  assert v_perfil is not null, 'no hay superadmin en esta base';
+  perform set_config('request.jwt.claims', json_build_object('sub', v_perfil)::text, true);
+
   -- ── Antes: cuenta como cualquier reserva ────────────────────────────────
   select count(*) into n from public.reservas
    where id = v_res and fecha = date '2026-11-06' and espera_at is null;
@@ -98,6 +105,55 @@ begin
   end;
 
   raise notice 'espera ok';
+end $$;
+
+-- ── El permiso por rol ──────────────────────────────────────────────────────
+-- Mover una salida de día es un permiso aparte: se comprueba en la BASE, no solo
+-- escondiendo el botón, porque la función se puede llamar por la API.
+do $$
+declare
+  demo uuid; piloto uuid; rol_piloto bigint; v_horario bigint; v_res bigint;
+begin
+  select id into demo   from public.empresas where slug = 'demo';
+  select id into piloto from auth.users where email = 'demo3@demo.cl';
+  select id into rol_piloto from public.roles where empresa_id = demo and nombre = 'Piloto';
+  select id into v_horario from public.horarios where empresa_id = demo limit 1;
+  if demo is null or piloto is null then
+    raise notice 'permiso reagendar: sin datos de la demo en esta base, se omite';
+    return;
+  end if;
+
+  insert into public.reservas (nombre, cantidad, fecha, horario_id, empresa_id)
+    values ('PRUEBA PERMISO', 1, current_date, v_horario, demo) returning id into v_res;
+
+  perform set_config('role', 'authenticated', true);
+  perform set_config('request.headers', '{"x-empresa":"demo"}', true);
+  perform set_config('request.jwt.claims', json_build_object('sub', piloto)::text, true);
+
+  -- Con el permiso puesto, puede
+  assert public.puedo_reagendar(), 'con el permiso deberia poder reagendar';
+
+  -- Se lo quitamos (como dueño de la tabla) y deja de poder
+  perform set_config('role', 'postgres', true);
+  update public.roles set permisos = array_remove(permisos, 'reagendar') where id = rol_piloto;
+  perform set_config('role', 'authenticated', true);
+
+  assert not public.puedo_reagendar(), 'sin el permiso NO deberia poder reagendar';
+  begin
+    perform public.reserva_a_espera(v_res);
+    assert false, 'sin permiso no deberia dejar pasar a espera';
+  exception when others then
+    assert sqlerrm like '%no autorizado%', 'esperaba no autorizado, obtuvo: ' || sqlerrm;
+  end;
+  begin
+    perform public.reserva_reagendar(v_res, current_date + 7, v_horario);
+    assert false, 'sin permiso no deberia dejar reagendar';
+  exception when others then
+    assert sqlerrm like '%no autorizado%', 'esperaba no autorizado, obtuvo: ' || sqlerrm;
+  end;
+
+  perform set_config('role', 'postgres', true);
+  raise notice 'permiso reagendar ok';
 end $$;
 
 rollback;

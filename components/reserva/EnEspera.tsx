@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase-browser'
 import { useJerga } from '@/lib/jerga'
 import Cargando from '@/components/Cargando'
+import { usePermisos } from '@/lib/permisos'
 
 // Reservas por reagendar: la salida no se hizo y hay que moverla de día.
 // Mientras están acá no cuentan como vuelo en ningún informe ni se le paga al guía.
@@ -34,6 +35,8 @@ export default function EnEspera() {
   const [horarioId, setHorarioId] = useState<number | null>(null)
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState('')
+  const { esAdmin, permisos } = usePermisos()
+  const puedeReagendar = esAdmin || permisos.has('reagendar')
 
   const traer = useCallback(async () => {
     setCargando(true)
@@ -133,10 +136,14 @@ export default function EnEspera() {
               </p>
             </div>
           ) : (
-            <button onClick={() => abrir(r)}
-              className="mt-3 w-full py-2 rounded-xl bg-[#1a4a85] text-white text-sm font-bold">
-              Reagendar
-            </button>
+            puedeReagendar ? (
+              <button onClick={() => abrir(r)}
+                className="mt-3 w-full py-2 rounded-xl bg-[#1a4a85] text-white text-sm font-bold">
+                Reagendar
+              </button>
+            ) : (
+              <p className="mt-3 text-xs text-gray-500">Tu rol no puede reagendar salidas.</p>
+            )
           )}
         </div>
       ))}
