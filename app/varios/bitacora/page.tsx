@@ -42,7 +42,13 @@ const CAMPO: Record<string, string> = {
   nombre: 'nombre', cantidad: 'cantidad', fecha: 'fecha', horario_id: 'horario',
   telefono: 'teléfono', abono: 'abono', volo: 'voló', monto: 'monto',
   metodo_pago_id: 'método de pago', activo: 'activo', aceptada_at: 'aceptación',
+  motivo_cancelacion: 'motivo', borrada_at: 'cancelada', espera_at: 'por reagendar',
 }
+
+// Cancelar una reserva son dos cambios seguidos (el motivo y la marca de borrada).
+// Decir "cambió la reserva" de los dos esconde lo único que importa.
+const esCancelacion = (l: Linea) =>
+  l.tabla === 'reservas' && !!(l.cambios?.motivo_cancelacion || l.cambios?.borrada_at)
 
 const clp = (n: unknown) => typeof n === 'number' ? `$${n.toLocaleString('es-CL')}` : String(n)
 
@@ -162,9 +168,11 @@ export default function Bitacora() {
                 onClick={() => setAbierta(abierta === l.id ? null : l.id)}
               >
                 <p className="text-sm text-[#0d2b5c]">
-                  <b>{nombreDe(l.perfil_id, l.origen)}</b> {VERBO[l.accion]}{' '}
+                  <b>{nombreDe(l.perfil_id, l.origen)}</b>{' '}
+                  {esCancelacion(l) ? 'canceló' : VERBO[l.accion]}{' '}
                   {COSA[l.tabla] ?? l.tabla}
                   {detalle(l) && <> de <b>{detalle(l)}</b></>}
+                  {l.cambios?.motivo_cancelacion && <>: <b>{String(l.cambios.motivo_cancelacion.ahora)}</b></>}
                 </p>
                 <p className="text-xs text-gray-500 mt-0.5">
                   {new Date(l.cuando).toLocaleString('es-CL')}

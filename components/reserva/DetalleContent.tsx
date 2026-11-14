@@ -47,7 +47,7 @@ export default function DetalleContent({ id, onSave, onDelete, soloPagos }: Prop
   const sb = useRef(createClient()).current
 
   const [esAdmin, setEsAdmin]       = useState(false)
-  const [eliminando, setEliminando] = useState(false)
+  const [cancelando, setCancelando] = useState(false)
   const [aEspera, setAEspera] = useState(false)
   // Mover una salida de día es un permiso aparte (Varios > Roles)
   const { esAdmin: admin, permisos } = usePermisos()
@@ -169,13 +169,18 @@ export default function DetalleContent({ id, onSave, onDelete, soloPagos }: Prop
     setReservaPagos((data||[]) as unknown as ReservaPago[])
   }
 
-  const eliminarReserva = async () => {
-    if (!confirm(`¿Eliminar la reserva de "${nombre}"? Las fichas firmadas se conservan en Fichas firmadas.`)) return
-    setEliminando(true)
+  const cancelarReserva = async () => {
+    const motivo = prompt(`¿Por qué se cancela la reserva de "${nombre}"?
+
+El motivo queda anotado en Quién hizo qué. Las fichas firmadas se conservan en Fichas firmadas.`)
+    if (motivo === null) return                       // cerró el cuadro: no se cancela nada
+    if (!motivo.trim()) { setResMsg({type:'err', text:'Hay que escribir el motivo'}); return }
+    setCancelando(true)
     // La base solo la marca borrada (borrado lógico): pagos, pasajeros y fichas
     // firmadas quedan guardados, ocultos con ella
-    await sb.from('reservas').delete().eq('id', Number(id))
-    setEliminando(false)
+    const { error } = await sb.rpc('reserva_cancelar', { p_id: Number(id), p_motivo: motivo })
+    setCancelando(false)
+    if (error) { setResMsg({type:'err', text:'No se pudo cancelar: ' + error.message}); return }
     onDelete?.()
   }
 
@@ -690,11 +695,11 @@ Sale de la agenda y deja de contar como ${j.actividad} realizada. La podrás rea
         )}
         {esAdmin && !editing && (
           <button
-            onClick={eliminarReserva}
-            disabled={eliminando}
+            onClick={cancelarReserva}
+            disabled={cancelando}
             className="w-full mt-3 font-bold py-2.5 rounded-xl text-sm transition-all disabled:opacity-50"
             style={{ background:'#ffeef0', color:'#c0392b', border:'1px solid #fca5a5' }}>
-            {eliminando ? 'Eliminando...' : '🗑️ Eliminar reserva'}
+            {cancelando ? 'Cancelando...' : '❌ Cancelar reserva'}
           </button>
         )}
       </div>
