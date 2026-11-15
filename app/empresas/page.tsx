@@ -26,8 +26,9 @@ type Empresa = {
 }
 
 type Vela = {
-  id: number; nombre: string; anio: number | null
+  id: number; nombre: string; marca: string; modelo: string; anio: number | null
   tipo: string | null; homologacion: string | null; talla: string | null
+  serie: string | null; revision: string | null
 }
 type FormVela = {
   marca: string; modelo: string; anio: string; tipo: string
@@ -65,6 +66,7 @@ export default function Empresas() {
   // Por dispositivo: se lee después de montar (en el servidor no hay localStorage)
   const [velas, setVelas] = useState<Vela[]>([])
   const [vela, setVela] = useState<FormVela>(VELA_VACIA)
+  const [editandoVela, setEditandoVela] = useState<number | null>(null)
   const [velaError, setVelaError] = useState<string | null>(null)
   const ponVela = (k: keyof FormVela) => (v: string) => setVela(f => ({ ...f, [k]: v }))
   const [business, setBusiness] = useState(false)
@@ -81,7 +83,8 @@ export default function Empresas() {
     setInvitaciones((invs.data as Invitacion[]) ?? [])
     setPublicado(!!pub.data)
     const { data: vls } = await supabase.from('mis_velas')
-      .select('id, nombre, anio, tipo, homologacion, talla').order('nombre')
+      .select('id, nombre, marca, modelo, anio, tipo, homologacion, talla, serie, revision')
+      .order('nombre')
     setVelas((vls as Vela[]) ?? [])
   }
   useEffect(() => { cargar() }, [])
@@ -94,10 +97,10 @@ export default function Empresas() {
   }
 
   // Las velas son del guía: se eligen después en la ficha de cada salida de su bitácora
-  const agregarVela = async () => {
+  const guardarVela = async () => {
     if (!vela.marca.trim() || !vela.modelo.trim()) return
     setVelaError(null)
-    const { error } = await supabase.from('mis_velas').insert({
+    const fila = {
       marca: vela.marca.trim(),
       modelo: vela.modelo.trim(),
       anio: vela.anio ? Number(vela.anio) : null,
@@ -106,15 +109,32 @@ export default function Empresas() {
       talla: vela.talla.trim() || null,
       serie: vela.serie.trim() || null,
       revision: vela.revision || null,
-    })
+    }
+    // Cambiarle el nombre a una vela no toca las salidas que ya la tienen anotada:
+    // ahí quedó el texto del día en que se voló.
+    const { error } = editandoVela
+      ? await supabase.from('mis_velas').update(fila).eq('id', editandoVela)
+      : await supabase.from('mis_velas').insert(fila)
     if (error) { setVelaError(error.code === '23505' ? 'Esa vela ya está en la lista' : error.message); return }
     setVela(VELA_VACIA)
+    setEditandoVela(null)
     await cargar()
+  }
+
+  const editarVela = (v: Vela) => {
+    setVelaError(null)
+    setEditandoVela(v.id)
+    setVela({
+      marca: v.marca, modelo: v.modelo, anio: v.anio ? String(v.anio) : '',
+      tipo: v.tipo ?? '', homologacion: v.homologacion ?? '', talla: v.talla ?? '',
+      serie: v.serie ?? '', revision: v.revision ?? '',
+    })
   }
 
   const borrarVela = async (id: number, nombre: string) => {
     if (!confirm(`¿Sacar ${nombre} de tus velas? Las salidas que ya la tengan anotada no cambian.`)) return
     await supabase.from('mis_velas').delete().eq('id', id)
+    if (editandoVela === id) { setEditandoVela(null); setVela(VELA_VACIA) }
     await cargar()
   }
 
@@ -258,15 +278,21 @@ export default function Empresas() {
           {velas.length > 0 && (
             <div className="flex flex-col gap-2 mb-3">
               {velas.map(v => (
-                <div key={v.id} className="flex items-center gap-2 bg-[#f7fbff] border border-[#e3eef9] rounded-lg px-3 py-2">
-                  <span className="flex-1 min-w-0">
+                <div key={v.id}
+                  className="flex items-center gap-2 border rounded-lg px-3 py-2"
+                  style={ editandoVela === v.id
+                    ? { background:'#eef4fb', borderColor:'#1e5a96' }
+                    : { background:'#f7fbff', borderColor:'#e3eef9' } }>
+                  <button onClick={() => editarVela(v)} className="flex-1 min-w-0 text-left">
                     <span className="block text-[#0d2b5c] text-sm font-semibold truncate">
                       {v.nombre}{v.anio ? ` ${v.anio}` : ''}
                     </span>
                     <span className="block text-xs text-gray-500 truncate">
                       {[v.tipo, v.homologacion, v.talla && `talla ${v.talla}`].filter(Boolean).join(' · ') || 'Sin más datos'}
                     </span>
-                  </span>
+                  </button>
+                  <button onClick={() => editarVela(v)}
+                    className="text-[#1e5a96] text-sm font-bold px-2">✎</button>
                   <button onClick={() => borrarVela(v.id, v.nombre)}
                     className="text-[#c0392b] text-sm font-bold px-2">✕</button>
                 </div>
@@ -308,11 +334,23 @@ export default function Empresas() {
                   className={campoVela + ' w-full'} />
               </label>
             </div>
-            <button onClick={agregarVela} disabled={!vela.marca.trim() || !vela.modelo.trim()}
-              className="bg-[#1e5a96] text-white text-sm font-semibold px-4 py-2 rounded-lg disabled:opacity-50">
-              Agregar vela
-            </button>
-            <p className="text-xs text-gray-500">Marca y modelo son lo único obligatorio.</p>
+            <div className="flex gap-2">
+              {editandoVela && (
+                <button onClick={() => { setEditandoVela(null); setVela(VELA_VACIA); setVelaError(null) }}
+                  className="bg-[#eef4fb] text-[#1a4a85] text-sm font-semibold px-4 py-2 rounded-lg">
+                  Cancelar
+                </button>
+              )}
+              <button onClick={guardarVela} disabled={!vela.marca.trim() || !vela.modelo.trim()}
+                className="flex-1 bg-[#1e5a96] text-white text-sm font-semibold px-4 py-2 rounded-lg disabled:opacity-50">
+                {editandoVela ? 'Guardar cambios' : 'Agregar vela'}
+              </button>
+            </div>
+            <p className="text-xs text-gray-500">
+              {editandoVela
+                ? 'Las salidas que ya la tengan anotada no cambian.'
+                : 'Marca y modelo son lo único obligatorio. Toca una vela para editarla.'}
+            </p>
           </div>
           {velaError && <p className="text-[#c0392b] text-sm mt-2">{velaError}</p>}
         </div>
