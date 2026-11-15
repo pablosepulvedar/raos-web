@@ -1,0 +1,258 @@
+<!doctype html>
+<!--
+  Manual publico: una vuelta por el sistema, pantalla por pantalla, para quien
+  esta decidiendo si lo contrata. Cuenta QUE resuelve cada parte, no COMO se
+  hace: el manual completo (el paso a paso) vive detras del login.
+-->
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Reservaps | Una vuelta por el sistema</title>
+  <meta name="description" content="Qué resuelve Reservaps, pantalla por pantalla: agenda y cupos, el día de operación, fichas de riesgo firmadas, el cuadre del día, pagos a guías, informes y la bitácora del guía.">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="es_CL">
+  <meta property="og:title" content="Reservaps | Una vuelta por el sistema">
+  <meta property="og:description" content="Agenda, día de operación, fichas firmadas, cuadre del día, pagos a guías e informes. Para operadores de turismo aventura.">
+  <meta name="theme-color" content="#06513a">
+  <link rel="icon" href="../img/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../styles.css">
+  <style>
+    /* Un paso = una pantalla con su explicación al lado. Se alternan de lado. */
+    .paso { display: grid; gap: 34px; align-items: center; margin-top: 46px;
+            grid-template-columns: 300px minmax(0, 1fr) }
+    /* La pantalla cambia de lado, pero nunca de tamaño: la columna del teléfono
+       mide siempre lo mismo o la captura se estira a lo ancho de la página. */
+    .paso:nth-of-type(even) { grid-template-columns: minmax(0, 1fr) 300px }
+    .paso:nth-of-type(even) .pantalla { order: 2 }
+    .paso h3 { font-size: 22px; margin-bottom: 12px }
+    .paso p { color: var(--muted); margin: 0 0 12px; font-size: 16px }
+    .paso ul { color: var(--muted); margin: 0; padding-left: 20px; font-size: 15.5px }
+    .paso li { margin-bottom: 6px }
+    .pantalla img { display: block; width: 100%; border-radius: 18px;
+                    border: 1px solid var(--line); box-shadow: 0 14px 34px rgba(6,81,58,.13) }
+    .chapita { display: inline-block; font-size: 12px; font-weight: 700; letter-spacing: 1.2px;
+               text-transform: uppercase; color: var(--pasto); margin-bottom: 8px }
+    .cierre { background: var(--verde); color: #fff; border-radius: 20px; padding: 40px }
+    .cierre h2 { font-size: 27px; max-width: 20ch }
+    .cierre p { color: #a9dcc4; max-width: 60ch; margin-top: 14px }
+    .cierre .acciones { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 24px }
+    @media (max-width: 760px) {
+      .paso { grid-template-columns: 1fr; gap: 20px; margin-top: 38px }
+      .paso:nth-of-type(even) .pantalla { order: 0 }
+      .pantalla img { max-width: 320px; margin: 0 auto }
+      .cierre { padding: 26px }
+    }
+  </style>
+</head>
+<body>
+
+<header class="barra">
+  <div class="contenedor">
+    <a class="marca" href="/" style="text-decoration:none;color:#fff">
+      <img src="../img/logo.svg" alt="">reserva<span>ps</span>
+    </a>
+    <nav>
+      <a href="/#que-hace">Qué hace</a>
+      <a href="/#rubros">Rubros</a>
+      <a href="/#api">API</a>
+      <a href="/#demo">Demo</a>
+    </nav>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="contenedor">
+    <span class="chapa">Una vuelta por el sistema</span>
+    <h1>Esto es lo que vas a tener el lunes.</h1>
+    <p class="bajada">
+      Siete pantallas que cubren el día completo: desde que te escriben para reservar hasta que
+      cuadras la caja y le pagas a tus guías. Todo desde el teléfono, en terreno, con una mano.
+    </p>
+    <div class="acciones">
+      <a class="btn btn-primario" href="/#demo">Entrar a la demo</a>
+      <a class="btn btn-borde" href="mailto:hola@reservaps.dev">Hablar con nosotros</a>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="contenedor">
+    <h2 class="titulo">Pantalla por pantalla.</h2>
+    <p class="sub">Las imágenes son de la versión de demostración, que usa el rubro parapente. En tu
+    empresa las palabras cambian solas: en rafting dice bajada, guía y tripulante.</p>
+
+    <div class="paso">
+      <div class="pantalla"><img src="img/menu.webp" alt="El menú principal del sistema" loading="lazy"></div>
+      <div>
+        <span class="chapita">El menú</span>
+        <h3>Cada uno entra y ve lo suyo.</h3>
+        <p>Una cuenta por persona y un menú que depende de su rol: quien coordina ve las reservas,
+        quien administra ve además la plata y la configuración, y un guía ve solo lo que le toca.</p>
+        <ul>
+          <li>Tu empresa vive en su propia dirección, con tu logo y tu color.</li>
+          <li>Los roles los armas tú, marcando qué ve cada uno.</li>
+          <li>Pensado para el teléfono: es donde se usa de verdad.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="paso">
+      <div class="pantalla"><img src="img/agenda.webp" alt="La agenda por día y horario" loading="lazy"></div>
+      <div>
+        <span class="chapita">La agenda</span>
+        <h3>Los cupos del día, sin planilla.</h3>
+        <p>Cada día con sus horarios y lo tomado en cada uno. Abres una reserva y ahí está todo:
+        quién viene, cuántos, qué servicios lleva, cuánto abonó y cuánto queda por cobrar.</p>
+        <ul>
+          <li>Lo confirmado, lo que quedó por reagendar y lo cancelado, cada cosa en su lugar.</li>
+          <li>Cancelar pide el motivo y lo guarda: nada desaparece sin explicación.</li>
+          <li>Si vendes en tu web, la reserva puede entrar sola.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="paso">
+      <div class="pantalla"><img src="img/hoy.webp" alt="La pestaña del día de operación" loading="lazy"></div>
+      <div>
+        <span class="chapita">El día de operación</span>
+        <h3>El paso a paso de la jornada.</h3>
+        <p>La pestaña que se usa en el cerro, en el río o en el muelle: a quién le falta la ficha,
+        quién ya pagó, quién lleva cámara, con qué guía va cada uno y quién ya salió.</p>
+        <ul>
+          <li>Mandas el link de la ficha por WhatsApp desde la misma pantalla.</li>
+          <li>Asignas el guía de cada cliente ahí mismo, cuando se arma el grupo.</li>
+          <li>Lo que marcas acá es lo que después cuadra la caja y paga a los guías.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="paso">
+      <div class="pantalla"><img src="img/ficha.webp" alt="La ficha de aceptación de riesgo" loading="lazy"></div>
+      <div>
+        <span class="chapita">La ficha</span>
+        <h3>Aceptación de riesgo firmada desde el teléfono.</h3>
+        <p>El cliente abre un link, completa sus datos y acepta. Queda guardada la evidencia de esa
+        firma —cuándo, desde dónde y qué texto aceptó— como pide el reglamento de turismo aventura,
+        y se conserva el tiempo que corresponde sin que archives un papel.</p>
+        <ul>
+          <li>Un solo link para todo el grupo: cada uno elige quién es.</li>
+          <li>Te avisa de lo que importa antes de salir, como el peso o una condición de salud.</li>
+          <li>Buscas cualquier ficha firmada por nombre o documento, y la bajas en PDF.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="paso">
+      <div class="pantalla"><img src="img/cuadre.webp" alt="El cuadre del día" loading="lazy"></div>
+      <div>
+        <span class="chapita">La plata</span>
+        <h3>El cuadre de la jornada, hecho.</h3>
+        <p>Cuánto entró y por qué medio, qué quedó por cobrar, los gastos del día y lo que les toca
+        a los guías. Y los mismos números por período: día a día, por guía, por servicio y por
+        método de pago.</p>
+        <ul>
+          <li>Un abono cuenta el día que se opera, no el día que se cobró.</li>
+          <li>Puedes mandar el link de pago por WhatsApp y que el pago se anote solo.</li>
+          <li>Cada informe se le abre a quien tú decidas, no a todo el equipo.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="paso">
+      <div class="pantalla"><img src="img/guias.webp" alt="Pagos a los guías" loading="lazy"></div>
+      <div>
+        <span class="chapita">Tu equipo</span>
+        <h3>Lo que hizo cada guía y lo que se le debe.</h3>
+        <p>Por día: con quién salió cada uno, qué le corresponde por eso y qué se le ha pagado. Sin
+        anotar nada aparte, porque sale de lo que ya marcaste en la operación.</p>
+        <ul>
+          <li>Queda registrado quién hizo cada cambio, por si alguna cuenta no calza.</li>
+          <li>Un guía que trabaja para dos empresas usa una sola cuenta; ninguna ve a la otra.</li>
+          <li>Nadie entra a tu equipo sin que tú lo invites y él acepte.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="paso">
+      <div class="pantalla"><img src="img/bitacora.webp" alt="La bitácora del guía" loading="lazy"></div>
+      <div>
+        <span class="chapita">Para el guía</span>
+        <h3>Su libro de vuelo, al día solo.</h3>
+        <p>Cada salida que hace le suma horas sin que anote nada, y puede agregar las que hizo por
+        fuera. Hoy es para parapente; los otros rubros tendrán el suyo.</p>
+        <ul>
+          <li>Sus horas por año, por vela y por empresa, siempre a mano.</li>
+          <li>Es suya: la empresa no la ve.</li>
+          <li>Un guía cómodo con la herramienta se queda en tu equipo.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="claro">
+  <div class="contenedor">
+    <h2 class="titulo">Lo que no se ve en las pantallas.</h2>
+    <p class="sub">Lo que hace que esto funcione el día que hay cuarenta personas y dos teléfonos.</p>
+
+    <div class="grilla">
+      <div class="tarjeta">
+        <h3>Tus datos son tuyos</h3>
+        <p>Cada empresa ve lo suyo y nada más, y eso lo decide el sistema por dentro, no la pantalla.
+        No se comparten datos entre clientes ni se usan para otra cosa.</p>
+      </div>
+      <div class="tarjeta">
+        <h3>Habla como tu rubro</h3>
+        <p>Parapente, rafting, cabalgatas, trekking, buceo, navegación o tours: las palabras de la
+        app cambian según tu actividad. Nadie tiene que ir traduciendo.</p>
+      </div>
+      <div class="tarjeta">
+        <h3>Se conecta con lo que ya usas</h3>
+        <p>WhatsApp para hablar con el cliente, Mercado Pago para cobrar, Google Calendar para traer
+        lo que ya tenías agendado y una API para tu propia web.</p>
+      </div>
+      <div class="tarjeta">
+        <h3>Anda en terreno</h3>
+        <p>Pensado para el teléfono y para una mano ocupada. Si alguien del equipo no sabe dónde
+        apretar, el botón de ayuda abre el manual justo en esa pantalla.</p>
+      </div>
+      <div class="tarjeta">
+        <h3>Nada se borra sin dejar rastro</h3>
+        <p>Cancelar una reserva pide el motivo y la guarda; los cambios quedan anotados con quién
+        los hizo. Cuando algo no calza, se puede reconstruir.</p>
+      </div>
+      <div class="tarjeta">
+        <h3>Partir es rápido</h3>
+        <p>Llenas un formulario con los datos de tu empresa, te dejamos la cuenta andando con tus
+        horarios y tus precios, y el mismo día puedes estar tomando reservas.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="contenedor">
+    <div class="cierre">
+      <h2>Pruébalo con datos de mentira antes de decidir.</h2>
+      <p>La demo está abierta: entra, crea una reserva, manda una ficha y mira el cuadre del día.
+      Lo que cargues se borra solo. Si después quieres el tuyo, lo dejamos listo con tus horarios,
+      tus servicios y tu gente.</p>
+      <div class="acciones">
+        <a class="btn btn-primario" href="/#demo">Abrir la demo</a>
+        <a class="btn btn-borde" href="mailto:hola@reservaps.dev">Pedir el mío</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="contenedor">
+    <span class="marca" style="color:#fff"><img src="../img/logo.svg" alt="">reserva<span>ps</span></span>
+    <span>Hecho en Santiago de Chile, mirando la Sierra de Ramón.</span>
+    <span>¿Ya eres cliente? El manual completo se abre con el botón <b>Ayuda</b>, dentro del sistema.</span>
+  </div>
+</footer>
+
+</body>
+</html>

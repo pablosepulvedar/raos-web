@@ -47,8 +47,9 @@ const AVISO = `<!doctype html>
 <body><div class="caja">
  <h1>El manual se abre desde el sistema</h1>
  <p>Está dentro de Reservaps porque explica todo lo que hace el sistema. Entra con tu cuenta y
- ábrelo con el botón <b>Ayuda</b>, abajo a la derecha de cualquier pantalla.</p>
- <a href="https://reservaps.cl/">Volver a reservaps.cl</a>
+ ábrelo con el botón <b>Ayuda</b>, abajo a la izquierda de cualquier pantalla.</p>
+ <p>¿Todavía no eres cliente? Mira <b>qué incluye</b>, pantalla por pantalla.</p>
+ <a href="https://reservaps.cl/presentacion/">Ver qué incluye</a>
 </div></body></html>`
 
 export default {
