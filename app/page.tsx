@@ -82,6 +82,19 @@ const menuItems = [
     sombra: 'rgba(180,83,9,0.35)',
   },
   {
+    // La bitácora es de cada uno: no hace falta permiso, nadie ve la del otro
+    href: '/mis-vuelos',
+    propio: true,
+    emoji: '📒',
+    titulo: 'Mi bitácora',
+    descripcion: 'Tus vuelos, los de fuera y tus horas',
+    from: '#0ea5e9',
+    to: '#0369a1',
+    texto: '#fff',
+    subtexto: '#bae6fd',
+    sombra: 'rgba(14,165,233,0.35)',
+  },
+  {
     // Herramienta propia de RAOS: en las demás empresas la tarjeta no existe
     href: '/porosidad',
     soloEmpresa: 'raos',
@@ -236,10 +249,12 @@ export default function Home() {
           {!cargando && menuItems.map((item) =>
             item.href === '/pilotos'
               ? { ...item, titulo: May(j.operador_plural), descripcion: `Ver y gestionar pagos de ${j.operador_plural}` }
+              : item.href === '/mis-vuelos'
+              ? { ...item, descripcion: `Tus ${j.actividad_plural}, los de fuera y tus horas` }
               : item.href === '/reporte'
                 ? { ...item, descripcion: `Cuadre del día, resúmenes por período y por ${j.operador}` }
                 : item
-          ).filter(item => (esAdmin || ((item as any).permiso && permisos.has((item as any).permiso))
+          ).filter(item => (esAdmin || (item as any).propio || ((item as any).permiso && permisos.has((item as any).permiso))
               || ((item as any).permisos as string[] | undefined)?.some(x => permisos.has(x))) && !((item as any).superOnly && !esSuper)
             && (!(item as any).soloEmpresa || (item as any).soloEmpresa === empresa?.slug)
             && (!(item as any).soloAdmin || esAdmin)).map((item) => (

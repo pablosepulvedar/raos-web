@@ -43,6 +43,7 @@ const CAMPO: Record<string, string> = {
   telefono: 'teléfono', abono: 'abono', volo: 'voló', monto: 'monto',
   metodo_pago_id: 'método de pago', activo: 'activo', aceptada_at: 'aceptación',
   motivo_cancelacion: 'motivo', borrada_at: 'cancelada', espera_at: 'por reagendar',
+  minutos: 'minutos de vuelo',
 }
 
 // Cancelar una reserva son dos cambios seguidos (el motivo y la marca de borrada).
