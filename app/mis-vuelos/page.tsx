@@ -12,13 +12,17 @@ import Rango, { mesActual, type Periodo } from '../reporte/Rango'
 // por fuera. No la ve nadie más, por eso se pide entera y se filtra acá.
 type Vuelo = {
   origen: 'interno' | 'externo'
-  id: number
+  ref: number          // con qué se guarda: persona_id si es del sistema, id de la fila si es de fuera
   fecha: string
   empresa: string
   pasajero: string | null
   camara: string | null
   valor: number | null
   minutos: number
+  sitio: string | null
+  vela: string | null
+  tipo: string
+  nota: string | null
 }
 
 const CAMARAS = [
@@ -26,7 +30,13 @@ const CAMARAS = [
   { valor: 'normal', texto: 'Cámara normal' },
   { valor: '360',    texto: 'Cámara 360°' },
 ]
-const textoCamara = (c: string | null) => CAMARAS.find(x => x.valor === c)?.texto ?? 'Sin cámara'
+const TIPOS = [
+  { valor: 'biplaza',     texto: 'Biplaza' },
+  { valor: 'solo',        texto: 'Solo' },
+  { valor: 'instruccion', texto: 'Instrucción' },
+]
+const textoDe = (lista: { valor: string; texto: string }[], v: string | null, porDefecto = '') =>
+  lista.find(x => x.valor === v)?.texto ?? porDefecto
 
 const OTRA = '__otra__'
 const hoyStr = () => {
@@ -43,46 +53,51 @@ const enHoras = (min: number) => {
   return h ? `${h} h${m ? ` ${m} min` : ''}` : `${m} min`
 }
 
+type Form = {
+  fecha: string; empresa: string; empresaNueva: string; pasajero: string; camara: string
+  valor: string; minutos: string; sitio: string; vela: string; tipo: string; nota: string
+}
+const FORM_VACIO: Form = {
+  fecha: '', empresa: '', empresaNueva: '', pasajero: '', camara: 'sin',
+  valor: '', minutos: '', sitio: '', vela: '', tipo: 'biplaza', nota: '',
+}
+const campo = 'w-full mt-1 border border-gray-300 rounded-xl px-3 py-2 text-sm text-gray-800'
+const etiqueta = 'text-xs text-gray-500 font-semibold'
+
 export default function MisVuelos() {
   const j = useJerga()
   const sb = useRef(createClient()).current
 
   const [vuelos, setVuelos] = useState<Vuelo[] | null>(null)
-  const [misEmpresas, setMisEmpresas] = useState<string[]>([])
+  const [empresas, setEmpresas] = useState<string[]>([])
   const [periodo, setPeriodo] = useState<Periodo>(mesActual)
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Formulario del vuelo de fuera
-  const [abierto, setAbierto] = useState(false)
-  const [fecha, setFecha] = useState(hoyStr)
-  const [empresaElegida, setEmpresaElegida] = useState('')
-  const [empresaNueva, setEmpresaNueva] = useState('')
-  const [pasajero, setPasajero] = useState('')
-  const [camara, setCamara] = useState('sin')
-  const [valor, setValor] = useState('')
-  const [minutos, setMinutos] = useState('')
+  // Qué se está editando: un vuelo de la lista, 'nuevo', o nada
+  const [editando, setEditando] = useState<string | null>(null)
+  const [form, setForm] = useState<Form>(FORM_VACIO)
+  const set = (k: keyof Form) => (v: string) => setForm(f => ({ ...f, [k]: v }))
 
   const cargar = async () => {
-    const [bita, mias] = await Promise.all([
+    const [bita, emps] = await Promise.all([
       sb.rpc('mi_bitacora'),
-      sb.rpc('mis_empresas'),
+      sb.rpc('nombres_de_empresas'),
     ])
     setVuelos((bita.data as Vuelo[]) ?? [])
-    setMisEmpresas(((mias.data as { nombre: string }[]) ?? []).map(e => e.nombre))
+    setEmpresas(((emps.data as { nombre: string }[]) ?? []).map(e => e.nombre))
   }
   useEffect(() => { cargar() }, [])   // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Las que ya usó antes se ofrecen igual que las suyas: no hay que escribirlas de nuevo
-  const empresas = useMemo(() => {
+  // Las empresas inscritas más las que ya escribió a mano
+  const paraElegir = useMemo(() => {
     const usadas = (vuelos ?? []).map(v => v.empresa)
-    return [...new Set([...misEmpresas, ...usadas])].sort((a, b) => a.localeCompare(b, 'es'))
-  }, [vuelos, misEmpresas])
+    return [...new Set([...empresas, ...usadas])].sort((a, b) => a.localeCompare(b, 'es'))
+  }, [vuelos, empresas])
 
   const enRango = useMemo(
     () => (vuelos ?? []).filter(v => v.fecha >= periodo.desde && v.fecha <= periodo.hasta),
     [vuelos, periodo])
-
   const totalRango = useMemo(() => enRango.reduce((s, v) => s + v.minutos, 0), [enRango])
   const totalTodo  = useMemo(() => (vuelos ?? []).reduce((s, v) => s + v.minutos, 0), [vuelos])
 
@@ -92,47 +107,149 @@ export default function MisVuelos() {
     return [...m.entries()]
   }, [enRango])
 
-  const cambiarMinutos = async (v: Vuelo) => {
-    const texto = prompt(`¿Cuántos minutos duró este ${j.actividad}?`, String(v.minutos))
-    if (texto === null) return
-    const n = Number(texto.trim())
-    if (!Number.isInteger(n) || n < 1 || n > 1440) { setError('Los minutos van entre 1 y 1440'); return }
+  const clave = (v: Vuelo) => `${v.origen}-${v.ref}`
+
+  const abrirNuevo = () => {
     setError(null)
-    const { error } = v.origen === 'interno'
-      ? await sb.rpc('fijar_minutos', { p_persona: v.id, p_minutos: n })
-      : await sb.from('vuelos_externos').update({ minutos: n }).eq('id', v.id)
-    if (error) { setError('No se pudo guardar: ' + error.message); return }
-    setVuelos(vs => (vs ?? []).map(x => x.origen === v.origen && x.id === v.id ? { ...x, minutos: n } : x))
+    setForm({ ...FORM_VACIO, fecha: hoyStr() })
+    setEditando('nuevo')
+  }
+  const abrirVuelo = (v: Vuelo) => {
+    setError(null)
+    setForm({
+      fecha: v.fecha, empresa: v.empresa, empresaNueva: '', pasajero: v.pasajero ?? '',
+      camara: v.camara ?? 'sin', valor: v.valor ? String(v.valor) : '',
+      minutos: String(v.minutos), sitio: v.sitio ?? '', vela: v.vela ?? '',
+      tipo: v.tipo, nota: v.nota ?? '',
+    })
+    setEditando(clave(v))
   }
 
-  const borrarExterno = async (v: Vuelo) => {
-    if (!confirm(`¿Borrar el ${j.actividad} de ${v.fecha} en ${v.empresa}?`)) return
-    const { error } = await sb.from('vuelos_externos').delete().eq('id', v.id)
-    if (error) { setError('No se pudo borrar: ' + error.message); return }
-    setVuelos(vs => (vs ?? []).filter(x => !(x.origen === 'externo' && x.id === v.id)))
-  }
+  // Lo que anota el guía: va igual en los dos casos
+  const deLaBitacora = () => ({
+    minutos: form.minutos.trim() ? Number(form.minutos) : null,
+    sitio: form.sitio.trim() || null,
+    vela: form.vela.trim() || null,
+    tipo: form.tipo,
+    nota: form.nota.trim() || null,
+  })
 
-  const agregar = async () => {
-    const empresa = (empresaElegida === OTRA ? empresaNueva : empresaElegida).trim()
-    if (!empresa) { setError('Falta la empresa'); return }
-    const min = minutos.trim() ? Number(minutos.trim()) : null
+  const guardar = async (v: Vuelo | null) => {
+    const min = form.minutos.trim() ? Number(form.minutos) : null
     if (min !== null && (!Number.isInteger(min) || min < 1 || min > 1440)) {
       setError('Los minutos van entre 1 y 1440'); return
     }
+    const empresa = (form.empresa === OTRA ? form.empresaNueva : form.empresa).trim()
+    if (v?.origen !== 'interno' && !empresa) { setError('Falta la empresa'); return }
+
     setError(null); setGuardando(true)
-    const { error } = await sb.from('vuelos_externos').insert({
-      fecha, empresa, pasajero: pasajero.trim() || null, camara,
-      valor: valor ? Number(valor) : null, minutos: min,
-    })
+    const deFuera = {
+      fecha: form.fecha, empresa, pasajero: form.pasajero.trim() || null,
+      camara: form.camara, valor: form.valor ? Number(form.valor) : null,
+      ...deLaBitacora(),
+    }
+    const { error } =
+      v?.origen === 'interno'
+        // El vuelo ya existe en el sistema: esto es solo la anotación del guía
+        ? await sb.from('mis_vuelos').upsert({ persona_id: v.ref, ...deLaBitacora() }, { onConflict: 'persona_id' })
+        : v
+          ? await sb.from('mis_vuelos').update(deFuera).eq('id', v.ref)
+          : await sb.from('mis_vuelos').insert(deFuera)
     setGuardando(false)
     if (error) { setError('No se pudo guardar: ' + error.message); return }
-    setAbierto(false); setPasajero(''); setValor(''); setMinutos(''); setEmpresaNueva('')
-    // El rango tiene que incluir la fecha recién cargada o el vuelo "desaparece"
-    if (fecha < periodo.desde || fecha > periodo.hasta) {
-      setPeriodo(p => ({ desde: fecha < p.desde ? fecha : p.desde, hasta: fecha > p.hasta ? fecha : p.hasta }))
+
+    // Si el vuelo quedó fuera del rango a la vista, "desaparecería" sin explicación
+    const f = v?.origen === 'interno' ? v.fecha : form.fecha
+    if (f < periodo.desde || f > periodo.hasta) {
+      setPeriodo(p => ({ desde: f < p.desde ? f : p.desde, hasta: f > p.hasta ? f : p.hasta }))
     }
+    setEditando(null)
     await cargar()
   }
+
+  const borrar = async (v: Vuelo) => {
+    if (!confirm(`¿Borrar el ${j.actividad} del ${fmtDia(v.fecha)} en ${v.empresa}?`)) return
+    const { error } = await sb.from('mis_vuelos').delete().eq('id', v.ref)
+    if (error) { setError('No se pudo borrar: ' + error.message); return }
+    setEditando(null)
+    await cargar()
+  }
+
+  const formulario = (v: Vuelo | null) => (
+    <div className="px-4 py-3 bg-[#f7fbff] border-t border-gray-100 flex flex-col gap-3">
+      {v?.origen !== 'interno' && (
+        <>
+          <label className={etiqueta}>Fecha
+            <input type="date" value={form.fecha} onChange={e => set('fecha')(e.target.value)} className={campo} />
+          </label>
+          <label className={etiqueta}>Empresa
+            <select value={form.empresa} onChange={e => set('empresa')(e.target.value)} className={campo + ' bg-white'}>
+              <option value="">Elige una…</option>
+              {paraElegir.map(e => <option key={e} value={e}>{e}</option>)}
+              <option value={OTRA}>Otra…</option>
+            </select>
+          </label>
+          {form.empresa === OTRA && (
+            <input value={form.empresaNueva} onChange={e => set('empresaNueva')(e.target.value)}
+              placeholder="Nombre de la empresa" className={campo} />
+          )}
+          <label className={etiqueta}>{May(j.cliente)}
+            <input value={form.pasajero} onChange={e => set('pasajero')(e.target.value)}
+              placeholder="Nombre" className={campo} />
+          </label>
+          <div className="flex gap-3">
+            <label className={etiqueta + ' flex-1'}>Cámara
+              <select value={form.camara} onChange={e => set('camara')(e.target.value)} className={campo + ' bg-white'}>
+                {CAMARAS.map(c => <option key={c.valor} value={c.valor}>{c.texto}</option>)}
+              </select>
+            </label>
+            <label className={etiqueta + ' flex-1'}>Valor
+              <InputMonto value={form.valor} onChange={set('valor')} placeholder="$" className={campo} />
+            </label>
+          </div>
+        </>
+      )}
+
+      <div className="flex gap-3">
+        <label className={etiqueta + ' flex-1'}>Minutos
+          <input value={form.minutos} onChange={e => set('minutos')(e.target.value.replace(/\D/g, ''))}
+            inputMode="numeric" placeholder="10" className={campo} />
+        </label>
+        <label className={etiqueta + ' flex-1'}>Tipo
+          <select value={form.tipo} onChange={e => set('tipo')(e.target.value)} className={campo + ' bg-white'}>
+            {TIPOS.map(t => <option key={t.valor} value={t.valor}>{t.texto}</option>)}
+          </select>
+        </label>
+      </div>
+      <div className="flex gap-3">
+        <label className={etiqueta + ' flex-1'}>Despegue
+          <input value={form.sitio} onChange={e => set('sitio')(e.target.value)}
+            placeholder="Sitio" className={campo} />
+        </label>
+        <label className={etiqueta + ' flex-1'}>Vela
+          <input value={form.vela} onChange={e => set('vela')(e.target.value)}
+            placeholder="Marca y modelo" className={campo} />
+        </label>
+      </div>
+      <label className={etiqueta}>Observaciones
+        <textarea value={form.nota} onChange={e => set('nota')(e.target.value)} rows={2}
+          placeholder="Condiciones, novedades…" className={campo} />
+      </label>
+
+      <div className="flex gap-2">
+        <button onClick={() => { setEditando(null); setError(null) }}
+          className="flex-1 bg-[#eef4fb] text-[#1a4a85] font-bold py-2.5 rounded-xl text-sm">Cerrar</button>
+        {v?.origen === 'externo' && (
+          <button onClick={() => borrar(v)}
+            className="bg-[#ffeef0] text-[#c0392b] font-bold py-2.5 px-4 rounded-xl text-sm">Borrar</button>
+        )}
+        <button onClick={() => guardar(v)} disabled={guardando}
+          className="flex-1 bg-[#1a4a85] text-white font-bold py-2.5 rounded-xl text-sm disabled:opacity-50">
+          {guardando ? 'Guardando…' : 'Guardar'}
+        </button>
+      </div>
+    </div>
+  )
 
   return (
     <div className="flex-1" style={{ background: 'linear-gradient(160deg, #e8f2ff 0%, #d0e6ff 100%)' }}>
@@ -167,68 +284,17 @@ export default function MisVuelos() {
 
         {error && <p className="bg-[#ffeef0] text-[#c0392b] text-sm rounded-xl px-4 py-2">{error}</p>}
 
-        {!abierto && (
-          <button onClick={() => setAbierto(true)}
+        {editando !== 'nuevo' ? (
+          <button onClick={abrirNuevo}
             className="bg-[#1a4a85] text-white font-bold py-3 rounded-2xl text-sm hover:opacity-95">
             + Agregar un {j.actividad} de otra empresa
           </button>
-        )}
-
-        {abierto && (
-          <div className="bg-white rounded-2xl p-4 shadow-sm flex flex-col gap-3">
-            <p className="text-sm font-bold text-[#0d2b5c]">{May(j.actividad)} de otra empresa</p>
-
-            <label className="text-xs text-gray-500 font-semibold">Fecha
-              <input type="date" value={fecha} onChange={e => setFecha(e.target.value)}
-                className="w-full mt-1 border border-gray-300 rounded-xl px-3 py-2 text-sm text-gray-800" />
-            </label>
-
-            <label className="text-xs text-gray-500 font-semibold">Empresa
-              <select value={empresaElegida} onChange={e => setEmpresaElegida(e.target.value)}
-                className="w-full mt-1 border border-gray-300 rounded-xl px-3 py-2 text-sm text-gray-800 bg-white">
-                <option value="">Elige una…</option>
-                {empresas.map(e => <option key={e} value={e}>{e}</option>)}
-                <option value={OTRA}>Otra…</option>
-              </select>
-            </label>
-            {empresaElegida === OTRA && (
-              <input value={empresaNueva} onChange={e => setEmpresaNueva(e.target.value)}
-                placeholder="Nombre de la empresa"
-                className="border border-gray-300 rounded-xl px-3 py-2 text-sm text-gray-800" />
-            )}
-
-            <label className="text-xs text-gray-500 font-semibold">{May(j.cliente)} (opcional)
-              <input value={pasajero} onChange={e => setPasajero(e.target.value)} placeholder="Nombre"
-                className="w-full mt-1 border border-gray-300 rounded-xl px-3 py-2 text-sm text-gray-800" />
-            </label>
-
-            <label className="text-xs text-gray-500 font-semibold">Cámara
-              <select value={camara} onChange={e => setCamara(e.target.value)}
-                className="w-full mt-1 border border-gray-300 rounded-xl px-3 py-2 text-sm text-gray-800 bg-white">
-                {CAMARAS.map(c => <option key={c.valor} value={c.valor}>{c.texto}</option>)}
-              </select>
-            </label>
-
-            <div className="flex gap-3">
-              <label className="flex-1 text-xs text-gray-500 font-semibold">Valor (opcional)
-                <InputMonto value={valor} onChange={setValor} placeholder="$"
-                  className="w-full mt-1 border border-gray-300 rounded-xl px-3 py-2 text-sm text-gray-800" />
-              </label>
-              <label className="flex-1 text-xs text-gray-500 font-semibold">Minutos
-                <input value={minutos} onChange={e => setMinutos(e.target.value.replace(/\D/g, ''))}
-                  inputMode="numeric" placeholder="10"
-                  className="w-full mt-1 border border-gray-300 rounded-xl px-3 py-2 text-sm text-gray-800" />
-              </label>
-            </div>
-
-            <div className="flex gap-2">
-              <button onClick={() => { setAbierto(false); setError(null) }}
-                className="flex-1 bg-[#eef4fb] text-[#1a4a85] font-bold py-2.5 rounded-xl text-sm">Cancelar</button>
-              <button onClick={agregar} disabled={guardando}
-                className="flex-1 bg-[#1a4a85] text-white font-bold py-2.5 rounded-xl text-sm disabled:opacity-50">
-                {guardando ? 'Guardando…' : 'Guardar'}
-              </button>
-            </div>
+        ) : (
+          <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+            <p className="px-4 py-2 bg-[#eef4fb] text-xs font-bold text-[#1a4a85] uppercase">
+              {May(j.actividad)} de otra empresa
+            </p>
+            {formulario(null)}
           </div>
         )}
 
@@ -248,25 +314,26 @@ export default function MisVuelos() {
               </span>
             </div>
             {delDia.map(v => (
-              <div key={v.origen + v.id} className="px-4 py-3 border-t border-gray-100 flex items-center gap-3">
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-bold text-[#0d2b5c] truncate">
-                    {v.pasajero || `Sin ${j.cliente}`}
-                    {v.origen === 'externo' && <span className="ml-2 text-[10px] font-bold text-[#b45309] bg-[#fde68a] rounded px-1.5 py-0.5">fuera</span>}
-                  </p>
-                  <p className="text-xs text-gray-500 truncate">
-                    {v.empresa} · {textoCamara(v.camara)}
-                    {v.valor ? ` · ${fmtCLP(v.valor)}` : ''}
-                  </p>
-                </div>
-                <button onClick={() => cambiarMinutos(v)}
-                  className="shrink-0 text-xs font-bold text-[#1a4a85] bg-[#eef4fb] rounded-xl px-3 py-2 hover:bg-[#dbe8f7]">
-                  {v.minutos} min
+              <div key={clave(v)} className="border-t border-gray-100">
+                <button onClick={() => editando === clave(v) ? setEditando(null) : abrirVuelo(v)}
+                  className="w-full px-4 py-3 flex items-center gap-3 text-left hover:bg-[#f7fbff]">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-[#0d2b5c] truncate">
+                      {v.pasajero || `Sin ${j.cliente}`}
+                      {v.origen === 'externo' && <span className="ml-2 text-[10px] font-bold text-[#b45309] bg-[#fde68a] rounded px-1.5 py-0.5">fuera</span>}
+                    </p>
+                    <p className="text-xs text-gray-500 truncate">
+                      {v.empresa} · {textoDe(CAMARAS, v.camara, 'Sin cámara')}
+                      {v.tipo !== 'biplaza' ? ` · ${textoDe(TIPOS, v.tipo)}` : ''}
+                      {v.sitio ? ` · ${v.sitio}` : ''}
+                      {v.valor ? ` · ${fmtCLP(v.valor)}` : ''}
+                    </p>
+                  </div>
+                  <span className="shrink-0 text-xs font-bold text-[#1a4a85] bg-[#eef4fb] rounded-xl px-3 py-2">
+                    {v.minutos} min
+                  </span>
                 </button>
-                {v.origen === 'externo' && (
-                  <button onClick={() => borrarExterno(v)} aria-label="Borrar"
-                    className="shrink-0 w-9 h-9 rounded-full text-[#c0392b] bg-[#ffeef0] hover:opacity-80">✕</button>
-                )}
+                {editando === clave(v) && formulario(v)}
               </div>
             ))}
           </div>
