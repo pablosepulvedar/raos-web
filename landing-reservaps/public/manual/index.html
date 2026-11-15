@@ -553,7 +553,7 @@
 
   <figure class="w92">
     <img src="shots/07-reserva-detalle-p2.png" alt="">
-    <figcaption><b>Detalle, abajo:</b> los pagos registrados, el botón de editar y el de eliminar.</figcaption>
+    <figcaption><b>Detalle, abajo:</b> los pagos registrados y los tres botones del final: editar, dejar por reagendar y cancelar.</figcaption>
   </figure>
 
   <p>El detalle abre <b>en solo lectura</b>: para cambiar algo hay que tocar <b>Editar</b> abajo, modificar
@@ -586,11 +586,16 @@
   un link de pago <b>por el saldo exacto</b>. Desde ahí se copia o se manda por WhatsApp. Cuando el cliente paga,
   el pago se registra solo en la reserva.</p>
 
-  <h4>Eliminar</h4>
-  <p>Abajo del todo, <b>🗑️ Eliminar reserva</b> saca la reserva de la agenda, de Hoy, de Guías y del cuadre.
-  Pide confirmación. En realidad no se borra: queda guardada y oculta, con sus pagos y clientes, y sus
+  <h4>Cancelar</h4>
+  <p>Abajo del todo, <b>❌ Cancelar reserva</b> saca la reserva de la agenda, de Hoy, de Guías y del cuadre.
+  Primero pregunta <b>por qué se cancela</b>, y sin motivo no cancela: eso queda anotado en
+  <b>Varios → Quién hizo qué</b>, así después se sabe cuántas se cayeron por viento, cuántas por el cliente
+  y quién las canceló.</p>
+  <p>En realidad no se borra: queda guardada y oculta, con sus pagos y clientes, y sus
   <b>fichas firmadas siguen disponibles en Varios → Fichas firmadas</b> (capítulo 9.7), marcadas como
   <i>borrada</i>. Los links de ficha que no se habían firmado dejan de funcionar.</p>
+  <div class="ojo"><p><b>Cancelar no es lo mismo que dejar por reagendar.</b> Si la salida se va a hacer
+  otro día, va <b>⏳ Dejar por reagendar</b> (4.5). Cancelar es para la que no se hace.</p></div>
 
   <h3>4.4 Los clientes de la reserva</h3>
 
@@ -893,7 +898,7 @@
     <span class="etiqueta">Lo legal, en corto</span>
     <p>La ficha cumple con el deber de informar el riesgo del D.S. 19, artículo 34, y la casilla marcada
     equivale a firma según la Ley 19.799 de firma electrónica — por eso se guarda la evidencia.
-    <b>Las fichas se conservan dos años</b>, como exige el reglamento. Por eso eliminar una reserva no borra
+    <b>Las fichas se conservan dos años</b>, como exige el reglamento. Por eso cancelar una reserva no borra
     sus fichas firmadas: siguen en Varios → Fichas firmadas.</p>
   </div>
 
@@ -1237,6 +1242,10 @@
   final, carga los 50 siguientes. Al tocar una línea de cambio se ve campo por campo
   <b>el valor anterior y el nuevo</b>: en el ejemplo, el abono pasó de vacío a $30.000 y la
   cantidad de 3 a 4 pasajeros.</p>
+
+  <p>Las reservas canceladas se leen de una sola línea, con el motivo que escribió quien canceló:
+  <i>Camila canceló la reserva de Juan Pérez: el cliente no llegó</i>. Es la forma de contar, a fin de mes,
+  cuántas salidas se cayeron y por qué.</p>
 
   <p>Queda registro de las reservas, los pagos, los servicios, los pasajeros, los pagos a guías,
   los gastos, las fichas y los <b>cambios de rol</b>. Esto último responde un caso que aparece
@@ -1629,7 +1638,7 @@
   nombre o el mismo RUT, el sistema lo rechaza.</p>
 
   <h4>El cliente dice que su link de ficha no funciona.</h4>
-  <p>Revisa que sea el link completo y que la reserva no haya sido eliminada (al eliminarla, los links sin
+  <p>Revisa que sea el link completo y que la reserva no haya sido cancelada (al cancelarla, los links sin
   firmar dejan de funcionar). Si el link
   se perdió, en la pestaña Hoy se puede copiar de nuevo o reenviarlo por WhatsApp.</p>
 
@@ -1679,9 +1688,10 @@
           tocar la base de datos.</td>
     </tr>
     <tr>
-      <td>Eliminar una reserva</td>
-      <td>No se puede recuperar desde la pantalla: queda oculta. Si fue un error, el administrador del
-          sistema la puede restaurar desde la base de datos. Sus fichas firmadas siguen en Fichas firmadas.</td>
+      <td>Cancelar una reserva</td>
+      <td>No se puede deshacer desde la pantalla: queda oculta, con su motivo anotado. Si fue un error, el
+          administrador del sistema la puede restaurar desde la base de datos. Sus fichas firmadas siguen
+          en Fichas firmadas.</td>
     </tr>
   </table>
 
