@@ -20,10 +20,17 @@ const ultimos = (n: number) => {
 
 export type Periodo = { desde: string; hasta: string }
 
-export default function Rango({ valor, onCambiar }: { valor: Periodo; onCambiar: (p: Periodo) => void }) {
-  const atajos: [string, () => Periodo][] = [
-    ['Este mes', mesActual], ['Mes pasado', mesPasado], ['30 días', () => ultimos(30)],
-  ]
+const anio = (atras: number) => {
+  const y = new Date().getFullYear() - atras
+  return { desde: `${y}-01-01`, hasta: atras === 0 ? toStr(new Date()) : `${y}-12-31` }
+}
+
+// `conAnios` lo usa la bitácora: un libro de vuelo se mira por año, no por mes
+export default function Rango({ valor, onCambiar, conAnios }:
+  { valor: Periodo; onCambiar: (p: Periodo) => void; conAnios?: boolean }) {
+  const atajos: [string, () => Periodo][] = conAnios
+    ? [['Este mes', mesActual], ['Este año', () => anio(0)], ['Año pasado', () => anio(1)]]
+    : [['Este mes', mesActual], ['Mes pasado', mesPasado], ['30 días', () => ultimos(30)]]
   return (
     <div className="bg-white rounded-2xl p-4 shadow-sm flex flex-col gap-3">
       <div className="flex gap-2">

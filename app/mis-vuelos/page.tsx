@@ -73,6 +73,7 @@ export default function MisVuelos() {
   const [velas, setVelas] = useState<{ label: string; tipo: string | null; principal: boolean }[]>([])
   const [periodo, setPeriodo] = useState<Periodo>(mesActual)
   const [guardando, setGuardando] = useState(false)
+  const [verResumen, setVerResumen] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   // Qué se está editando: un vuelo de la lista, 'nuevo', o nada
@@ -113,6 +114,26 @@ export default function MisVuelos() {
   }, [enRango])
 
   const clave = (v: Vuelo) => `${v.origen}-${v.ref}`
+
+  // Por año, por vela, por empresa y por tipo: lo que se le pregunta a un libro de vuelo
+  const resumen = useMemo(() => {
+    const juntar = (de: (v: Vuelo) => string) => {
+      const m = new Map<string, [number, number]>()
+      for (const v of vuelos ?? []) {
+        const k = de(v)
+        const [n, min] = m.get(k) ?? [0, 0]
+        m.set(k, [n + 1, min + v.minutos])
+      }
+      return [...m.entries()].map(([k, [n, min]]) => [k, n, min] as [string, number, number])
+    }
+    const porMinutos = (a: [string, number, number], b: [string, number, number]) => b[2] - a[2]
+    return [
+      ['Por año', juntar(v => v.fecha.slice(0, 4)).sort((a, b) => b[0].localeCompare(a[0]))],
+      ['Por vela', juntar(v => v.vela ?? 'Sin vela anotada').sort(porMinutos)],
+      ['Por empresa', juntar(v => v.empresa || 'Sin empresa').sort(porMinutos)],
+      ['Por tipo', juntar(v => TIPOS.find(t => t.valor === v.tipo)?.texto ?? v.tipo).sort(porMinutos)],
+    ] as [string, [string, number, number][]][]
+  }, [vuelos])
 
   // Con ?nuevo (el boton de Pilotos) abre derecho el formulario del vuelo de fuera
   useEffect(() => {
@@ -285,7 +306,7 @@ export default function MisVuelos() {
       </header>
 
       <main className="max-w-lg mx-auto px-5 py-5 flex flex-col gap-4">
-        <Rango valor={periodo} onCambiar={setPeriodo} />
+        <Rango valor={periodo} onCambiar={setPeriodo} conAnios />
 
         <div className="bg-white rounded-2xl p-4 shadow-sm flex gap-4">
           <div className="flex-1">
@@ -301,6 +322,36 @@ export default function MisVuelos() {
           <p className="text-xs text-[#2e6db4] -mt-2 px-1">
             En total, desde siempre: <b>{vuelos.length} {j.actividad_plural}</b> · <b>{enHoras(totalTodo)}</b>
           </p>
+        )}
+
+        {/* El resumen de un libro de vuelo: siempre sobre todo lo volado, no sobre el rango */}
+        {vuelos !== null && vuelos.length > 0 && (
+          <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+            <button onClick={() => setVerResumen(v => !v)}
+              className="w-full flex items-center justify-between px-4 py-3 text-sm font-bold text-[#0d2b5c]">
+              <span>Mis horas, desde siempre</span>
+              <span className="text-[#7aafd4]">{verResumen ? '▲' : '▼'}</span>
+            </button>
+            {verResumen && (
+              <div className="px-4 pb-4 flex flex-col gap-4">
+                {resumen.map(([titulo, filas]) => (
+                  <div key={titulo}>
+                    <p className="text-xs font-bold text-[#1a4a85] uppercase tracking-wide mb-1">{titulo}</p>
+                    <div className="rounded-xl border border-[#e3eef9] divide-y divide-[#e3eef9]">
+                      {filas.map(([que, cuantos, minutos]) => (
+                        <div key={que} className="flex items-center justify-between gap-2 px-3 py-1.5 text-sm">
+                          <span className="text-[#0d2b5c] truncate">{que}</span>
+                          <span className="text-xs text-gray-500 shrink-0">
+                            {cuantos} · <b className="text-[#0d2b5c]">{enHoras(minutos)}</b>
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         )}
 
         {error && <p className="bg-[#ffeef0] text-[#c0392b] text-sm rounded-xl px-4 py-2">{error}</p>}
