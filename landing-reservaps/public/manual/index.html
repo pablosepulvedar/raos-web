@@ -282,7 +282,7 @@
     <li><a href="#cap-5">El día de la operación</a><small>La pestaña Hoy: los cinco pasos de cada salida</small></li>
     <li><a href="#cap-6">Ficha de aceptación de riesgo</a><small>Link al cliente, firma, evidencia y registro</small></li>
     <li><a href="#cap-7">Pagos a los guías</a><small>Servicios del día, deuda y pagos</small></li>
-    <li><a href="#cap-8">Usuarios y roles</a><small>Crear gente, asignar roles, bloquear</small></li>
+    <li><a href="#cap-8">Usuarios y roles</a><small>Crear gente, asignar roles, bloquear, Mi cuenta y la bitácora del guía</small></li>
     <li><a href="#cap-9">Varios: la configuración</a><small>Horarios, valores, roles, métodos de pago y cobro en línea</small></li>
     <li><a href="#cap-10">Reportería</a><small>Cuadre del día, resúmenes por período, por guía, por servicio y por método</small></li>
     <li><a href="#cap-11">Importar desde Google Calendar</a><small>Traer reservas agendadas fuera del sistema</small></li>
@@ -446,6 +446,7 @@
     <tr><td><b>Usuarios</b></td><td>Crear gente, asignar roles, activar o desactivar</td><td>8</td></tr>
     <tr><td><b>Reservas</b></td><td>La agenda y la pestaña del día de operación</td><td>4 y 5</td></tr>
     <tr><td><b>Guías</b></td><td>Lo que hizo cada guía y lo que se le debe</td><td>7</td></tr>
+    <tr><td><b>Mi bitácora</b></td><td>Tus propias salidas, las que hiciste fuera del sistema y tus horas</td><td>8</td></tr>
     <tr><td><b>Varios</b></td><td>Horarios, valores, roles, métodos de pago, cobro en línea, Google Calendar, fichas firmadas y quién hizo qué</td><td>9</td></tr>
     <tr><td><b>Importar Calendar</b></td><td>Traer reservas desde Google Calendar</td><td>11</td></tr>
     <tr><td><b>Reportería</b></td><td>El cuadre del día y los informes por período</td><td>10</td></tr>
@@ -455,6 +456,9 @@
   <p>Bajo tu nombre, en la cabecera, hay un enlace a <b>Mi cuenta</b> (dice <b>Cambiar de empresa</b>
   si trabajas en más de una). Ahí están tus empresas, las invitaciones que recibiste y el
   interruptor para aparecer o no en el banco de guías. Está en el capítulo 8.</p>
+
+  <p><b>Mi bitácora</b> es la única tarjeta que ve todo el mundo, tenga el rol que tenga: cada uno ve
+  ahí sus propias salidas y nadie ve las del otro. Está en el capítulo 8.</p>
 
   <p>Si a alguien le faltan tarjetas, no es un error: es su rol. Cada rol ve las secciones que tenga
   marcadas en <b>Varios → Roles</b>; <b>Usuarios</b> lo ve solo el Admin, y <b>Panel de empresas</b>
@@ -1103,6 +1107,56 @@
     sabe de la otra</b>: no ven sus vuelos, ni sus pagos, ni siquiera que existe esa otra empresa.
     Y el guía, por su parte, solo ve de cada empresa lo que su rol le permite.</p>
   </div>
+
+  <h3>Mi bitácora</h3>
+
+  <p>Es el libro de vuelo de cada guía, en la tarjeta <b>📒 Mi bitácora</b> del menú. Junta en una
+  sola lista <b>las salidas que le asignó el sistema</b> —las de todas sus empresas, aunque esté
+  mirando la dirección de una— <b>y las que hizo por fuera</b>, para otro operador o por su cuenta.
+  Arriba muestra cuántas salidas y cuántas horas suman en el período elegido, y abajo el total
+  desde siempre.</p>
+
+  <div class="dos">
+    <figure class="w72">
+      <img src="shots/42-bitacora.png" alt="">
+      <figcaption><b>La bitácora</b> de un guía: sus salidas del día y, marcada <i>fuera</i>, una de otra empresa.</figcaption>
+    </figure>
+    <figure class="w72">
+      <img src="shots/43-bitacora-vuelo-p2.png" alt="">
+      <figcaption><b>Una salida abierta:</b> minutos, tipo, despegue, vela y observaciones.</figcaption>
+    </figure>
+  </div>
+
+  <h4>Las horas</h4>
+  <p>Cada salida cuenta <b>10 minutos</b>, que es lo que dura un biplaza normal. Al tocarla se abre su
+  ficha y ahí se le escriben los minutos que haya durado de verdad; con eso el sistema suma las horas.
+  No hay que anotar nada si los 10 minutos sirven.</p>
+
+  <h4>Qué se anota de cada salida</h4>
+  <p>Lo que pide un libro de vuelo: <b>minutos</b>, <b>tipo</b> (biplaza, solo o instrucción),
+  <b>despegue</b>, <b>vela</b> y <b>observaciones</b>. En las salidas del sistema eso es todo lo que
+  se edita: el cliente, la cámara y la empresa vienen de la reserva y no se tocan desde acá.</p>
+
+  <h4>Una salida de otra empresa</h4>
+  <p>Con <b>+ Agregar</b> se carga a mano: fecha, empresa, cliente, cámara y, si quiere, lo que le
+  pagaron. La empresa se elige de la lista o se escribe con <b>Otra…</b>, y la que escriba queda
+  disponible para la próxima vez. Estas son las únicas que puede borrar: las del sistema las maneja
+  la empresa.</p>
+
+  <div class="ojo">
+    <span class="etiqueta">La bitácora es tuya</span>
+    <p>Nadie más la ve: <b>ni la empresa en la que trabajas</b>. Lo que anotes ahí —los minutos, la
+    vela, las observaciones, y por supuesto las salidas que hiciste para otros— no aparece en ninguna
+    pantalla de la empresa ni en <i>Quién hizo qué</i>. Al revés también: la empresa no necesita que
+    anotes nada, la bitácora no cambia lo que se te paga.</p>
+  </div>
+
+  <div class="nota">
+    <span class="etiqueta">Qué no cuenta como salida</span>
+    <p>Lo que no se hizo no suma horas: las salidas <b>canceladas</b> y las que están <b>por
+    reagendar</b> no aparecen, y las de una fecha que todavía no llega tampoco. Una salida que se
+    reagenda vuelve a la bitácora el día nuevo.</p>
+  </div>
 </section>
 
 <!-- ══════════════════ 9 ══════════════════ -->
@@ -1626,6 +1680,16 @@
   <h4>Me faltan tarjetas en el menú.</h4>
   <p>Es el rol. Cada rol ve las secciones que el administrador le marcó en Varios → Roles, y Usuarios
   lo ve solo el Admin. Pídele a un administrador que revise tus roles y sus permisos.</p>
+
+  <h4>¿Mi empresa ve lo que anoto en Mi bitácora?</h4>
+  <p>No. La bitácora es de cada guía: los minutos, la vela, las observaciones y las salidas que hizo
+  para otras empresas no se ven desde ninguna pantalla de la empresa, ni en <i>Quién hizo qué</i>.
+  Capítulo 8.</p>
+
+  <h4>En mi bitácora aparecen menos salidas de las que hice.</h4>
+  <p>Solo cuentan las que se hicieron: las canceladas y las que quedaron <b>por reagendar</b> no suman,
+  y las de una fecha que todavía no llega tampoco. Si una salida tuya no aparece, revisa también que
+  estés asignado como guía en esa reserva: la bitácora se arma con eso.</p>
 
   <h4>Me sacó del sistema y tuve que entrar de nuevo.</h4>
   <p>Es normal: la sesión dura 24 horas desde que entraste. Pasado ese plazo hay que escribir la contraseña
