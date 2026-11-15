@@ -384,6 +384,16 @@ export default function Pilotos() {
         </button>
       </header>
 
+      {/* ── Su bitacora: lo de aca es de la empresa de turno, la bitacora cruza todas ── */}
+      <Link href="/mis-vuelos"
+        className="flex items-center gap-2 mx-4 mt-3 px-3 py-2.5 rounded-xl bg-white/80 border border-[#bcd7f0] active:scale-[0.99]">
+        <span className="text-lg">📒</span>
+        <span className="flex-1 text-[13px] leading-tight text-[#0d2b5c]">
+          <b>Mi bitácora</b> · tus {j.actividad_plural} de todas las empresas, las de fuera y tus horas
+        </span>
+        <span className="text-[#1e5a96] font-bold">›</span>
+      </Link>
+
       {/* ── Calendario modal ── */}
       {showCal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
