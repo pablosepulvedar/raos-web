@@ -82,9 +82,11 @@ const menuItems = [
     sombra: 'rgba(180,83,9,0.35)',
   },
   {
-    // La bitácora es de cada uno: no hace falta permiso, nadie ve la del otro
+    // La bitácora es de cada uno: no hace falta permiso, nadie ve la del otro.
+    // Hoy es un libro de vuelo de parapente; los otros rubros llevan otro registro.
     href: '/mis-vuelos',
     propio: true,
+    soloRubro: 'parapente',
     emoji: '📒',
     titulo: 'Mi bitácora',
     descripcion: 'Tus vuelos, los de fuera y tus horas',
@@ -257,6 +259,7 @@ export default function Home() {
           ).filter(item => (esAdmin || (item as any).propio || ((item as any).permiso && permisos.has((item as any).permiso))
               || ((item as any).permisos as string[] | undefined)?.some(x => permisos.has(x))) && !((item as any).superOnly && !esSuper)
             && (!(item as any).soloEmpresa || (item as any).soloEmpresa === empresa?.slug)
+            && (!(item as any).soloRubro || (item as any).soloRubro === j.codigo)
             && (!(item as any).soloAdmin || esAdmin)).map((item) => (
             <Link
               key={item.href}

@@ -32,6 +32,7 @@ const STEP = 2
 
 export default function Pilotos() {
   const j = useJerga()
+  const esParapente = j.codigo === 'parapente'
   const sb    = useRef(createClient()).current
   const today = toStr(new Date())
 
@@ -415,7 +416,9 @@ export default function Pilotos() {
         </button>
       </header>
 
-      {/* ── Su bitacora: lo de aca es de la empresa de turno, la bitacora cruza todas ── */}
+      {/* ── Su bitacora: lo de aca es de la empresa de turno, la bitacora cruza todas.
+             Es un libro de vuelo de parapente: en otro rubro no va. ── */}
+      {esParapente && <>
       <Link href="/mis-vuelos"
         className="flex items-center gap-2 mx-4 mt-3 px-3 py-2.5 rounded-xl bg-white/80 border border-[#bcd7f0] active:scale-[0.99]">
         <span className="text-lg">📒</span>
@@ -428,6 +431,7 @@ export default function Pilotos() {
         className="block mx-4 mt-2 px-3 py-2.5 rounded-xl bg-[#1a4a85] text-white font-bold text-[13px] text-center active:scale-[0.99]">
         + Agregar un {j.actividad} de otra empresa
       </Link>
+      </>}
 
       {/* ── Calendario modal ── */}
       {showCal && (

@@ -299,6 +299,25 @@ export default function MisVuelos() {
     </div>
   )
 
+  // Hoy es un libro de vuelo de parapente: los otros rubros llevarán su propio registro.
+  // Mientras la jerga carga vale 'generico', así que no parpadea el aviso.
+  if (j.codigo !== 'parapente' && j.codigo !== 'generico') return (
+    <div className="flex-1 min-h-screen" style={{ background: 'linear-gradient(160deg, #e8f2ff 0%, #d0e6ff 100%)' }}>
+      <header style={{ background: 'linear-gradient(135deg, #0d2b5c 0%, #1a4a85 100%)' }} className="px-5 py-5 shadow-lg">
+        <div className="max-w-lg mx-auto flex items-center gap-3">
+          <Volver href="/" />
+          <h1 className="text-white text-lg font-extrabold">Mi bitácora</h1>
+        </div>
+      </header>
+      <main className="max-w-lg mx-auto px-5 py-8">
+        <p className="bg-white rounded-2xl p-5 text-sm text-[#0d2b5c] shadow-sm">
+          Por ahora la bitácora es un <b>libro de vuelo de parapente</b>: horas, despegue, vela y
+          tipo de vuelo. Para {j.nombre.toLowerCase()} va a haber un registro propio más adelante.
+        </p>
+      </main>
+    </div>
+  )
+
   return (
     <div className="flex-1" style={{ background: 'linear-gradient(160deg, #e8f2ff 0%, #d0e6ff 100%)' }}>
       <header style={{ background: 'linear-gradient(135deg, #0d2b5c 0%, #1a4a85 100%)' }} className="px-5 py-5 shadow-lg">
