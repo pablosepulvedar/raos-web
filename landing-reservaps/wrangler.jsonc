@@ -1,7 +1,14 @@
 {
   "name": "reservaps-landing",
   "compatibility_date": "2026-10-01",
-  "assets": { "directory": "./public" },
+  "main": "src/manual.js",
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    // Solo el manual pasa por el worker (pide el pase de la app); el resto de la
+    // landing la sirve Cloudflare directo, que es gratis y no cuenta requests.
+    "run_worker_first": ["/manual/*"]
+  },
   // La web del producto y el manual. Gana sobre el comodín de la app por ser
   // un patrón más específico.
   "routes": [

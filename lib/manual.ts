@@ -19,8 +19,10 @@ const CAPITULOS: Array<[string, string]> = [
   ['/', 'cap-3'],
 ]
 
+// Se pasa por /api/manual: ahí se comprueba la sesión y se firma el pase que
+// deja entrar al manual, que no es público.
 export function capituloDe(path: string) {
   // El '/' solo calza con la portada, no con todo lo que empieza por '/'
   const par = CAPITULOS.find(([ruta]) => (ruta === '/' ? path === '/' : path.startsWith(ruta)))
-  return par ? `${MANUAL}#${par[1]}` : MANUAL
+  return par ? `/api/manual?cap=${par[1]}` : '/api/manual'
 }
