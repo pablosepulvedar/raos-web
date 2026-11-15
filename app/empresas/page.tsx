@@ -47,6 +47,9 @@ export default function Empresas() {
   const [publicado, setPublicado] = useState(false)
   const [respondiendo, setRespondiendo] = useState<number | null>(null)
   // Por dispositivo: se lee después de montar (en el servidor no hay localStorage)
+  const [velas, setVelas] = useState<{ id: number; nombre: string }[]>([])
+  const [velaNueva, setVelaNueva] = useState('')
+  const [velaError, setVelaError] = useState<string | null>(null)
   const [business, setBusiness] = useState(false)
   const [android, setAndroid] = useState(false)
   useEffect(() => { setBusiness(usaBusiness()); setAndroid(esAndroid()) }, [])
@@ -60,6 +63,8 @@ export default function Empresas() {
     setEmpresas((mias.data as Empresa[]) ?? [])
     setInvitaciones((invs.data as Invitacion[]) ?? [])
     setPublicado(!!pub.data)
+    const { data: vls } = await supabase.from('mis_velas').select('id, nombre').order('nombre')
+    setVelas(vls ?? [])
   }
   useEffect(() => { cargar() }, [])
 
@@ -68,6 +73,23 @@ export default function Empresas() {
     await supabase.rpc('responder_invitacion', { p_id: id, p_acepta: acepta })
     await cargar()
     setRespondiendo(null)
+  }
+
+  // Las velas son del guía: se eligen después en la ficha de cada salida de su bitácora
+  const agregarVela = async () => {
+    const nombre = velaNueva.trim()
+    if (!nombre) return
+    setVelaError(null)
+    const { error } = await supabase.from('mis_velas').insert({ nombre })
+    if (error) { setVelaError(error.code === '23505' ? 'Esa vela ya está en la lista' : error.message); return }
+    setVelaNueva('')
+    await cargar()
+  }
+
+  const borrarVela = async (id: number, nombre: string) => {
+    if (!confirm(`¿Sacar ${nombre} de tus velas? Las salidas que ya la tengan anotada no cambian.`)) return
+    await supabase.from('mis_velas').delete().eq('id', id)
+    await cargar()
   }
 
   const publicarme = async (valor: boolean) => {
@@ -198,6 +220,41 @@ export default function Empresas() {
               </span>
             </span>
           </label>
+        </div>
+
+        <div className="mt-4 bg-white border border-[#d4e6f5] rounded-xl p-5">
+          <p className="font-bold text-[#0d2b5c]">Mis velas</p>
+          <p className="text-sm text-gray-600 mt-1 mb-3">
+            El equipo con el que vuelas. Lo que cargues acá es lo que vas a poder elegir en cada
+            salida de tu bitácora. Es tuyo: ninguna empresa lo ve.
+          </p>
+
+          {velas.length > 0 && (
+            <div className="flex flex-col gap-2 mb-3">
+              {velas.map(v => (
+                <div key={v.id} className="flex items-center gap-2 bg-[#f7fbff] border border-[#e3eef9] rounded-lg px-3 py-2">
+                  <span className="flex-1 text-[#0d2b5c] text-sm truncate">{v.nombre}</span>
+                  <button onClick={() => borrarVela(v.id, v.nombre)}
+                    className="text-[#c0392b] text-sm font-bold px-2">✕</button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="flex gap-2">
+            <input
+              value={velaNueva}
+              onChange={e => setVelaNueva(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') agregarVela() }}
+              placeholder="Marca y modelo"
+              className="flex-1 border border-[#d4e6f5] rounded-lg px-3 py-2 text-sm"
+            />
+            <button onClick={agregarVela} disabled={!velaNueva.trim()}
+              className="bg-[#1e5a96] text-white text-sm font-semibold px-4 py-2 rounded-lg disabled:opacity-50">
+              Agregar
+            </button>
+          </div>
+          {velaError && <p className="text-[#c0392b] text-sm mt-2">{velaError}</p>}
         </div>
 
         <div className="mt-4 bg-white border border-[#d4e6f5] rounded-xl p-5">

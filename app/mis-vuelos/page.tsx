@@ -55,11 +55,11 @@ const enHoras = (min: number) => {
 
 type Form = {
   fecha: string; empresa: string; empresaNueva: string; pasajero: string; camara: string
-  valor: string; minutos: string; sitio: string; tipo: string; nota: string
+  valor: string; minutos: string; sitio: string; vela: string; tipo: string; nota: string
 }
 const FORM_VACIO: Form = {
   fecha: '', empresa: '', empresaNueva: '', pasajero: '', camara: 'sin',
-  valor: '', minutos: '', sitio: '', tipo: 'biplaza', nota: '',
+  valor: '', minutos: '', sitio: '', vela: '', tipo: 'biplaza', nota: '',
 }
 const campo = 'w-full mt-1 border border-gray-300 rounded-xl px-3 py-2 text-sm text-gray-800'
 const etiqueta = 'text-xs text-gray-500 font-semibold'
@@ -70,6 +70,7 @@ export default function MisVuelos() {
 
   const [vuelos, setVuelos] = useState<Vuelo[] | null>(null)
   const [empresas, setEmpresas] = useState<string[]>([])
+  const [velas, setVelas] = useState<string[]>([])
   const [periodo, setPeriodo] = useState<Periodo>(mesActual)
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -80,12 +81,14 @@ export default function MisVuelos() {
   const set = (k: keyof Form) => (v: string) => setForm(f => ({ ...f, [k]: v }))
 
   const cargar = async () => {
-    const [bita, emps] = await Promise.all([
+    const [bita, emps, vls] = await Promise.all([
       sb.rpc('mi_bitacora'),
       sb.rpc('nombres_de_empresas'),
+      sb.from('mis_velas').select('nombre').order('nombre'),   // las suyas, de Mi cuenta
     ])
     setVuelos((bita.data as Vuelo[]) ?? [])
     setEmpresas(((emps.data as { nombre: string }[]) ?? []).map(e => e.nombre))
+    setVelas(((vls.data as { nombre: string }[]) ?? []).map(v => v.nombre))
   }
   useEffect(() => { cargar() }, [])   // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -124,7 +127,7 @@ export default function MisVuelos() {
     setForm({
       fecha: v.fecha, empresa: v.empresa, empresaNueva: '', pasajero: v.pasajero ?? '',
       camara: v.camara ?? 'sin', valor: v.valor ? String(v.valor) : '',
-      minutos: String(v.minutos), sitio: v.sitio ?? '',
+      minutos: String(v.minutos), sitio: v.sitio ?? '', vela: v.vela ?? '',
       tipo: v.tipo, nota: v.nota ?? '',
     })
     setEditando(clave(v))
@@ -134,6 +137,7 @@ export default function MisVuelos() {
   const deLaBitacora = () => ({
     minutos: form.minutos.trim() ? Number(form.minutos) : null,
     sitio: form.sitio.trim() || null,
+    vela: form.vela || null,
     tipo: form.tipo,
     nota: form.nota.trim() || null,
   })
@@ -225,10 +229,23 @@ export default function MisVuelos() {
           </select>
         </label>
       </div>
-      <label className={etiqueta}>Despegue
-        <input value={form.sitio} onChange={e => set('sitio')(e.target.value)}
-          placeholder="Sitio" className={campo} />
-      </label>
+      <div className="flex gap-3">
+        <label className={etiqueta + ' flex-1'}>Despegue
+          <input value={form.sitio} onChange={e => set('sitio')(e.target.value)}
+            placeholder="Sitio" className={campo} />
+        </label>
+        {/* La vela se elige de las suyas (Mi cuenta). Sin velas cargadas, no hay campo. */}
+        {(velas.length > 0 || form.vela) && (
+          <label className={etiqueta + ' flex-1'}>Vela
+            <select value={form.vela} onChange={e => set('vela')(e.target.value)} className={campo + ' bg-white'}>
+              <option value="">Sin anotar</option>
+              {[...new Set([...velas, ...(form.vela ? [form.vela] : [])])].map(v2 => (
+                <option key={v2} value={v2}>{v2}</option>
+              ))}
+            </select>
+          </label>
+        )}
+      </div>
       <label className={etiqueta}>Observaciones
         <textarea value={form.nota} onChange={e => set('nota')(e.target.value)} rows={2}
           placeholder="Condiciones, novedades…" className={campo} />
