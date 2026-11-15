@@ -446,7 +446,7 @@
     <tr><td><b>Usuarios</b></td><td>Crear gente, asignar roles, activar o desactivar</td><td>8</td></tr>
     <tr><td><b>Reservas</b></td><td>La agenda y la pestaña del día de operación</td><td>4 y 5</td></tr>
     <tr><td><b>Guías</b></td><td>Lo que hizo cada guía y lo que se le debe</td><td>7</td></tr>
-    <tr><td><b>Mi bitácora</b></td><td>Tus propias salidas, las que hiciste fuera del sistema y tus horas</td><td>8</td></tr>
+    <tr><td><b>Mi bitácora</b></td><td>Tus propias salidas, las que hiciste fuera del sistema y tus horas (empresas de parapente)</td><td>8</td></tr>
     <tr><td><b>Varios</b></td><td>Horarios, valores, roles, métodos de pago, cobro en línea, Google Calendar, fichas firmadas y quién hizo qué</td><td>9</td></tr>
     <tr><td><b>Importar Calendar</b></td><td>Traer reservas desde Google Calendar</td><td>11</td></tr>
     <tr><td><b>Reportería</b></td><td>El cuadre del día y los informes por período</td><td>10</td></tr>
@@ -457,8 +457,10 @@
   si trabajas en más de una). Ahí están tus empresas, las invitaciones que recibiste y el
   interruptor para aparecer o no en el banco de guías. Está en el capítulo 8.</p>
 
-  <p><b>Mi bitácora</b> es la única tarjeta que ve todo el mundo, tenga el rol que tenga: cada uno ve
-  ahí sus propias salidas y nadie ve las del otro. Está en el capítulo 8.</p>
+  <p><b>Mi bitácora</b> es la única tarjeta que no depende del rol: la ve todo el mundo, y cada uno ve
+  ahí sus propias salidas sin que nadie vea las del otro. Hoy es un <b>libro de vuelo de parapente</b>
+  —horas, despegue, vela, tipo de vuelo—, así que aparece solo en las empresas de ese rubro; los demás
+  llevarán su propio registro más adelante. Está en el capítulo 8.</p>
 
   <p>Si a alguien le faltan tarjetas, no es un error: es su rol. Cada rol ve las secciones que tenga
   marcadas en <b>Varios → Roles</b>; <b>Usuarios</b> lo ve solo el Admin, y <b>Panel de empresas</b>
@@ -1088,11 +1090,28 @@
     Cada una abre en su propia dirección.</li>
     <li><b>Las invitaciones</b> que recibió, para aceptarlas o rechazarlas.</li>
     <li><b>Disponible para otras empresas</b>, el interruptor del banco de guías.</li>
+    <li><b>Mis velas</b>, el equipo con el que vuela. De cada una se pide <b>marca</b> y
+    <b>modelo</b>, que es lo único obligatorio, y si quiere: <b>año</b>, <b>biplaza o monoplaza</b>,
+    <b>homologación</b> (EN A, EN B, EN C, EN D, CCC, las LTF antiguas o <i>sin homologar</i>),
+    <b>talla</b>, <b>número de serie</b> y la fecha de la <b>última revisión</b>. Una de cada tipo
+    puede marcarse como <b>la que usa siempre</b>: con eso sus salidas aparecen ya con esa vela sin
+    que anote nada —la biplaza en los vuelos con pasajero, la monoplaza en los vuelos solo— y si
+    alguna vez voló con otra, la cambia en esa salida. Tocar una vela la abre para <b>editarla</b>,
+    y la ✕ la saca de la lista. Lo que cargue acá
+    es lo que va a poder elegir después en cada salida de su bitácora; si no carga ninguna, ese
+    campo no aparece. Es suyo: ninguna empresa lo ve, y sacar una vela de la lista no cambia las
+    salidas que ya la tienen anotada.</li>
     <li><b>Abrir WhatsApp Business en este teléfono</b>, para el teléfono de la empresa cuando tiene
     instaladas las dos apps: sin esto, los botones de WhatsApp abren la normal aunque no esté configurada.
     Vale solo para ese teléfono y funciona en Android; en iPhone no se puede elegir la app, así que ahí
     hay que borrar la WhatsApp normal.</li>
   </ul>
+
+  <figure class="w72">
+    <img src="shots/45-mis-velas.png" alt="">
+    <figcaption><b>Mis velas:</b> la ficha de cada una y, marcada <i>la de siempre</i>, la que se
+    pone sola en cada salida.</figcaption>
+  </figure>
 
   <h3>El banco de guías</h3>
 
@@ -1132,6 +1151,13 @@
 
   <h3>Mi bitácora</h3>
 
+  <div class="nota">
+    <span class="etiqueta">Es de parapente</span>
+    <p>Lo que viene es un <b>libro de vuelo</b>: horas, despegue, vela y tipo de vuelo. Por eso la
+    tarjeta aparece solo en las empresas de ese rubro. Para rafting, cabalgatas o buceo habrá un
+    registro propio más adelante.</p>
+  </div>
+
   <p>Es el libro de vuelo de cada guía, en la tarjeta <b>📒 Mi bitácora</b> del menú y también
   arriba de <b>Pilotos</b>, que es la pantalla donde el guía pasa el día (ahí está además el botón
   para anotar una salida de otra empresa). Junta en una
@@ -1155,11 +1181,22 @@
   <p>Cada salida cuenta <b>10 minutos</b>, que es lo que dura un biplaza normal. Al tocarla se abre su
   ficha y ahí se le escriben los minutos que haya durado de verdad; con eso el sistema suma las horas.
   No hay que anotar nada si los 10 minutos sirven.</p>
+  <p>Arriba se elige el período —<b>este mes</b>, <b>este año</b>, <b>el año pasado</b> o las fechas que
+  quieras— y el recuadro muestra cuántas salidas y cuántas horas suman. Más abajo,
+  <b>Mis horas, desde siempre</b> abre el resumen de todo lo volado: <b>por año</b>, <b>por vela</b>,
+  <b>por empresa</b> y <b>por tipo</b> de salida. Eso es lo que se le pregunta a un libro de vuelo:
+  cuántas horas llevas en tal vela, o cuántas hiciste el año pasado.</p>
 
   <h4>Qué se anota de cada salida</h4>
   <p>Lo que pide un libro de vuelo: <b>minutos</b>, <b>tipo</b> (biplaza, solo o instrucción),
   <b>despegue</b>, <b>vela</b> y <b>observaciones</b>. En las salidas del sistema eso es todo lo que
   se edita: el cliente, la cámara y la empresa vienen de la reserva y no se tocan desde acá.</p>
+  <p>La <b>vela</b> no se escribe cada vez: se <b>elige de las tuyas</b>, las que cargaste en
+  <b>Mi cuenta → Mis velas</b> con su marca, modelo y año. Mientras no tengas ninguna cargada el
+  campo ni siquiera aparece. Si marcaste una como <b>la que usas siempre</b>, las salidas ya salen
+  con ella puesta y solo tienes que tocar las que hiciste con otra. En la salida queda anotada con
+  el año, porque el mismo modelo cambia de un año a otro, y sacar una vela de la lista no cambia
+  las salidas que ya la tienen anotada.</p>
 
   <h4>Una salida de otra empresa</h4>
   <p>Con <b>+ Agregar</b> se carga a mano: fecha, empresa, cliente, cámara y, si quiere, lo que le
