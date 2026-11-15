@@ -70,7 +70,7 @@ export default function MisVuelos() {
 
   const [vuelos, setVuelos] = useState<Vuelo[] | null>(null)
   const [empresas, setEmpresas] = useState<string[]>([])
-  const [velas, setVelas] = useState<string[]>([])
+  const [velas, setVelas] = useState<{ label: string; tipo: string | null; principal: boolean }[]>([])
   const [periodo, setPeriodo] = useState<Periodo>(mesActual)
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -84,13 +84,13 @@ export default function MisVuelos() {
     const [bita, emps, vls] = await Promise.all([
       sb.rpc('mi_bitacora'),
       sb.rpc('nombres_de_empresas'),
-      sb.from('mis_velas').select('nombre, anio').order('nombre'),   // las suyas, de Mi cuenta
+      sb.from('mis_velas').select('nombre, anio, tipo, principal').order('nombre'),   // las suyas, de Mi cuenta
     ])
     setVuelos((bita.data as Vuelo[]) ?? [])
     setEmpresas(((emps.data as { nombre: string }[]) ?? []).map(e => e.nombre))
     // Se anota con el año: el mismo modelo cambia de un año a otro
-    setVelas(((vls.data as { nombre: string; anio: number | null }[]) ?? [])
-      .map(v => v.anio ? `${v.nombre} ${v.anio}` : v.nombre))
+    setVelas(((vls.data as { nombre: string; anio: number | null; tipo: string | null; principal: boolean }[]) ?? [])
+      .map(v => ({ label: v.anio ? `${v.nombre} ${v.anio}` : v.nombre, tipo: v.tipo, principal: v.principal })))
   }
   useEffect(() => { cargar() }, [])   // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -119,9 +119,13 @@ export default function MisVuelos() {
     if (new URLSearchParams(window.location.search).has('nuevo')) abrirNuevo()
   }, [])
 
+  // La que usa siempre para ese tipo de vuelo: así la salida entra con su vela puesta
+  const laDeSiempre = (tipo: string) =>
+    velas.find(v => v.principal && v.tipo === (tipo === 'solo' ? 'monoplaza' : 'biplaza'))?.label ?? ''
+
   const abrirNuevo = () => {
     setError(null)
-    setForm({ ...FORM_VACIO, fecha: hoyStr() })
+    setForm({ ...FORM_VACIO, fecha: hoyStr(), vela: laDeSiempre('biplaza') })
     setEditando('nuevo')
   }
   const abrirVuelo = (v: Vuelo) => {
@@ -241,7 +245,7 @@ export default function MisVuelos() {
           <label className={etiqueta + ' flex-1'}>Vela
             <select value={form.vela} onChange={e => set('vela')(e.target.value)} className={campo + ' bg-white'}>
               <option value="">Sin anotar</option>
-              {[...new Set([...velas, ...(form.vela ? [form.vela] : [])])].map(v2 => (
+              {[...new Set([...velas.map(v2 => v2.label), ...(form.vela ? [form.vela] : [])])].map(v2 => (
                 <option key={v2} value={v2}>{v2}</option>
               ))}
             </select>

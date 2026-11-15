@@ -28,14 +28,16 @@ type Empresa = {
 type Vela = {
   id: number; nombre: string; marca: string; modelo: string; anio: number | null
   tipo: string | null; homologacion: string | null; talla: string | null
-  serie: string | null; revision: string | null
+  serie: string | null; revision: string | null; principal: boolean
 }
 type FormVela = {
   marca: string; modelo: string; anio: string; tipo: string
   homologacion: string; talla: string; serie: string; revision: string
+  principal: boolean
 }
 const VELA_VACIA: FormVela = {
   marca: '', modelo: '', anio: '', tipo: '', homologacion: '', talla: '', serie: '', revision: '',
+  principal: false,
 }
 // Las clases de la norma EN 926-2, la de competición y las LTF alemanas viejas
 const HOMOLOGACIONES = ['EN A', 'EN B', 'EN C', 'EN D', 'CCC', 'LTF 1', 'LTF 1-2', 'LTF 2', 'LTF 2-3', 'Sin homologar']
@@ -83,8 +85,8 @@ export default function Empresas() {
     setInvitaciones((invs.data as Invitacion[]) ?? [])
     setPublicado(!!pub.data)
     const { data: vls } = await supabase.from('mis_velas')
-      .select('id, nombre, marca, modelo, anio, tipo, homologacion, talla, serie, revision')
-      .order('nombre')
+      .select('id, nombre, marca, modelo, anio, tipo, homologacion, talla, serie, revision, principal')
+      .order('principal', { ascending: false }).order('nombre')
     setVelas((vls as Vela[]) ?? [])
   }
   useEffect(() => { cargar() }, [])
@@ -109,6 +111,8 @@ export default function Empresas() {
       talla: vela.talla.trim() || null,
       serie: vela.serie.trim() || null,
       revision: vela.revision || null,
+      // Solo las del tipo elegido pueden ser la de siempre; la base suelta la anterior
+      principal: vela.principal && !!vela.tipo,
     }
     // Cambiarle el nombre a una vela no toca las salidas que ya la tienen anotada:
     // ahí quedó el texto del día en que se voló.
@@ -127,7 +131,7 @@ export default function Empresas() {
     setVela({
       marca: v.marca, modelo: v.modelo, anio: v.anio ? String(v.anio) : '',
       tipo: v.tipo ?? '', homologacion: v.homologacion ?? '', talla: v.talla ?? '',
-      serie: v.serie ?? '', revision: v.revision ?? '',
+      serie: v.serie ?? '', revision: v.revision ?? '', principal: v.principal,
     })
   }
 
@@ -286,6 +290,11 @@ export default function Empresas() {
                   <button onClick={() => editarVela(v)} className="flex-1 min-w-0 text-left">
                     <span className="block text-[#0d2b5c] text-sm font-semibold truncate">
                       {v.nombre}{v.anio ? ` ${v.anio}` : ''}
+                      {v.principal && (
+                        <span className="ml-2 text-[10px] font-bold text-[#1e5a96] bg-[#e8f0fb] rounded-full px-2 py-0.5">
+                          la de siempre
+                        </span>
+                      )}
                     </span>
                     <span className="block text-xs text-gray-500 truncate">
                       {[v.tipo, v.homologacion, v.talla && `talla ${v.talla}`].filter(Boolean).join(' · ') || 'Sin más datos'}
@@ -334,6 +343,19 @@ export default function Empresas() {
                   className={campoVela + ' w-full'} />
               </label>
             </div>
+            <label className={`flex items-start gap-2 text-sm rounded-lg px-3 py-2 ${vela.tipo ? 'text-[#0d2b5c] bg-[#f7fbff]' : 'text-gray-400'}`}>
+              <input type="checkbox" className="mt-1" disabled={!vela.tipo}
+                checked={vela.principal} onChange={e => setVela(f => ({ ...f, principal: e.target.checked }))} />
+              <span>
+                <span className="block font-semibold">La que uso siempre</span>
+                <span className="block text-xs text-gray-500">
+                  {vela.tipo
+                    ? `Tus ${vela.tipo === 'monoplaza' ? 'vuelos solo' : 'vuelos con pasajero'} van a aparecer con esta vela sin que anotes nada. Puedes tener una biplaza y una monoplaza.`
+                    : 'Elige primero biplaza o monoplaza.'}
+                </span>
+              </span>
+            </label>
+
             <div className="flex gap-2">
               {editandoVela && (
                 <button onClick={() => { setEditandoVela(null); setVela(VELA_VACIA); setVelaError(null) }}
