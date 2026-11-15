@@ -109,6 +109,11 @@ export default function MisVuelos() {
 
   const clave = (v: Vuelo) => `${v.origen}-${v.ref}`
 
+  // Con ?nuevo (el boton de Pilotos) abre derecho el formulario del vuelo de fuera
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).has('nuevo')) abrirNuevo()
+  }, [])
+
   const abrirNuevo = () => {
     setError(null)
     setForm({ ...FORM_VACIO, fecha: hoyStr() })

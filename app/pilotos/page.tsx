@@ -393,6 +393,10 @@ export default function Pilotos() {
         </span>
         <span className="text-[#1e5a96] font-bold">›</span>
       </Link>
+      <Link href="/mis-vuelos?nuevo=1"
+        className="block mx-4 mt-2 px-3 py-2.5 rounded-xl bg-[#1a4a85] text-white font-bold text-[13px] text-center active:scale-[0.99]">
+        + Agregar un {j.actividad} de otra empresa
+      </Link>
 
       {/* ── Calendario modal ── */}
       {showCal && (
