@@ -513,7 +513,8 @@ export default function Pilotos() {
                       ) : pilotos.map(p => {
                         // Vuelo suyo de otra empresa o de fuera: va en la grilla, pero no se paga acá
                         if (p.fuera) return (
-                          <div key={p.perfil_id} className="rounded-2xl px-4 py-3"
+                          // Se edita y se borra en la bitácora, que es donde vive
+                          <Link key={p.perfil_id} href="/mis-vuelos" className="block rounded-2xl px-4 py-3"
                             style={{ background:'#fff', border:'1px dashed #b0cce8' }}>
                             <div className="flex items-center justify-between gap-2">
                               <div className="min-w-0">
@@ -533,7 +534,8 @@ export default function Pilotos() {
                                 </div>
                               ))}
                             </div>
-                          </div>
+                            <p className="text-[11px] text-[#7aafd4] mt-1.5">Tocar para editarla o borrarla en tu bitácora ›</p>
+                          </Link>
                         )
 
                         const key        = `${ds}__${p.perfil_id}`
