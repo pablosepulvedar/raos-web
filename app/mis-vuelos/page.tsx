@@ -135,11 +135,6 @@ export default function MisVuelos() {
     ] as [string, [string, number, number][]][]
   }, [vuelos])
 
-  // Con ?nuevo (el boton de Pilotos) abre derecho el formulario del vuelo de fuera
-  useEffect(() => {
-    if (new URLSearchParams(window.location.search).has('nuevo')) abrirNuevo()
-  }, [])
-
   // La que usa siempre para ese tipo de vuelo: así la salida entra con su vela puesta
   const laDeSiempre = (tipo: string) =>
     velas.find(v => v.principal && v.tipo === (tipo === 'solo' ? 'monoplaza' : 'biplaza'))?.label ?? ''
@@ -149,6 +144,17 @@ export default function MisVuelos() {
     setForm({ ...FORM_VACIO, fecha: hoyStr(), vela: laDeSiempre('biplaza') })
     setEditando('nuevo')
   }
+  // Con ?nuevo (el botón de Pilotos) abre derecho el formulario del vuelo de fuera.
+  // Espera a que carguen las velas para que entre con la de siempre puesta.
+  const yaAbierto = useRef(false)
+  useEffect(() => {
+    if (!vuelos || yaAbierto.current) return
+    if (!new URLSearchParams(window.location.search).has('nuevo')) return
+    yaAbierto.current = true
+    abrirNuevo()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [vuelos])
+
   const abrirVuelo = (v: Vuelo) => {
     setError(null)
     setForm({
