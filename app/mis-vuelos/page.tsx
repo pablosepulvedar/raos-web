@@ -84,11 +84,13 @@ export default function MisVuelos() {
     const [bita, emps, vls] = await Promise.all([
       sb.rpc('mi_bitacora'),
       sb.rpc('nombres_de_empresas'),
-      sb.from('mis_velas').select('nombre').order('nombre'),   // las suyas, de Mi cuenta
+      sb.from('mis_velas').select('nombre, anio').order('nombre'),   // las suyas, de Mi cuenta
     ])
     setVuelos((bita.data as Vuelo[]) ?? [])
     setEmpresas(((emps.data as { nombre: string }[]) ?? []).map(e => e.nombre))
-    setVelas(((vls.data as { nombre: string }[]) ?? []).map(v => v.nombre))
+    // Se anota con el año: el mismo modelo cambia de un año a otro
+    setVelas(((vls.data as { nombre: string; anio: number | null }[]) ?? [])
+      .map(v => v.anio ? `${v.nombre} ${v.anio}` : v.nombre))
   }
   useEffect(() => { cargar() }, [])   // eslint-disable-line react-hooks/exhaustive-deps
 

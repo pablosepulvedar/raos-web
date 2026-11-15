@@ -25,6 +25,22 @@ type Empresa = {
   ultimo_vuelo: string | null
 }
 
+type Vela = {
+  id: number; nombre: string; anio: number | null
+  tipo: string | null; homologacion: string | null; talla: string | null
+}
+type FormVela = {
+  marca: string; modelo: string; anio: string; tipo: string
+  homologacion: string; talla: string; serie: string; revision: string
+}
+const VELA_VACIA: FormVela = {
+  marca: '', modelo: '', anio: '', tipo: '', homologacion: '', talla: '', serie: '', revision: '',
+}
+// Las clases de la norma EN 926-2, la de competición y las LTF alemanas viejas
+const HOMOLOGACIONES = ['EN A', 'EN B', 'EN C', 'EN D', 'CCC', 'LTF 1', 'LTF 1-2', 'LTF 2', 'LTF 2-3', 'Sin homologar']
+
+const campoVela = 'flex-1 min-w-0 border border-[#d4e6f5] rounded-lg px-3 py-2 text-sm'
+
 const supabase = createClient()
 
 // Cada empresa vive en su propio subdominio, así que cambiarse es ir a esa dirección.
@@ -47,9 +63,10 @@ export default function Empresas() {
   const [publicado, setPublicado] = useState(false)
   const [respondiendo, setRespondiendo] = useState<number | null>(null)
   // Por dispositivo: se lee después de montar (en el servidor no hay localStorage)
-  const [velas, setVelas] = useState<{ id: number; nombre: string }[]>([])
-  const [velaNueva, setVelaNueva] = useState('')
+  const [velas, setVelas] = useState<Vela[]>([])
+  const [vela, setVela] = useState<FormVela>(VELA_VACIA)
   const [velaError, setVelaError] = useState<string | null>(null)
+  const ponVela = (k: keyof FormVela) => (v: string) => setVela(f => ({ ...f, [k]: v }))
   const [business, setBusiness] = useState(false)
   const [android, setAndroid] = useState(false)
   useEffect(() => { setBusiness(usaBusiness()); setAndroid(esAndroid()) }, [])
@@ -63,8 +80,9 @@ export default function Empresas() {
     setEmpresas((mias.data as Empresa[]) ?? [])
     setInvitaciones((invs.data as Invitacion[]) ?? [])
     setPublicado(!!pub.data)
-    const { data: vls } = await supabase.from('mis_velas').select('id, nombre').order('nombre')
-    setVelas(vls ?? [])
+    const { data: vls } = await supabase.from('mis_velas')
+      .select('id, nombre, anio, tipo, homologacion, talla').order('nombre')
+    setVelas((vls as Vela[]) ?? [])
   }
   useEffect(() => { cargar() }, [])
 
@@ -77,12 +95,20 @@ export default function Empresas() {
 
   // Las velas son del guía: se eligen después en la ficha de cada salida de su bitácora
   const agregarVela = async () => {
-    const nombre = velaNueva.trim()
-    if (!nombre) return
+    if (!vela.marca.trim() || !vela.modelo.trim()) return
     setVelaError(null)
-    const { error } = await supabase.from('mis_velas').insert({ nombre })
+    const { error } = await supabase.from('mis_velas').insert({
+      marca: vela.marca.trim(),
+      modelo: vela.modelo.trim(),
+      anio: vela.anio ? Number(vela.anio) : null,
+      tipo: vela.tipo || null,
+      homologacion: vela.homologacion || null,
+      talla: vela.talla.trim() || null,
+      serie: vela.serie.trim() || null,
+      revision: vela.revision || null,
+    })
     if (error) { setVelaError(error.code === '23505' ? 'Esa vela ya está en la lista' : error.message); return }
-    setVelaNueva('')
+    setVela(VELA_VACIA)
     await cargar()
   }
 
@@ -233,7 +259,14 @@ export default function Empresas() {
             <div className="flex flex-col gap-2 mb-3">
               {velas.map(v => (
                 <div key={v.id} className="flex items-center gap-2 bg-[#f7fbff] border border-[#e3eef9] rounded-lg px-3 py-2">
-                  <span className="flex-1 text-[#0d2b5c] text-sm truncate">{v.nombre}</span>
+                  <span className="flex-1 min-w-0">
+                    <span className="block text-[#0d2b5c] text-sm font-semibold truncate">
+                      {v.nombre}{v.anio ? ` ${v.anio}` : ''}
+                    </span>
+                    <span className="block text-xs text-gray-500 truncate">
+                      {[v.tipo, v.homologacion, v.talla && `talla ${v.talla}`].filter(Boolean).join(' · ') || 'Sin más datos'}
+                    </span>
+                  </span>
                   <button onClick={() => borrarVela(v.id, v.nombre)}
                     className="text-[#c0392b] text-sm font-bold px-2">✕</button>
                 </div>
@@ -241,18 +274,45 @@ export default function Empresas() {
             </div>
           )}
 
-          <div className="flex gap-2">
-            <input
-              value={velaNueva}
-              onChange={e => setVelaNueva(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter') agregarVela() }}
-              placeholder="Marca y modelo"
-              className="flex-1 border border-[#d4e6f5] rounded-lg px-3 py-2 text-sm"
-            />
-            <button onClick={agregarVela} disabled={!velaNueva.trim()}
+          <div className="flex flex-col gap-2">
+            <div className="flex gap-2">
+              <input value={vela.marca} onChange={e => ponVela('marca')(e.target.value)}
+                placeholder="Marca" className={campoVela} />
+              <input value={vela.modelo} onChange={e => ponVela('modelo')(e.target.value)}
+                placeholder="Modelo" className={campoVela} />
+            </div>
+            <div className="flex gap-2">
+              <input value={vela.anio} onChange={e => ponVela('anio')(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                inputMode="numeric" placeholder="Año" className={campoVela} />
+              <select value={vela.tipo} onChange={e => ponVela('tipo')(e.target.value)} className={campoVela + ' bg-white'}>
+                <option value="">Biplaza o monoplaza…</option>
+                <option value="biplaza">Biplaza</option>
+                <option value="monoplaza">Monoplaza</option>
+              </select>
+            </div>
+            <div className="flex gap-2">
+              <select value={vela.homologacion} onChange={e => ponVela('homologacion')(e.target.value)}
+                className={campoVela + ' bg-white'}>
+                <option value="">Homologación…</option>
+                {HOMOLOGACIONES.map(h => <option key={h} value={h}>{h}</option>)}
+              </select>
+              <input value={vela.talla} onChange={e => ponVela('talla')(e.target.value)}
+                placeholder="Talla" className={campoVela} />
+            </div>
+            <div className="flex gap-2">
+              <input value={vela.serie} onChange={e => ponVela('serie')(e.target.value)}
+                placeholder="N° de serie" className={campoVela} />
+              <label className="flex-1 text-xs text-gray-500">
+                Última revisión
+                <input type="date" value={vela.revision} onChange={e => ponVela('revision')(e.target.value)}
+                  className={campoVela + ' w-full'} />
+              </label>
+            </div>
+            <button onClick={agregarVela} disabled={!vela.marca.trim() || !vela.modelo.trim()}
               className="bg-[#1e5a96] text-white text-sm font-semibold px-4 py-2 rounded-lg disabled:opacity-50">
-              Agregar
+              Agregar vela
             </button>
+            <p className="text-xs text-gray-500">Marca y modelo son lo único obligatorio.</p>
           </div>
           {velaError && <p className="text-[#c0392b] text-sm mt-2">{velaError}</p>}
         </div>
