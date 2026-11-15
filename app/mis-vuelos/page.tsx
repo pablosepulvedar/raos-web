@@ -20,7 +20,7 @@ type Vuelo = {
   valor: number | null
   minutos: number
   sitio: string | null
-  vela: string | null
+  vela: string | null   // queda en la base: la pondra la configuracion del perfil, no este formulario
   tipo: string
   nota: string | null
 }
@@ -55,11 +55,11 @@ const enHoras = (min: number) => {
 
 type Form = {
   fecha: string; empresa: string; empresaNueva: string; pasajero: string; camara: string
-  valor: string; minutos: string; sitio: string; vela: string; tipo: string; nota: string
+  valor: string; minutos: string; sitio: string; tipo: string; nota: string
 }
 const FORM_VACIO: Form = {
   fecha: '', empresa: '', empresaNueva: '', pasajero: '', camara: 'sin',
-  valor: '', minutos: '', sitio: '', vela: '', tipo: 'biplaza', nota: '',
+  valor: '', minutos: '', sitio: '', tipo: 'biplaza', nota: '',
 }
 const campo = 'w-full mt-1 border border-gray-300 rounded-xl px-3 py-2 text-sm text-gray-800'
 const etiqueta = 'text-xs text-gray-500 font-semibold'
@@ -124,7 +124,7 @@ export default function MisVuelos() {
     setForm({
       fecha: v.fecha, empresa: v.empresa, empresaNueva: '', pasajero: v.pasajero ?? '',
       camara: v.camara ?? 'sin', valor: v.valor ? String(v.valor) : '',
-      minutos: String(v.minutos), sitio: v.sitio ?? '', vela: v.vela ?? '',
+      minutos: String(v.minutos), sitio: v.sitio ?? '',
       tipo: v.tipo, nota: v.nota ?? '',
     })
     setEditando(clave(v))
@@ -134,7 +134,6 @@ export default function MisVuelos() {
   const deLaBitacora = () => ({
     minutos: form.minutos.trim() ? Number(form.minutos) : null,
     sitio: form.sitio.trim() || null,
-    vela: form.vela.trim() || null,
     tipo: form.tipo,
     nota: form.nota.trim() || null,
   })
@@ -226,16 +225,10 @@ export default function MisVuelos() {
           </select>
         </label>
       </div>
-      <div className="flex gap-3">
-        <label className={etiqueta + ' flex-1'}>Despegue
-          <input value={form.sitio} onChange={e => set('sitio')(e.target.value)}
-            placeholder="Sitio" className={campo} />
-        </label>
-        <label className={etiqueta + ' flex-1'}>Vela
-          <input value={form.vela} onChange={e => set('vela')(e.target.value)}
-            placeholder="Marca y modelo" className={campo} />
-        </label>
-      </div>
+      <label className={etiqueta}>Despegue
+        <input value={form.sitio} onChange={e => set('sitio')(e.target.value)}
+          placeholder="Sitio" className={campo} />
+      </label>
       <label className={etiqueta}>Observaciones
         <textarea value={form.nota} onChange={e => set('nota')(e.target.value)} rows={2}
           placeholder="Condiciones, novedades…" className={campo} />
