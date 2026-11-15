@@ -8,12 +8,15 @@ import InputMonto from '@/components/InputMonto'
 import Volver from '@/components/Volver'
 
 type Pasajero       = { nombre: string; camara: string }
-type PilotoResumen  = { perfil_id: string; nombre: string; vuelos: number; deuda: number; pagado: number; pasajeros: Pasajero[] }
+type PilotoResumen  = { perfil_id: string; nombre: string; vuelos: number; deuda: number; pagado: number;
+                        pasajeros: Pasajero[]; fuera?: string }
 
 // Qué cámara llevó el pasajero, como se le dice en la base
 const camaraDe = (p: any) =>
   (p.camara_360 ? 'Cámara 360°' : p.camara_normal ? 'Cámara normal' : 'Sin cámara')
   + ((p.camara_360 || p.camara_normal) && (p.camara_promo || (p.camara_360 && p.cumpleanero)) ? ' · $0' : '')
+// Lo mismo, como lo devuelve mi_bitacora()
+const CAMARA = { sin:'Sin cámara', normal:'Cámara normal', '360':'Cámara 360°' } as Record<string, string>
 type ServicioPiloto = { id: number; servicio: string; monto: number; cantidad: number }
 type MetodoPago     = { id: number; nombre: string }
 type PagoPiloto     = { id: number; monto: number; metodos_pago: { nombre: string } | null }
@@ -76,18 +79,41 @@ export default function Pilotos() {
   const [pagoError, setPagoError]                   = useState<string|null>(null)
 
   // ── Fetch helpers ──────────────────────────────────────
+  // Sus vuelos de OTRAS empresas y los de fuera del sistema. Los ve solo quien los voló
+  // (mi_bitacora responde por auth.uid()) y no cuentan para los pagos de esta empresa.
+  const sumarLosDeFuera = useCallback(async (
+    byDate: Record<string, PilotoResumen[]>, yaEstan: Set<number>, from: string, to: string,
+  ) => {
+    const { data: mios } = await sb.rpc('mi_bitacora', { p_desde: from, p_hasta: to })
+    ;(mios||[]).forEach((v:any) => {
+      if (v.origen === 'interno' && yaEstan.has(v.ref)) return      // ya está arriba, con su plata
+      const empresa = (v.empresa || '').trim() || 'Sin empresa'
+      const clave   = `fuera:${v.origen}:${empresa}`
+      const arr     = (byDate[v.fecha] ??= [])
+      const pax     = { nombre: v.pasajero || 'Sin nombre', camara: CAMARA[v.camara] || 'Sin cámara' }
+      const ex      = arr.find(p => p.perfil_id === clave)
+      if (ex) { ex.vuelos++; ex.pasajeros.push(pax) }
+      else arr.push({ perfil_id: clave, nombre: empresa, vuelos: 1, deuda: 0, pagado: 0, pasajeros: [pax],
+                      fuera: v.origen === 'externo' ? 'fuera del sistema' : 'otra empresa' })
+    })
+  }, [sb])
+
   const fetchRange = useCallback(async (from: string, to: string) => {
     // Por reagendar: la actividad no se hizo, así que al guía no se le paga
     const { data: reservas } = await sb.from('reservas').select('id, fecha')
       .gte('fecha', from).lte('fecha', to).is('espera_at', null)
-    if (!reservas?.length) return { byDate:{}, reservaIds:{} }
+    if (!reservas?.length) {
+      const byDate: Record<string, PilotoResumen[]> = {}
+      await sumarLosDeFuera(byDate, new Set(), from, to)
+      return { byDate, reservaIds:{} }
+    }
 
     const fechaMap: Record<number, string> = {}
     reservas.forEach((r:any) => { fechaMap[r.id] = r.fecha })
 
     const { data: rps } = await sb
       .from('reservas_personas')
-      .select('reserva_id, perfil_id, nombre, camara_normal, camara_360, camara_promo, cumpleanero, perfiles(id, nombre)')
+      .select('id, reserva_id, perfil_id, nombre, camara_normal, camara_360, camara_promo, cumpleanero, perfiles(id, nombre)')
       .order('id')
       .in('reserva_id', reservas.map((r:any)=>r.id))
       .not('perfil_id','is',null)
@@ -136,21 +162,26 @@ export default function Pilotos() {
       })
     })
 
+    await sumarLosDeFuera(byDate, new Set((rps||[]).map((r:any)=>r.id)), from, to)
+
     return { byDate, reservaIds }
-  }, [sb])
+  }, [sb, sumarLosDeFuera])
 
   const fetchDots = useCallback(async (y: number, m: number) => {
     const first = `${y}-${String(m+1).padStart(2,'0')}-01`
     const last  = `${y}-${String(m+1).padStart(2,'0')}-${new Date(y,m+1,0).getDate()}`
-    const { data: reservasMes } = await sb.from('reservas').select('id, fecha')
-      .gte('fecha',first).lte('fecha',last).is('espera_at', null)
-    if (!reservasMes?.length) { setDots(new Set()); return }
+    const [{ data: reservasMes }, { data: mios }] = await Promise.all([
+      sb.from('reservas').select('id, fecha').gte('fecha',first).lte('fecha',last).is('espera_at', null),
+      sb.rpc('mi_bitacora', { p_desde: first, p_hasta: last }),
+    ])
+    const losDeFuera = new Set<string>((mios||[]).map((v:any) => v.fecha as string))
+    if (!reservasMes?.length) { setDots(losDeFuera); return }
     const { data: conPilotos } = await sb
       .from('reservas_personas').select('reserva_id')
       .in('reserva_id', reservasMes.map((r:any)=>r.id))
       .not('perfil_id','is',null)
     const idsConPilotos = new Set((conPilotos||[]).map((r:any)=>r.reserva_id))
-    setDots(new Set(reservasMes.filter((r:any)=>idsConPilotos.has(r.id)).map((r:any)=>r.fecha as string)))
+    setDots(new Set([...losDeFuera, ...reservasMes.filter((r:any)=>idsConPilotos.has(r.id)).map((r:any)=>r.fecha as string)]))
   }, [sb])
 
   const refreshWindow = useCallback(async () => {
@@ -480,6 +511,31 @@ export default function Pilotos() {
                       {pilotos.length === 0 ? (
                         <p className="text-[#b0cce8] text-sm py-2 italic">Sin {j.actividad_plural}</p>
                       ) : pilotos.map(p => {
+                        // Vuelo suyo de otra empresa o de fuera: va en la grilla, pero no se paga acá
+                        if (p.fuera) return (
+                          <div key={p.perfil_id} className="rounded-2xl px-4 py-3"
+                            style={{ background:'#fff', border:'1px dashed #b0cce8' }}>
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="min-w-0">
+                                <p className="font-bold text-sm text-[#0d2b5c] truncate">{p.nombre}</p>
+                                <p className="text-xs mt-0.5 text-[#7aafd4]">
+                                  {p.vuelos} {p.vuelos>1 ? j.actividad_plural : j.actividad} · {p.fuera}, no cuenta acá
+                                </p>
+                              </div>
+                              <span className="text-xs font-bold px-2 py-1 rounded-full shrink-0"
+                                style={{ background:'#eef4fb', color:'#7aafd4' }}>×{p.vuelos}</span>
+                            </div>
+                            <div className="mt-2 bg-[#f7fbff] rounded-xl divide-y divide-[#e3eef9]" style={{ border:'1px solid #e3eef9' }}>
+                              {p.pasajeros.map((x, i) => (
+                                <div key={i} className="flex items-center justify-between gap-2 px-3 py-1.5 text-sm">
+                                  <span className="text-[#0d2b5c] truncate">{x.nombre}</span>
+                                  <span className={`text-xs font-semibold shrink-0 ${x.camara.startsWith('Sin') ? 'text-gray-400' : 'text-[#2e6db4]'}`}>{x.camara}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )
+
                         const key        = `${ds}__${p.perfil_id}`
                         const isExpanded = expandedKey === key
                         const usados     = serviciosSeleccionados.reduce((s,x)=>s+x.cantidad,0)
