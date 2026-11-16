@@ -47,6 +47,7 @@ export default function CuadreDia() {
   // Dónde se voló: de ahí sale lo que cobra el lugar por vuelo
   const [sitios, setSitios] = useState<Sitio[]>([])
   const [sitioDelDia, setSitioDelDia] = useState<number | null>(null)
+  const [sitioMetodo, setSitioMetodo] = useState<number | null>(null)
   const [gastosExtras, setGastosExtras]       = useState<GastoExtra[]>([])
 
   const [metodosPago, setMetodosPago]           = useState<MetodoPago[]>([])
@@ -134,20 +135,32 @@ export default function CuadreDia() {
       sb.from('gastos_diarios').select('*, metodos_pago(nombre)').eq('fecha', fecha).order('created_at'),
       sb.from('metodos_pago').select('id, nombre').eq('activo', true).order('nombre'),
       sb.from('sitios').select('id, nombre, costo, cuando, predeterminado').eq('activo', true).order('nombre'),
-      sb.from('dias_de_vuelo').select('sitio_id').eq('fecha', fecha).maybeSingle(),
+      sb.from('dias_de_vuelo').select('sitio_id, metodo_pago_id').eq('fecha', fecha).maybeSingle(),
     ])
     setGastosExtras((gastosData || []) as unknown as GastoExtra[])
     setMetodosPago((metodosData || []) as MetodoPago[])
     setSitios((sitiosData || []) as Sitio[])
     setSitioDelDia(delDia?.sitio_id ?? null)
+    setSitioMetodo(delDia?.metodo_pago_id ?? null)
 
     setLoading(false)
   }
 
   const elegirSitio = async (id: number | null) => {
     setSitioDelDia(id)
-    if (id === null) await sb.from('dias_de_vuelo').delete().eq('fecha', fecha)
-    else await sb.from('dias_de_vuelo').upsert({ fecha, sitio_id: id }, { onConflict: 'empresa_id,fecha' })
+    if (id === null) { setSitioMetodo(null); await sb.from('dias_de_vuelo').delete().eq('fecha', fecha) }
+    else await sb.from('dias_de_vuelo')
+      .upsert({ fecha, sitio_id: id, metodo_pago_id: sitioMetodo }, { onConflict: 'empresa_id,fecha' })
+  }
+
+  // Con qué se pagó el lugar: así el desglose por método cuadra con el balance
+  const elegirMetodoSitio = async (id: number | null) => {
+    setSitioMetodo(id)
+    const sitioId = sitioDelDia ?? sitios.find(x => x.predeterminado)?.id
+    if (!sitioId) return
+    await sb.from('dias_de_vuelo')
+      .upsert({ fecha, sitio_id: sitioId, metodo_pago_id: id }, { onConflict: 'empresa_id,fecha' })
+    if (sitioDelDia === null) setSitioDelDia(sitioId)
   }
 
   const agregarGasto = async () => {
@@ -183,6 +196,15 @@ export default function CuadreDia() {
 
   const saldoPendiente = totalServicios - totalCobrado
 
+  // Lo que cobra el lugar donde se voló. Se calcula antes del desglose porque,
+  // si se paga en el día, tiene que salir de alguna caja.
+  const totalVuelos     = pilotos.reduce((s,p)=>s+p.vuelos,0)
+  const sitio           = sitios.find(x => x.id === sitioDelDia) ?? sitios.find(x => x.predeterminado) ?? null
+  const costoSitio      = sitio ? totalVuelos * sitio.costo : 0
+  const provisionVuelos = sitio?.cuando === 'fin_de_mes' ? costoSitio : 0
+  const gastoSitio      = sitio?.cuando === 'al_momento'  ? costoSitio : 0
+  const metodoSitio     = metodosPago.find(m => m.id === sitioMetodo)?.nombre ?? 'Sin método'
+
   // Cobros de clientes por método + extras ingresos
   const cobrosPorMetodo: Record<string, number> = {}
   reservas.forEach(r => {
@@ -209,6 +231,12 @@ export default function CuadreDia() {
     const m = g.metodos_pago?.nombre || 'Sin método'
     otrosGastoPorMetodo[m] = (otrosGastoPorMetodo[m]||0) + g.monto
   })
+  // Lo del sitio pagado en el día salió de una caja: va en la misma columna
+  if (gastoSitio > 0) otrosGastoPorMetodo[metodoSitio] = (otrosGastoPorMetodo[metodoSitio]||0) + gastoSitio
+
+  // Lo del sitio pagado en el día sale de alguna caja: va en la misma columna
+  // que los otros gastos, para que el desglose sume lo mismo que el balance.
+  // (ver más abajo: gastoSitio solo existe cuando el sitio se paga en el día)
 
   // Todos los métodos que aparecen en cualquier columna
   const todosMetodos = Array.from(new Set([
@@ -221,12 +249,6 @@ export default function CuadreDia() {
   const totalPagadoPilotos = pagosAPilotos.reduce((s,p)=>s+p.monto,0)
   const totalExtrasIngreso = gastosExtras.filter(g=>g.tipo==='ingreso').reduce((s,g)=>s+g.monto,0)
   const totalExtrasGasto   = gastosExtras.filter(g=>g.tipo==='gasto').reduce((s,g)=>s+g.monto,0)
-  const totalVuelos        = pilotos.reduce((s,p)=>s+p.vuelos,0)
-  // Lo que cobra el lugar donde se voló. Sin sitios cargados no se descuenta nada.
-  const sitio              = sitios.find(x => x.id === sitioDelDia) ?? sitios.find(x => x.predeterminado) ?? null
-  const costoSitio         = sitio ? totalVuelos * sitio.costo : 0
-  const provisionVuelos    = sitio?.cuando === 'fin_de_mes' ? costoSitio : 0
-  const gastoSitio         = sitio?.cuando === 'al_momento'  ? costoSitio : 0
   const balance            = totalCobrado + totalExtrasIngreso - totalPagadoPilotos - totalExtrasGasto - provisionVuelos - gastoSitio
 
   const fechaDisplay = () => {
@@ -353,12 +375,24 @@ export default function CuadreDia() {
                     <option key={x.id} value={x.id}>{x.nombre} · {fmtCLP(x.costo)} por vuelo</option>
                   ))}
                 </select>
+                {sitio?.cuando === 'al_momento' && (
+                  <label className="block text-xs text-gray-500 font-semibold mt-3">
+                    Con qué se pagó
+                    <select
+                      value={sitioMetodo ?? ''}
+                      onChange={e => elegirMetodoSitio(e.target.value ? Number(e.target.value) : null)}
+                      className="w-full border border-[#d4e6f5] rounded-xl px-3 py-2.5 text-sm bg-white text-[#0d2b5c] mt-1">
+                      <option value="">Sin método</option>
+                      {metodosPago.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}
+                    </select>
+                  </label>
+                )}
                 {sitio && (
                   <p className="text-xs text-gray-500 mt-2">
                     {sitio.cuando === 'fin_de_mes'
-                      ? 'Se paga a fin de mes: se descuenta como provisión.'
-                      : 'Se paga en el día: se descuenta como gasto de la jornada.'}
-                    {' '}Lo cambias acá y el cuadre se rehace solo.
+                      ? 'Se paga a fin de mes: se descuenta como provisión, sin salir de ninguna caja.'
+                      : 'Se paga en el día: se descuenta como gasto y sale de la caja que elijas, así el desglose por método cuadra.'}
+                    {' '}No hay que anotarlo además como gasto: se contaría dos veces.
                   </p>
                 )}
               </div>
