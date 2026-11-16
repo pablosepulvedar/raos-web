@@ -19,6 +19,7 @@ type PilotoVuelo = {
 }
 type GastoExtra        = { id: number; descripcion: string; monto: number; tipo: 'ingreso' | 'gasto'; metodos_pago: { nombre: string } | null }
 type PagoPilotoDetalle = { perfil_id: string; nombre: string; metodo: string; monto: number }
+type Sitio = { id: number; nombre: string; costo: number; cuando: 'fin_de_mes' | 'al_momento'; predeterminado: boolean }
 type MetodoPago        = { id: number; nombre: string }
 
 const fmtH   = (v: number) => { const s = String(v).padStart(4,'0'); return `${s.slice(0,2)}:${s.slice(2)}` }
@@ -43,6 +44,9 @@ export default function CuadreDia() {
   const [reservas, setReservas]               = useState<ReservaDetalle[]>([])
   const [pilotos, setPilotos]                 = useState<PilotoVuelo[]>([])
   const [pagosAPilotos, setPagosAPilotos]     = useState<PagoPilotoDetalle[]>([])
+  // Dónde se voló: de ahí sale lo que cobra el lugar por vuelo
+  const [sitios, setSitios] = useState<Sitio[]>([])
+  const [sitioDelDia, setSitioDelDia] = useState<number | null>(null)
   const [gastosExtras, setGastosExtras]       = useState<GastoExtra[]>([])
 
   const [metodosPago, setMetodosPago]           = useState<MetodoPago[]>([])
@@ -126,14 +130,24 @@ export default function CuadreDia() {
     })))
 
     // Gastos extras
-    const [{ data: gastosData }, { data: metodosData }] = await Promise.all([
+    const [{ data: gastosData }, { data: metodosData }, { data: sitiosData }, { data: delDia }] = await Promise.all([
       sb.from('gastos_diarios').select('*, metodos_pago(nombre)').eq('fecha', fecha).order('created_at'),
       sb.from('metodos_pago').select('id, nombre').eq('activo', true).order('nombre'),
+      sb.from('sitios').select('id, nombre, costo, cuando, predeterminado').eq('activo', true).order('nombre'),
+      sb.from('dias_de_vuelo').select('sitio_id').eq('fecha', fecha).maybeSingle(),
     ])
     setGastosExtras((gastosData || []) as unknown as GastoExtra[])
     setMetodosPago((metodosData || []) as MetodoPago[])
+    setSitios((sitiosData || []) as Sitio[])
+    setSitioDelDia(delDia?.sitio_id ?? null)
 
     setLoading(false)
+  }
+
+  const elegirSitio = async (id: number | null) => {
+    setSitioDelDia(id)
+    if (id === null) await sb.from('dias_de_vuelo').delete().eq('fecha', fecha)
+    else await sb.from('dias_de_vuelo').upsert({ fecha, sitio_id: id }, { onConflict: 'empresa_id,fecha' })
   }
 
   const agregarGasto = async () => {
@@ -208,8 +222,12 @@ export default function CuadreDia() {
   const totalExtrasIngreso = gastosExtras.filter(g=>g.tipo==='ingreso').reduce((s,g)=>s+g.monto,0)
   const totalExtrasGasto   = gastosExtras.filter(g=>g.tipo==='gasto').reduce((s,g)=>s+g.monto,0)
   const totalVuelos        = pilotos.reduce((s,p)=>s+p.vuelos,0)
-  const provisionVuelos    = totalVuelos * 15000
-  const balance            = totalCobrado + totalExtrasIngreso - totalPagadoPilotos - totalExtrasGasto - provisionVuelos
+  // Lo que cobra el lugar donde se voló. Sin sitios cargados no se descuenta nada.
+  const sitio              = sitios.find(x => x.id === sitioDelDia) ?? sitios.find(x => x.predeterminado) ?? null
+  const costoSitio         = sitio ? totalVuelos * sitio.costo : 0
+  const provisionVuelos    = sitio?.cuando === 'fin_de_mes' ? costoSitio : 0
+  const gastoSitio         = sitio?.cuando === 'al_momento'  ? costoSitio : 0
+  const balance            = totalCobrado + totalExtrasIngreso - totalPagadoPilotos - totalExtrasGasto - provisionVuelos - gastoSitio
 
   const fechaDisplay = () => {
     const d = new Date(fecha+'T12:00:00')
@@ -319,6 +337,32 @@ export default function CuadreDia() {
                 </div>
               )}
             </div>
+
+            {/* ── Dónde se voló: decide lo que cobra el lugar ── */}
+            {sitios.length > 0 && (
+              <div className={sectionCls}>
+                <p className={titleCls}>🏔️ Dónde se voló</p>
+                <select
+                  value={sitioDelDia ?? ''}
+                  onChange={e => elegirSitio(e.target.value ? Number(e.target.value) : null)}
+                  className="w-full border border-[#d4e6f5] rounded-xl px-3 py-2.5 text-sm bg-white text-[#0d2b5c]">
+                  <option value="">
+                    El de siempre{sitios.find(x => x.predeterminado) ? ` (${sitios.find(x => x.predeterminado)!.nombre})` : ''}
+                  </option>
+                  {sitios.map(x => (
+                    <option key={x.id} value={x.id}>{x.nombre} · {fmtCLP(x.costo)} por vuelo</option>
+                  ))}
+                </select>
+                {sitio && (
+                  <p className="text-xs text-gray-500 mt-2">
+                    {sitio.cuando === 'fin_de_mes'
+                      ? 'Se paga a fin de mes: se descuenta como provisión.'
+                      : 'Se paga en el día: se descuenta como gasto de la jornada.'}
+                    {' '}Lo cambias acá y el cuadre se rehace solo.
+                  </p>
+                )}
+              </div>
+            )}
 
             {/* ── Otros gastos / ingresos ── */}
             <div className={sectionCls}>
@@ -567,14 +611,18 @@ export default function CuadreDia() {
                     <span className="text-red-400 font-bold text-sm">− {fmtCLP(totalExtrasGasto)}</span>
                   </div>
                 )}
-                {totalVuelos > 0 && (
+                {totalVuelos > 0 && sitio && (
                   <div className="flex justify-between items-center py-1.5 px-2 rounded-lg mt-1"
                     style={{ background:'rgba(251,191,36,0.12)', border:'1px solid rgba(251,191,36,0.25)' }}>
                     <div>
-                      <span className="text-yellow-300 text-xs font-semibold">Provisión fin de mes</span>
-                      <span className="text-yellow-300/60 text-[10px] ml-1">({totalVuelos} vuelo{totalVuelos!==1?'s':''} × $15.000)</span>
+                      <span className="text-yellow-300 text-xs font-semibold">
+                        {sitio.cuando === 'fin_de_mes' ? 'Provisión fin de mes' : 'Lo del sitio, pagado en el día'}
+                      </span>
+                      <span className="text-yellow-300/60 text-[10px] ml-1">
+                        ({sitio.nombre}: {totalVuelos} × {fmtCLP(sitio.costo)})
+                      </span>
                     </div>
-                    <span className="text-yellow-300 font-bold text-xs">− {fmtCLP(provisionVuelos)}</span>
+                    <span className="text-yellow-300 font-bold text-xs">− {fmtCLP(costoSitio)}</span>
                   </div>
                 )}
                 {saldoPendiente > 0 && (

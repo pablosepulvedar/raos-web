@@ -5,6 +5,7 @@ const menuItems = [
   { href: '/varios/horarios', icon: '🕒', label: 'Horarios', desc: 'Configuración de horarios' },
   { href: '/varios/valores', icon: '💲', label: 'Valores', desc: 'Configuración de valores' },
   { href: '/varios/roles', icon: '🛡️', label: 'Roles', desc: 'Agregar y gestionar roles' },
+  { href: '/varios/sitios', icon: '🏔️', label: 'Sitios', desc: 'Dónde operas y cuánto cobra cada lugar' },
   { href: '/varios/metodos_pago', icon: '💳', label: 'Métodos de pago', desc: 'Formas de pago disponibles' },
   { href: '/varios/pagos', icon: '🔗', label: 'Cobro en línea', desc: 'Conecta Mercado Pago y manda links de pago' },
   { href: '/varios/calendar', icon: '📅', label: 'Google Calendar', desc: 'Conecta tu calendario y define cómo se leen tus eventos' },
