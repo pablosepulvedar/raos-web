@@ -115,6 +115,9 @@ export default function Pilotos() {
     const { data: rps } = await sb
       .from('reservas_personas')
       .select('id, reserva_id, perfil_id, nombre, camara_normal, camara_360, camara_promo, cumpleanero, perfiles(id, nombre)')
+      // En el orden en que el guía los fue tomando, que es como salió el día.
+      // Lo viejo, sin marca, queda al final por id (es lo único que se sabe de él).
+      .order('asignado_at', { nullsFirst: false })
       .order('id')
       .in('reserva_id', reservas.map((r:any)=>r.id))
       .not('perfil_id','is',null)
