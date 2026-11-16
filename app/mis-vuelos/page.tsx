@@ -239,12 +239,12 @@ export default function MisVuelos() {
               placeholder="Nombre" className={campo} />
           </label>
           <div className="flex gap-3">
-            <label className={etiqueta + ' flex-1'}>Cámara
+            <label className={etiqueta + ' flex-1 min-w-0'}>Cámara
               <select value={form.camara} onChange={e => set('camara')(e.target.value)} className={campo + ' bg-white'}>
                 {CAMARAS.map(c => <option key={c.valor} value={c.valor}>{c.texto}</option>)}
               </select>
             </label>
-            <label className={etiqueta + ' flex-1'}>Valor
+            <label className={etiqueta + ' flex-1 min-w-0'}>Valor
               <InputMonto value={form.valor} onChange={set('valor')} placeholder="$" className={campo} />
             </label>
           </div>
@@ -252,24 +252,24 @@ export default function MisVuelos() {
       )}
 
       <div className="flex gap-3">
-        <label className={etiqueta + ' flex-1'}>Minutos
+        <label className={etiqueta + ' flex-1 min-w-0'}>Minutos
           <input value={form.minutos} onChange={e => set('minutos')(e.target.value.replace(/\D/g, ''))}
             inputMode="numeric" placeholder="10" className={campo} />
         </label>
-        <label className={etiqueta + ' flex-1'}>Tipo
+        <label className={etiqueta + ' flex-1 min-w-0'}>Tipo
           <select value={form.tipo} onChange={e => set('tipo')(e.target.value)} className={campo + ' bg-white'}>
             {TIPOS.map(t => <option key={t.valor} value={t.valor}>{t.texto}</option>)}
           </select>
         </label>
       </div>
       <div className="flex gap-3">
-        <label className={etiqueta + ' flex-1'}>Despegue
+        <label className={etiqueta + ' flex-1 min-w-0'}>Despegue
           <input value={form.sitio} onChange={e => set('sitio')(e.target.value)}
             placeholder="Sitio" className={campo} />
         </label>
         {/* La vela se elige de las suyas (Mi cuenta). Sin velas cargadas, no hay campo. */}
         {(velas.length > 0 || form.vela) && (
-          <label className={etiqueta + ' flex-1'}>Vela
+          <label className={etiqueta + ' flex-1 min-w-0'}>Vela
             <select value={form.vela} onChange={e => set('vela')(e.target.value)} className={campo + ' bg-white'}>
               <option value="">Sin anotar</option>
               {[...new Set([...velas.map(v2 => v2.label), ...(form.vela ? [form.vela] : [])])].map(v2 => (

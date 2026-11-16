@@ -119,6 +119,18 @@
 }
 
 @layer base {
+  /* iPhone. El campo de fecha de iOS trae un ancho propio del sistema que no se
+     encoge: cuando van dos en una fila (Desde / Hasta) el segundo se monta sobre
+     el primero. Con esto se deja achicar hasta lo que mida su columna. */
+  input[type="date"],
+  input[type="time"],
+  input[type="datetime-local"] {
+    -webkit-appearance: none;
+    appearance: none;
+    min-width: 0;
+    max-width: 100%;
+  }
+
   * {
     @apply border-border outline-ring/50;
   }

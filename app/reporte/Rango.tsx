@@ -47,12 +47,12 @@ export default function Rango({ valor, onCambiar, conAnios }:
         })}
       </div>
       <div className="flex items-center gap-2">
-        <label className="flex-1 text-xs text-gray-500 font-semibold">Desde
+        <label className="flex-1 min-w-0 text-xs text-gray-500 font-semibold">Desde
           <input type="date" value={valor.desde} max={valor.hasta}
             onChange={e => onCambiar({ ...valor, desde: e.target.value })}
             className="w-full mt-1 border border-gray-300 rounded-xl px-3 py-2 text-sm text-gray-800" />
         </label>
-        <label className="flex-1 text-xs text-gray-500 font-semibold">Hasta
+        <label className="flex-1 min-w-0 text-xs text-gray-500 font-semibold">Hasta
           <input type="date" value={valor.hasta} min={valor.desde}
             onChange={e => onCambiar({ ...valor, hasta: e.target.value })}
             className="w-full mt-1 border border-gray-300 rounded-xl px-3 py-2 text-sm text-gray-800" />

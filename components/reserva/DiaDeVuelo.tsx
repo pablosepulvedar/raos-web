@@ -294,10 +294,10 @@ export default function DiaDeVuelo() {
   return (
     <main className="max-w-lg mx-auto pb-28 px-4 pt-4 space-y-3">
       {modal && (
-        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center md:p-4">
+        <div className="fixed inset-0 h-[100dvh] z-50 flex items-end md:items-center justify-center md:p-4">
           <div className="absolute inset-0 bg-black/60" onClick={() => { setModal(null); cargar() }} />
           <div className="relative w-full max-w-2xl rounded-t-2xl md:rounded-2xl overflow-hidden flex flex-col shadow-2xl"
-            style={{ maxHeight: '92vh', background: 'linear-gradient(160deg,#e8f2ff 0%,#d0e6ff 100%)' }}>
+            style={{ maxHeight: '92dvh', background: 'linear-gradient(160deg,#e8f2ff 0%,#d0e6ff 100%)' }}>
             <div className="flex items-center gap-3 px-5 py-4 shrink-0"
               style={{ background: 'linear-gradient(135deg,#0d2b5c 0%,#1a4a85 100%)' }}>
               <span className="text-white font-extrabold text-base flex-1">
@@ -306,7 +306,7 @@ export default function DiaDeVuelo() {
               <button onClick={() => { setModal(null); cargar() }} aria-label="Cerrar"
                 className="text-[#7aafd4] hover:text-white text-2xl leading-none">×</button>
             </div>
-            <div className="overflow-y-auto flex-1">
+            <div className="overflow-y-auto flex-1 pb-[env(safe-area-inset-bottom)]">
               <DetalleContent id={String(modal.id)} soloPagos={modal.soloPagos} onSave={cargar}
                 onDelete={() => { setModal(null); cargar() }} />
             </div>
@@ -314,15 +314,15 @@ export default function DiaDeVuelo() {
         </div>
       )}
       {eligePiloto && (
-        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center md:p-4" onClick={() => setEligePiloto(null)}>
+        <div className="fixed inset-0 h-[100dvh] z-50 flex items-end md:items-center justify-center md:p-4" onClick={() => setEligePiloto(null)}>
           <div className="absolute inset-0 bg-black/60" />
-          <div className="relative w-full max-w-sm bg-white rounded-t-2xl md:rounded-2xl shadow-2xl max-h-[80vh] flex flex-col"
+          <div className="relative w-full max-w-sm bg-white rounded-t-2xl md:rounded-2xl shadow-2xl max-h-[80dvh] flex flex-col"
             onClick={e => e.stopPropagation()}>
             <div className="flex items-center px-5 pt-4 pb-3 border-b border-gray-100">
               <p className="flex-1 text-[#0d2b5c] font-bold">{May(j.operador)} de {eligePiloto.nombre}</p>
               <button onClick={() => setEligePiloto(null)} aria-label="Cerrar" className="text-gray-400 hover:text-gray-700 text-lg">✕</button>
             </div>
-            <div className="overflow-y-auto p-3 space-y-1.5">
+            <div className="overflow-y-auto p-3 space-y-1.5 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
               {pilotos.map(pl => {
                 const elegido = pl.id === eligePiloto.perfil_id
                 return (
@@ -359,7 +359,7 @@ export default function DiaDeVuelo() {
         const valor = valores.find(v => camaraDelServicio(v.servicio) === op)
         const elegir = (promo: boolean) => { setEligeCobro(null); fijarCamara(p, op, promo) }
         return (
-          <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center md:p-4" onClick={() => setEligeCobro(null)}>
+          <div className="fixed inset-0 h-[100dvh] z-50 flex items-end md:items-center justify-center md:p-4" onClick={() => setEligeCobro(null)}>
             <div className="absolute inset-0 bg-black/60" />
             <div className="relative w-full max-w-sm bg-white rounded-t-2xl md:rounded-2xl shadow-2xl"
               onClick={e => e.stopPropagation()}>
@@ -369,7 +369,7 @@ export default function DiaDeVuelo() {
                 </p>
                 <button onClick={() => setEligeCobro(null)} aria-label="Cerrar" className="text-gray-400 hover:text-gray-700 text-lg">✕</button>
               </div>
-              <div className="p-3 space-y-1.5">
+              <div className="p-3 space-y-1.5 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
                 {valor ? (
                   <button onClick={() => elegir(false)}
                     className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left text-sm font-semibold bg-gray-50 text-[#0d2b5c] hover:bg-blue-50">
