@@ -48,6 +48,8 @@ export default function CuadreDia() {
   const [sitios, setSitios] = useState<Sitio[]>([])
   const [sitioDelDia, setSitioDelDia] = useState<number | null>(null)
   const [sitioMetodo, setSitioMetodo] = useState<number | null>(null)
+  // null = lo que diga el sitio; el día puede salirse de lo habitual
+  const [sitioCuando, setSitioCuando] = useState<'fin_de_mes' | 'al_momento' | null>(null)
   const [gastosExtras, setGastosExtras]       = useState<GastoExtra[]>([])
 
   const [metodosPago, setMetodosPago]           = useState<MetodoPago[]>([])
@@ -135,32 +137,49 @@ export default function CuadreDia() {
       sb.from('gastos_diarios').select('*, metodos_pago(nombre)').eq('fecha', fecha).order('created_at'),
       sb.from('metodos_pago').select('id, nombre').eq('activo', true).order('nombre'),
       sb.from('sitios').select('id, nombre, costo, cuando, predeterminado').eq('activo', true).order('nombre'),
-      sb.from('dias_de_vuelo').select('sitio_id, metodo_pago_id').eq('fecha', fecha).maybeSingle(),
+      sb.from('dias_de_vuelo').select('sitio_id, metodo_pago_id, cuando').eq('fecha', fecha).maybeSingle(),
     ])
     setGastosExtras((gastosData || []) as unknown as GastoExtra[])
     setMetodosPago((metodosData || []) as MetodoPago[])
     setSitios((sitiosData || []) as Sitio[])
     setSitioDelDia(delDia?.sitio_id ?? null)
     setSitioMetodo(delDia?.metodo_pago_id ?? null)
+    setSitioCuando((delDia?.cuando as 'fin_de_mes' | 'al_momento' | null) ?? null)
 
     setLoading(false)
   }
 
+  // Lo del día se guarda junto: el sitio, cuándo se pagó y con qué
+  const guardarDia = async (cambio: Partial<{ sitio_id: number; metodo_pago_id: number | null; cuando: string | null }>) => {
+    const sitioId = cambio.sitio_id ?? sitioDelDia ?? sitios.find(x => x.predeterminado)?.id
+    if (!sitioId) return
+    await sb.from('dias_de_vuelo').upsert({
+      fecha, sitio_id: sitioId,
+      metodo_pago_id: 'metodo_pago_id' in cambio ? cambio.metodo_pago_id : sitioMetodo,
+      cuando: 'cuando' in cambio ? cambio.cuando : sitioCuando,
+    }, { onConflict: 'empresa_id,fecha' })
+    if (sitioDelDia === null) setSitioDelDia(sitioId)
+  }
+
   const elegirSitio = async (id: number | null) => {
     setSitioDelDia(id)
-    if (id === null) { setSitioMetodo(null); await sb.from('dias_de_vuelo').delete().eq('fecha', fecha) }
-    else await sb.from('dias_de_vuelo')
-      .upsert({ fecha, sitio_id: id, metodo_pago_id: sitioMetodo }, { onConflict: 'empresa_id,fecha' })
+    if (id === null) {
+      setSitioMetodo(null); setSitioCuando(null)
+      await sb.from('dias_de_vuelo').delete().eq('fecha', fecha)
+    } else await guardarDia({ sitio_id: id })
   }
 
   // Con qué se pagó el lugar: así el desglose por método cuadra con el balance
   const elegirMetodoSitio = async (id: number | null) => {
     setSitioMetodo(id)
-    const sitioId = sitioDelDia ?? sitios.find(x => x.predeterminado)?.id
-    if (!sitioId) return
-    await sb.from('dias_de_vuelo')
-      .upsert({ fecha, sitio_id: sitioId, metodo_pago_id: id }, { onConflict: 'empresa_id,fecha' })
-    if (sitioDelDia === null) setSitioDelDia(sitioId)
+    await guardarDia({ metodo_pago_id: id })
+  }
+
+  // Ese día, ¿se pagó o quedó debiéndose?
+  const elegirCuando = async (valor: 'fin_de_mes' | 'al_momento') => {
+    setSitioCuando(valor)
+    if (valor === 'fin_de_mes') setSitioMetodo(null)
+    await guardarDia({ cuando: valor, ...(valor === 'fin_de_mes' ? { metodo_pago_id: null } : {}) })
   }
 
   const agregarGasto = async () => {
@@ -201,8 +220,9 @@ export default function CuadreDia() {
   const totalVuelos     = pilotos.reduce((s,p)=>s+p.vuelos,0)
   const sitio           = sitios.find(x => x.id === sitioDelDia) ?? sitios.find(x => x.predeterminado) ?? null
   const costoSitio      = sitio ? totalVuelos * sitio.costo : 0
-  const provisionVuelos = sitio?.cuando === 'fin_de_mes' ? costoSitio : 0
-  const gastoSitio      = sitio?.cuando === 'al_momento'  ? costoSitio : 0
+  const cuandoSePaga    = sitioCuando ?? sitio?.cuando ?? null
+  const provisionVuelos = cuandoSePaga === 'fin_de_mes' ? costoSitio : 0
+  const gastoSitio      = cuandoSePaga === 'al_momento'  ? costoSitio : 0
   const metodoSitio     = metodosPago.find(m => m.id === sitioMetodo)?.nombre ?? 'Sin método'
 
   // Cobros de clientes por método + extras ingresos
@@ -375,7 +395,23 @@ export default function CuadreDia() {
                     <option key={x.id} value={x.id}>{x.nombre} · {fmtCLP(x.costo)} por vuelo</option>
                   ))}
                 </select>
-                {sitio?.cuando === 'al_momento' && (
+                {sitio && (
+                  <>
+                    <p className="text-xs text-gray-500 font-semibold mt-3 mb-1">Ese día se pagó</p>
+                    <div className="flex gap-2">
+                      {([['al_momento', 'En el día'], ['fin_de_mes', 'Queda para fin de mes']] as const).map(([valor, texto]) => (
+                        <button key={valor} onClick={() => elegirCuando(valor)}
+                          className="flex-1 py-2 rounded-xl text-xs font-bold transition-all"
+                          style={cuandoSePaga === valor
+                            ? { background: '#1a4a85', color: 'white' }
+                            : { background: '#eef4fb', color: '#1a4a85' }}>
+                          {texto}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+                {cuandoSePaga === 'al_momento' && (
                   <label className="block text-xs text-gray-500 font-semibold mt-3">
                     Con qué se pagó
                     <select
@@ -389,9 +425,9 @@ export default function CuadreDia() {
                 )}
                 {sitio && (
                   <p className="text-xs text-gray-500 mt-2">
-                    {sitio.cuando === 'fin_de_mes'
-                      ? 'Se paga a fin de mes: se descuenta como provisión, sin salir de ninguna caja.'
-                      : 'Se paga en el día: se descuenta como gasto y sale de la caja que elijas, así el desglose por método cuadra.'}
+                    {cuandoSePaga === 'fin_de_mes'
+                      ? 'Queda para fin de mes: se descuenta como provisión, sin salir de ninguna caja.'
+                      : 'Pagado en el día: se descuenta como gasto y sale de la caja que elijas, así el desglose por método cuadra.'}
                     {' '}No hay que anotarlo además como gasto: se contaría dos veces.
                   </p>
                 )}
@@ -650,7 +686,7 @@ export default function CuadreDia() {
                     style={{ background:'rgba(251,191,36,0.12)', border:'1px solid rgba(251,191,36,0.25)' }}>
                     <div>
                       <span className="text-yellow-300 text-xs font-semibold">
-                        {sitio.cuando === 'fin_de_mes' ? 'Provisión fin de mes' : 'Lo del sitio, pagado en el día'}
+                        {cuandoSePaga === 'fin_de_mes' ? 'Provisión fin de mes' : 'Lo del sitio, pagado en el día'}
                       </span>
                       <span className="text-yellow-300/60 text-[10px] ml-1">
                         ({sitio.nombre}: {totalVuelos} × {fmtCLP(sitio.costo)})
